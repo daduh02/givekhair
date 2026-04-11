@@ -1,80 +1,86 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   * { box-sizing: border-box; }
-
-  body {
-    background-color: #F6F1E8;
-    color: #233029;
-    font-family: ui-sans-serif, system-ui, sans-serif;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    color: #233029;
-  }
-
-  :focus-visible {
-    outline: 2px solid #1E8C6E;
-    outline-offset: 2px;
-  }
-
-  .progress-bar {
-    @apply h-2 rounded-full overflow-hidden;
-    background-color: #D4C9B0;
-  }
-  .progress-fill {
-    @apply h-full rounded-full transition-all duration-500;
-    background-color: #1E8C6E;
-  }
+  body { background-color: #F6F1E8; color: #233029; }
+  :focus-visible { outline: 2px solid #1E8C6E; outline-offset: 2px; }
 }
 
 @layer components {
+  .progress-bar {
+    height: 0.5rem;
+    border-radius: 9999px;
+    overflow: hidden;
+    background-color: #D4C9B0;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background-color: #1E8C6E;
+    transition: width 0.5s ease;
+  }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    padding: 0.75rem 1.5rem;
     background-color: #1E8C6E;
     color: #F6F1E8;
+    transition: filter 0.15s;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-primary:hover { filter: brightness(0.92); }
+  .btn-primary:disabled { opacity: 0.5; }
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 600;
     border-radius: 9999px;
     padding: 0.75rem 1.5rem;
-  }
-  .btn-primary:hover { filter: brightness(0.93); }
-
-  .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50;
     border: 2px solid rgba(18,78,64,0.25);
     color: #1E8C6E;
-    border-radius: 9999px;
-    padding: 0.75rem 1.5rem;
     background: transparent;
+    transition: background 0.15s;
+    cursor: pointer;
   }
   .btn-outline:hover { background-color: rgba(30,140,110,0.06); }
-
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 transition-colors;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     color: #3A4A42;
     border-radius: 0.5rem;
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
   }
   .btn-ghost:hover { background-color: rgba(18,78,64,0.07); }
-
   .card {
     background: white;
     border-radius: 1rem;
     box-shadow: 0 4px 24px rgba(18,78,64,0.08);
     padding: 1.5rem;
   }
-
   .input {
-    @apply block w-full;
+    display: block;
+    width: 100%;
     border: 1px solid rgba(18,78,64,0.3);
     border-radius: 0.75rem;
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
     color: #233029;
     background: white;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
   .input:focus {
     outline: none;
@@ -82,17 +88,9 @@
     box-shadow: 0 0 0 3px rgba(30,140,110,0.12);
   }
   .input::placeholder { color: #8A9E94; }
-
-  .badge-green  { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; background:#1E8C6E22; color:#124E40; }
-  .badge-amber  { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; background:#D4A24C22; color:#7A5010; }
-  .badge-blue   { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; background:#3B82F622; color:#1E3A5F; }
-  .badge-gray   { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; background:#3A4A4222; color:#3A4A42; }
-  .badge-red    { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; background:#EF444422; color:#7F1D1D; }
-
-  .section-card {
-    background: white;
-    border-radius: 1.25rem;
-    box-shadow: 0 4px 24px rgba(18,78,64,0.08);
-    padding: 1.5rem;
-  }
+  .badge-green { display:inline-flex; align-items:center; border-radius:9999px; padding:0.125rem 0.625rem; font-size:0.75rem; font-weight:600; background:rgba(30,140,110,0.13); color:#124E40; }
+  .badge-amber { display:inline-flex; align-items:center; border-radius:9999px; padding:0.125rem 0.625rem; font-size:0.75rem; font-weight:600; background:rgba(212,162,76,0.13); color:#7A5010; }
+  .badge-blue  { display:inline-flex; align-items:center; border-radius:9999px; padding:0.125rem 0.625rem; font-size:0.75rem; font-weight:600; background:rgba(59,130,246,0.13); color:#1E3A5F; }
+  .badge-gray  { display:inline-flex; align-items:center; border-radius:9999px; padding:0.125rem 0.625rem; font-size:0.75rem; font-weight:600; background:rgba(58,74,66,0.13); color:#3A4A42; }
+  .badge-red   { display:inline-flex; align-items:center; border-radius:9999px; padding:0.125rem 0.625rem; font-size:0.75rem; font-weight:600; background:rgba(239,68,68,0.13); color:#7F1D1D; }
 }
