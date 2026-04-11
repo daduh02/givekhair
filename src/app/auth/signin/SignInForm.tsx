@@ -6,7 +6,8 @@ import { useSearchParams } from "next/navigation";
 
 export default function SignInForm() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  // Default callbackUrl to /admin — works for charity admins
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/admin";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,8 +43,6 @@ export default function SignInForm() {
         </div>
 
         <div className="rounded-2xl bg-white p-6" style={{ boxShadow: "0 4px 24px rgba(18,78,64,0.1)" }}>
-
-          {/* Google button */}
           <button
             type="button"
             onClick={handleGoogle}
@@ -90,8 +89,7 @@ export default function SignInForm() {
         </div>
 
         <p className="mt-4 text-center text-xs" style={{ color: "#8A9E94" }}>
-          Don't have an account?{" "}
-          <a href="/auth/register" style={{ color: "#1E8C6E" }}>Register</a>
+          Questions? <a href="mailto:hello@givekhair.com" style={{ color: "#1E8C6E" }}>Get in touch</a>
         </p>
       </div>
     </div>
