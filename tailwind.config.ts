@@ -8,16 +8,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        green: {
-          50:  "#E1F5EE",
-          100: "#9FE1CB",
-          200: "#5DCAA5",
-          500: "#1D9E75",
-          600: "#0F6E56",
-          700: "#0F6E56",
-          800: "#085041",
-          900: "#04342C",
+        brand: {
+          bg:      "#F6F1E8",
+          dark:    "#124E40",
+          DEFAULT: "#1E8C6E",
+          light:   "#D4EDE5",
+          text:    "#233029",
+          muted:   "#3A4A42",
+          gold:    "#D4A24C",
         },
+      },
+      fontFamily: {
+        sans: ["ui-sans-serif", "system-ui", "sans-serif"],
+        serif: ["ui-serif", "Georgia", "serif"],
+      },
+      borderRadius: {
+        xl:  "1rem",
+        "2xl": "1.25rem",
+      },
+      boxShadow: {
+        card: "0 4px 24px rgba(18,78,64,0.08)",
       },
     },
   },

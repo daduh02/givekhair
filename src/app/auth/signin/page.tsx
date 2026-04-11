@@ -16,32 +16,33 @@ export default function SignInPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const res = await signIn("credentials", {
-      email,
-      password,
-      callbackUrl,
-      redirect: false,
-    });
+    const res = await signIn("credentials", { email, password, callbackUrl, redirect: false });
     setLoading(false);
     if (res?.error) setError("Invalid email or password.");
     else window.location.href = callbackUrl;
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center px-4" style={{ background: "#F6F1E8" }}>
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-green-700">giveKhair</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to your account</p>
+          <div className="inline-flex items-center gap-2.5 mb-3">
+            <span className="grid h-10 w-10 place-items-center rounded-xl" style={{ background: "#124E40" }}>
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="#F6F1E8" strokeWidth="2">
+                <path d="M12 20s-7-4.5-7-9.5A4.5 4.5 0 0 1 9.5 6c1.6 0 2.6.8 3.5 2 0 0 .9-2 3.5-2A4.5 4.5 0 0 1 19 10.5C19 15.5 12 20 12 20Z" />
+              </svg>
+            </span>
+            <span className="text-xl font-bold" style={{ color: "#233029" }}>GiveKhair</span>
+          </div>
+          <p className="text-sm" style={{ color: "#3A4A42" }}>Sign in to your account</p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          {/* Google */}
-          <button
-            onClick={() => signIn("google", { callbackUrl })}
-            className="mb-4 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
+        <div className="rounded-2xl bg-white p-6" style={{ boxShadow: "0 4px 24px rgba(18,78,64,0.1)" }}>
+          <button onClick={() => signIn("google", { callbackUrl })}
+            className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors"
+            style={{ border: "1px solid rgba(18,78,64,0.2)", color: "#233029", background: "white" }}
+            onMouseOver={e => (e.currentTarget.style.background = "#F6F1E8")}
+            onMouseOut={e => (e.currentTarget.style.background = "white")}>
             <svg width="18" height="18" viewBox="0 0 18 18">
               <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
               <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/>
@@ -53,63 +54,36 @@ export default function SignInPage() {
 
           <div className="relative mb-4">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+              <div className="w-full" style={{ borderTop: "1px solid rgba(18,78,64,0.12)" }} />
             </div>
-            <div className="relative flex justify-center text-xs text-gray-400">
-              <span className="bg-white px-2">or</span>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-2 text-xs" style={{ color: "#8A9E94" }}>or</span>
             </div>
           </div>
 
-          {/* Email/password */}
           <form onSubmit={handleCredentials} className="space-y-3">
             {error && (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-                {error}
-              </p>
+              <p className="rounded-xl px-3 py-2 text-xs" style={{ background: "#FEE2E2", color: "#991B1B" }}>{error}</p>
             )}
             <div>
-              <label htmlFor="email" className="mb-1 block text-xs font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-                placeholder="you@example.com"
-              />
+              <label htmlFor="email" className="mb-1 block text-xs font-semibold" style={{ color: "#3A4A42" }}>Email</label>
+              <input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                className="input" placeholder="you@example.com" />
             </div>
             <div>
-              <label htmlFor="password" className="mb-1 block text-xs font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-                placeholder="••••••••"
-              />
+              <label htmlFor="password" className="mb-1 block text-xs font-semibold" style={{ color: "#3A4A42" }}>Password</label>
+              <input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)}
+                className="input" placeholder="••••••••" />
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-green-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-50 transition-colors"
-            >
+            <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
         </div>
 
-        <p className="mt-4 text-center text-xs text-gray-400">
+        <p className="mt-4 text-center text-xs" style={{ color: "#8A9E94" }}>
           Don't have an account?{" "}
-          <a href="/auth/register" className="text-green-600 hover:underline">
-            Register
-          </a>
+          <a href="/auth/register" style={{ color: "#1E8C6E" }}>Register</a>
         </p>
       </div>
     </div>

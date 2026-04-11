@@ -15,11 +15,7 @@ const CATEGORIES = [
   { label: "Environment", slug: "environment" },
 ];
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: { category?: string; q?: string };
-}) {
+export default async function HomePage({ searchParams }: { searchParams: { category?: string; q?: string } }) {
   const appeals = await db.appeal.findMany({
     where: {
       status: "ACTIVE",
@@ -35,18 +31,11 @@ export default async function HomePage({
     take: 24,
   });
 
-  // Aggregate raised amounts (online + offline) for each appeal
   const raisedMap: Record<string, number> = {};
   for (const appeal of appeals) {
     const [online, offline] = await Promise.all([
-      db.donation.aggregate({
-        where: { page: { appealId: appeal.id }, status: "CAPTURED" },
-        _sum: { amount: true },
-      }),
-      db.offlineDonation.aggregate({
-        where: { page: { appealId: appeal.id }, status: "APPROVED" },
-        _sum: { amount: true },
-      }),
+      db.donation.aggregate({ where: { page: { appealId: appeal.id }, status: "CAPTURED" }, _sum: { amount: true } }),
+      db.offlineDonation.aggregate({ where: { page: { appealId: appeal.id }, status: "APPROVED" }, _sum: { amount: true } }),
     ]);
     raisedMap[appeal.id] =
       parseFloat(online._sum.amount?.toString() ?? "0") +
@@ -54,80 +43,97 @@ export default async function HomePage({
   }
 
   return (
-    <>
+    <div style={{ minHeight: "100vh", background: "#F6F1E8" }}>
       <Navbar />
-      <main>
+      <main className="mx-auto max-w-6xl px-6">
+
         {/* Hero */}
-        <section className="bg-green-50 px-4 py-16 text-center sm:px-6">
-          <h1 className="mb-3 text-3xl font-semibold text-green-900 sm:text-4xl">
-            Give charity, give khair
+        <section className="py-14">
+          <span className="inline-block rounded-full px-3 py-1 text-sm font-semibold mb-4"
+            style={{ background: "rgba(30,140,110,0.1)", color: "#124E40" }}>
+            A world that cares.
+          </span>
+          <h1 className="text-4xl font-bold leading-tight mb-4 md:text-5xl" style={{ color: "#233029", maxWidth: "620px" }}>
+            Every act of <span style={{ color: "#1E8C6E" }}>Khair</span> is an act of care.
           </h1>
-          <p className="mb-8 text-base text-green-700">
+          <p className="text-lg mb-8" style={{ color: "#3A4A42", maxWidth: "560px" }}>
             Create a fundraising page, support a cause, or run your charity appeal.
             Gift Aid eligible and completely fee-transparent.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link href="/fundraise/new" className="btn-primary px-7 py-3 text-base">
-              Start fundraising
-            </Link>
-            <Link href="#appeals" className="btn-outline px-7 py-3 text-base">
-              Browse appeals
-            </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/fundraise/new" className="btn-primary">Start fundraising</Link>
+            <Link href="#appeals" className="btn-outline">Browse appeals</Link>
+            <span className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold"
+              style={{ background: "linear-gradient(135deg,#D4A24C,#EBCB86)", color: "#2B210E" }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#2B210E" }} />
+              UK Gift Aid eligible
+            </span>
           </div>
         </section>
 
         {/* Trust bar */}
-        <div className="border-y border-gray-100 bg-white px-4 py-4">
-          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
-            <span>🔒 PCI-DSS Level 1</span>
-            <span>🇬🇧 UK Gift Aid eligible</span>
-            <span>💸 Full fee transparency</span>
-            <span>♿ WCAG 2.2 AA</span>
-          </div>
+        <div className="flex flex-wrap gap-6 text-sm mb-10 pb-8" style={{ borderBottom: "1px solid rgba(18,78,64,0.12)", color: "#3A4A42" }}>
+          <span>🔒 PCI-DSS Level 1</span>
+          <span>🇬🇧 UK Gift Aid</span>
+          <span>💸 Full fee transparency</span>
+          <span>♿ WCAG 2.2 AA</span>
         </div>
 
-        {/* Appeals grid */}
-        <section id="appeals" className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-          {/* Category filter */}
-          <div className="mb-6 flex flex-wrap gap-2">
+        {/* Appeals */}
+        <section id="appeals" className="pb-16">
+          {/* Category pills */}
+          <div className="flex flex-wrap gap-2 mb-6">
             {CATEGORIES.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={cat.slug ? `/?category=${cat.slug}` : "/"}
-                className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
-                  (searchParams.category ?? "") === cat.slug
-                    ? "border-green-600 bg-green-50 text-green-800"
-                    : "border-gray-200 text-gray-600 hover:border-green-400"
-                }`}
-              >
+              <Link key={cat.slug} href={cat.slug ? `/?category=${cat.slug}` : "/"}
+                className="rounded-full px-4 py-1.5 text-sm font-medium transition-all"
+                style={{
+                  background: (searchParams.category ?? "") === cat.slug ? "#124E40" : "white",
+                  color: (searchParams.category ?? "") === cat.slug ? "#F6F1E8" : "#3A4A42",
+                  border: "1px solid rgba(18,78,64,0.18)",
+                }}>
                 {cat.label}
               </Link>
             ))}
           </div>
 
-          <h2 className="mb-5 text-lg font-medium text-gray-900">
-            {searchParams.q
-              ? `Results for "${searchParams.q}"`
-              : searchParams.category
+          <h2 className="text-xl font-bold mb-5" style={{ color: "#233029" }}>
+            {searchParams.q ? `Results for "${searchParams.q}"` : searchParams.category
               ? CATEGORIES.find((c) => c.slug === searchParams.category)?.label ?? "Appeals"
               : "Featured appeals"}
           </h2>
 
           {appeals.length === 0 ? (
-            <p className="py-16 text-center text-gray-400">No appeals found.</p>
+            <p className="py-16 text-center" style={{ color: "#3A4A42" }}>No appeals found.</p>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {appeals.map((appeal) => (
-                <AppealCard
-                  key={appeal.id}
+                <AppealCard key={appeal.id}
                   appeal={{ ...appeal, goalAmount: appeal.goalAmount.toString() }}
-                  raisedAmount={raisedMap[appeal.id] ?? 0}
-                />
+                  raisedAmount={raisedMap[appeal.id] ?? 0} />
               ))}
             </div>
           )}
         </section>
       </main>
-    </>
+
+      {/* Footer */}
+      <footer className="border-t py-8" style={{ borderColor: "rgba(18,78,64,0.12)", color: "#3A4A42" }}>
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 text-sm md:flex-row">
+          <span>© {new Date().getFullYear()} GiveKhair. All rights reserved.</span>
+          <div className="flex gap-2">
+            {["instagram.com/givekhair", "twitter.com/givekhair"].map((href) => (
+              <a key={href} href={`https://${href}`}
+                className="grid h-9 w-9 place-items-center rounded-lg"
+                style={{ background: "#124E40", color: "#F6F1E8" }}>
+                <span className="text-xs">↗</span>
+              </a>
+            ))}
+            <a href="mailto:hello@givekhair.com"
+              className="grid h-9 w-9 place-items-center rounded-lg"
+              style={{ background: "#124E40", color: "#F6F1E8" }}>✉</a>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
