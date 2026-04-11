@@ -9,66 +9,54 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-lg font-semibold text-green-700">giveKhair</span>
-          <span className="hidden rounded-full bg-green-50 px-2 py-0.5 text-xs text-green-600 sm:block">beta</span>
+    <nav style={{ background: "#F6F1E8", borderBottom: "1px solid rgba(18,78,64,0.12)" }}
+      className="sticky top-0 z-50">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+        <Link href="/" className="flex items-center gap-2.5 no-underline">
+          <span className="grid h-9 w-9 place-items-center rounded-xl" style={{ background: "#124E40" }}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="#F6F1E8" strokeWidth="2">
+              <path d="M12 20s-7-4.5-7-9.5A4.5 4.5 0 0 1 9.5 6c1.6 0 2.6.8 3.5 2 0 0 .9-2 3.5-2A4.5 4.5 0 0 1 19 10.5C19 15.5 12 20 12 20Z" />
+            </svg>
+          </span>
+          <span className="text-lg font-bold tracking-tight" style={{ color: "#233029" }}>GiveKhair</span>
         </Link>
 
-        {/* Search */}
         <div className="hidden max-w-xs flex-1 px-8 sm:block">
-          <input
-            type="search"
-            placeholder="Search appeals or charities..."
-            className="input h-9 text-sm"
-            aria-label="Search appeals"
-          />
+          <input type="search" placeholder="Search appeals or charities..." className="input h-9 text-sm" aria-label="Search appeals" />
         </div>
 
-        {/* Right actions */}
         <div className="flex items-center gap-2">
           {session ? (
             <>
-              <Link href="/fundraise/new" className="btn-primary hidden sm:inline-flex">
+              <Link href="/fundraise/new" className="btn-primary hidden sm:inline-flex" style={{ fontSize: "0.875rem", padding: "0.5rem 1.25rem" }}>
                 Start fundraising
               </Link>
               <div className="relative">
-                <button
-                  onClick={() => setMenuOpen(!menuOpen)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-sm font-medium text-green-800"
-                  aria-label="User menu"
-                  aria-expanded={menuOpen}
-                >
+                <button onClick={() => setMenuOpen(!menuOpen)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full font-semibold text-sm"
+                  style={{ background: "#1E8C6E22", color: "#124E40" }} aria-label="User menu">
                   {session.user.name?.charAt(0) ?? session.user.email.charAt(0).toUpperCase()}
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                    <div className="border-b border-gray-100 px-4 py-2">
-                      <p className="text-sm font-medium text-gray-900 truncate">{session.user.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{session.user.email}</p>
+                  <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white py-1 shadow-lg" style={{ border: "1px solid rgba(18,78,64,0.12)" }}>
+                    <div className="border-b px-4 py-2" style={{ borderColor: "rgba(18,78,64,0.1)" }}>
+                      <p className="text-sm font-semibold truncate" style={{ color: "#233029" }}>{session.user.name}</p>
+                      <p className="text-xs truncate" style={{ color: "#3A4A42" }}>{session.user.email}</p>
                     </div>
-                    <Link href="/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setMenuOpen(false)}>Dashboard</Link>
+                    <Link href="/dashboard" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Dashboard</Link>
                     {["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"].includes(session.user.role) && (
-                      <Link href="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setMenuOpen(false)}>Admin</Link>
+                      <Link href="/admin" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Admin</Link>
                     )}
-                    <Link href="/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setMenuOpen(false)}>Account settings</Link>
-                    <button
-                      onClick={() => signOut({ callbackUrl: "/" })}
-                      className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-50"
-                    >
-                      Sign out
-                    </button>
+                    <Link href="/account" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Account settings</Link>
+                    <button onClick={() => signOut({ callbackUrl: "/" })} className="block w-full px-4 py-2 text-left text-sm hover:bg-[#F6F1E8]" style={{ color: "#c0392b" }}>Sign out</button>
                   </div>
                 )}
               </div>
             </>
           ) : (
             <>
-              <Link href="/auth/signin" className="btn-ghost text-sm">Log in</Link>
-              <Link href="/auth/signin" className="btn-primary hidden sm:inline-flex">Start fundraising</Link>
+              <Link href="/auth/signin?callbackUrl=%2Fadmin" className="btn-ghost text-sm">Log in</Link>
+              <Link href="/auth/signin?callbackUrl=%2Fadmin" className="btn-primary hidden sm:inline-flex" style={{ fontSize: "0.875rem", padding: "0.5rem 1.25rem" }}>Start fundraising</Link>
             </>
           )}
         </div>

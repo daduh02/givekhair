@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const PROTECTED_PREFIXES = [
-  "/dashboard",
-  "/fundraise",
-  "/account",
-  "/admin",
-];
+const PROTECTED_PREFIXES = ["/admin", "/account", "/fundraise"];
 
 const ROLE_ROUTES: Record<string, string[]> = {
   "/admin": ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"],
@@ -24,14 +19,12 @@ export async function middleware(req: NextRequest) {
 
   if (!isProtected) return NextResponse.next();
 
-  const token = await getToken({
-    req,
-    secret: process.env.AUTH_SECRET,
-  });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
 
   if (!token) {
+    // Always redirect to /admin after sign-in for protected routes
     const signInUrl = new URL("/auth/signin", req.url);
-    signInUrl.searchParams.set("callbackUrl", pathname);
+    signInUrl.searchParams.set("callbackUrl", "/admin");
     return NextResponse.redirect(signInUrl);
   }
 
