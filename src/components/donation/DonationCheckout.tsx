@@ -38,7 +38,7 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
 
   const { data: fees, isLoading: feesLoading } = trpc.fees.preview.useQuery(
     { amount: effectiveAmount, charityId, donorCoversFees },
-    { enabled: effectiveAmount > 0, keepPreviousData: true }
+    { enabled: effectiveAmount > 0 }
   );
 
   const createIntent = trpc.donations.createIntent.useMutation({

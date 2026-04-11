@@ -44,10 +44,12 @@ export async function resolveActiveSchedule(
   // Prefer charity-specific schedule, fall back to platform default
   const schedule = await db.feeSchedule.findFirst({
     where: {
-      OR: [{ charityId }, { charityId: null }],
-      isActive: true,
-      validFrom: { lte: now },
-      OR: [{ validTo: null }, { validTo: { gte: now } }],
+      AND: [
+        { OR: [{ charityId }, { charityId: null }] },
+        { isActive: true },
+        { validFrom: { lte: now } },
+        { OR: [{ validTo: null }, { validTo: { gte: now } }] },
+      ],
     },
     include: { rules: { orderBy: { sortOrder: "asc" } } },
     orderBy: [{ charityId: "desc" }, { version: "desc" }],
