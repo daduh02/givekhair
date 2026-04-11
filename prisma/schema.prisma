@@ -1,0 +1,640 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// AUTH (Auth.js / NextAuth required tables)
+// ─────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────────
+// USERS & ROLES
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  DONOR
+  FUNDRAISER
+  TEAM_LEAD
+  CHARITY_ADMIN
+  FINANCE
+  PLATFORM_ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  passwordHash  String?
+  role          UserRole  @default(DONOR)
+  twoFactorEnabled Boolean @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  fundraisingPages  FundraisingPage[]
+  donations         Donation[]
+  offlineDonations  OfflineDonation[] @relation("OfflineDonationCreatedBy")
+  giftAidDeclarations GiftAidDeclaration[]
+  charityAdminOf    CharityAdmin[]
+  teamMemberships   TeamMember[]
+  uploadBatches     OfflineUploadBatch[]
+}
+
+// ─────────────────────────────────────────────
+// CHARITY
+// ─────────────────────────────────────────────
+
+model Charity {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  registrationNo  String?
+  description     String?  @db.Text
+  logoUrl         String?
+  bannerUrl       String?
+  websiteUrl      String?
+  countryCode     String   @default("GB")
+  isVerified      Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  admins          CharityAdmin[]
+  appeals         Appeal[]
+  bankAccounts    BankAccount[]
+  payoutBatches   PayoutBatch[]
+  giftAidClaims   GiftAidClaim[]
+  feeSchedules    FeeSchedule[]
+}
+
+model CharityAdmin {
+  id        String   @id @default(cuid())
+  userId    String
+  charityId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  charity Charity @relation(fields: [charityId], references: [id])
+
+  @@unique([userId, charityId])
+}
+
+// ─────────────────────────────────────────────
+// APPEAL & CATEGORY
+// ─────────────────────────────────────────────
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  iconUrl   String?
+  appeals   Appeal[]
+}
+
+enum AppealVisibility {
+  PUBLIC
+  UNLISTED
+  HIDDEN
+}
+
+enum AppealStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+model Appeal {
+  id           String           @id @default(cuid())
+  charityId    String
+  categoryId   String?
+  title        String
+  slug         String           @unique
+  story        String?          @db.Text
+  goalAmount   Decimal          @db.Decimal(12, 2)
+  currency     String           @default("GBP")
+  startsAt     DateTime?
+  endsAt       DateTime?
+  bannerUrl    String?
+  visibility   AppealVisibility @default(PUBLIC)
+  status       AppealStatus     @default(DRAFT)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  charity          Charity          @relation(fields: [charityId], references: [id])
+  category         Category?        @relation(fields: [categoryId], references: [id])
+  teams            Team[]
+  fundraisingPages FundraisingPage[]
+  offlineUploads   OfflineUploadBatch[]
+}
+
+// ─────────────────────────────────────────────
+// TEAMS
+// ─────────────────────────────────────────────
+
+model Team {
+  id          String   @id @default(cuid())
+  appealId    String
+  name        String
+  slug        String
+  description String?  @db.Text
+  goalAmount  Decimal? @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  appeal   Appeal       @relation(fields: [appealId], references: [id])
+  members  TeamMember[]
+  pages    FundraisingPage[]
+
+  @@unique([appealId, slug])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  isLead    Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([teamId, userId])
+}
+
+// ─────────────────────────────────────────────
+// FUNDRAISING PAGES
+// ─────────────────────────────────────────────
+
+enum PageStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  ENDED
+}
+
+enum PageVisibility {
+  PUBLIC
+  UNLISTED
+  HIDDEN
+}
+
+model FundraisingPage {
+  id          String         @id @default(cuid())
+  userId      String
+  appealId    String
+  teamId      String?
+  title       String
+  shortName   String         @unique
+  story       String?        @db.Text
+  targetAmount Decimal?      @db.Decimal(12, 2)
+  currency    String         @default("GBP")
+  status      PageStatus     @default(DRAFT)
+  visibility  PageVisibility @default(PUBLIC)
+  coverImageUrl String?
+  externalPageId String?     // Donations API ref
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id])
+  appeal           Appeal            @relation(fields: [appealId], references: [id])
+  team             Team?             @relation(fields: [teamId], references: [id])
+  donations        Donation[]
+  offlineDonations OfflineDonation[]
+  mediaItems       PageMedia[]
+  updates          PageUpdate[]
+}
+
+model PageMedia {
+  id        String   @id @default(cuid())
+  pageId    String
+  url       String
+  type      String   // image | video
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  page FundraisingPage @relation(fields: [pageId], references: [id])
+}
+
+model PageUpdate {
+  id        String   @id @default(cuid())
+  pageId    String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  page FundraisingPage @relation(fields: [pageId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// FEES
+// ─────────────────────────────────────────────
+
+enum FundrasingModel {
+  CHARITY
+  CROWDFUNDING
+}
+
+enum FeeRuleType {
+  PERCENTAGE
+  FIXED
+  TIERED
+}
+
+model FeeSchedule {
+  id          String   @id @default(cuid())
+  charityId   String?  // null = platform default
+  version     Int
+  name        String
+  isActive    Boolean  @default(false)
+  validFrom   DateTime
+  validTo     DateTime?
+  createdAt   DateTime @default(now())
+
+  charity  Charity?   @relation(fields: [charityId], references: [id])
+  rules    FeeRule[]
+  feeSets  FeeSet[]
+}
+
+model FeeRule {
+  id              String          @id @default(cuid())
+  scheduleId      String
+  countryCode     String?
+  fundraisingModel FundrasingModel?
+  paymentMethod   String?
+  subscriptionTier String?
+  ruleType        FeeRuleType
+  platformFeePct  Decimal?        @db.Decimal(6, 4)
+  platformFeeFixed Decimal?       @db.Decimal(10, 2)
+  processingFeePct Decimal?       @db.Decimal(6, 4)
+  processingFeeFixed Decimal?     @db.Decimal(10, 2)
+  giftAidFeePct   Decimal?        @db.Decimal(6, 4)
+  capAmount       Decimal?        @db.Decimal(10, 2)
+  promoCode       String?
+  sortOrder       Int             @default(0)
+  createdAt       DateTime        @default(now())
+
+  schedule FeeSchedule @relation(fields: [scheduleId], references: [id])
+}
+
+model FeeSet {
+  id                 String   @id @default(cuid())
+  scheduleId         String
+  donationId         String?  @unique
+  platformFeeAmount  Decimal  @db.Decimal(10, 2)
+  processingFeeAmount Decimal @db.Decimal(10, 2)
+  giftAidFeeAmount   Decimal  @db.Decimal(10, 2)
+  totalFees          Decimal  @db.Decimal(10, 2)
+  donorCoversFees    Boolean  @default(false)
+  netToCharity       Decimal  @db.Decimal(10, 2)
+  snapshotJson       Json     // full fee schedule snapshot for audit
+  createdAt          DateTime @default(now())
+
+  schedule FeeSchedule @relation(fields: [scheduleId], references: [id])
+  donation Donation?   @relation(fields: [donationId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// DONATIONS
+// ─────────────────────────────────────────────
+
+enum DonationStatus {
+  PENDING
+  AUTHORISED
+  CAPTURED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  DISPUTED
+  FAILED
+  CANCELLED
+}
+
+enum HoldState {
+  NONE
+  SOFT_HOLD
+  HARD_HOLD
+}
+
+model Donation {
+  id              String         @id @default(cuid())
+  pageId          String
+  userId          String?
+  amount          Decimal        @db.Decimal(10, 2)
+  currency        String         @default("GBP")
+  status          DonationStatus @default(PENDING)
+  isAnonymous     Boolean        @default(false)
+  isRecurring     Boolean        @default(false)
+  donorName       String?
+  donorEmail      String?
+  message         String?        @db.Text
+  externalRef     String?        // Donations API / Stripe ref
+  idempotencyKey  String?        @unique
+  riskScore       Decimal?       @db.Decimal(5, 2)
+  riskReasons     String[]
+  holdState       HoldState      @default(NONE)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  page              FundraisingPage     @relation(fields: [pageId], references: [id])
+  user              User?               @relation(fields: [userId], references: [id])
+  feeSet            FeeSet?
+  payment           Payment?
+  giftAidDeclaration GiftAidDeclaration?
+  journalEntries    JournalEntry[]
+  refunds           Refund[]
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  donationId     String   @unique
+  provider       String   // stripe | gocardless | bacs
+  providerRef    String
+  amount         Decimal  @db.Decimal(10, 2)
+  currency       String
+  settledAt      DateTime?
+  failureReason  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  donation Donation @relation(fields: [donationId], references: [id])
+}
+
+model Refund {
+  id          String   @id @default(cuid())
+  donationId  String
+  amount      Decimal  @db.Decimal(10, 2)
+  reason      String?  @db.Text
+  providerRef String?
+  initiatedBy String?
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  donation    Donation       @relation(fields: [donationId], references: [id])
+  journalEntries JournalEntry[]
+}
+
+// ─────────────────────────────────────────────
+// OFFLINE DONATIONS
+// ─────────────────────────────────────────────
+
+enum OfflineDonationStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+model OfflineDonation {
+  id            String                @id @default(cuid())
+  pageId        String?
+  batchId       String?
+  amount        Decimal               @db.Decimal(10, 2)
+  currency      String                @default("GBP")
+  receivedDate  DateTime
+  donorName     String?
+  notes         String?               @db.Text
+  status        OfflineDonationStatus @default(APPROVED)
+  createdById   String
+  createdAt     DateTime              @default(now())
+
+  page               FundraisingPage?    @relation(fields: [pageId], references: [id])
+  batch              OfflineUploadBatch? @relation(fields: [batchId], references: [id])
+  createdBy          User                @relation("OfflineDonationCreatedBy", fields: [createdById], references: [id])
+  giftAidDeclaration GiftAidDeclaration?
+}
+
+model OfflineUploadBatch {
+  id          String   @id @default(cuid())
+  appealId    String
+  uploadedById String
+  fileName    String
+  rowCount    Int
+  errorCount  Int      @default(0)
+  status      String   @default("PENDING") // PENDING | DRY_RUN | COMMITTED | FAILED
+  resultJson  Json?
+  createdAt   DateTime @default(now())
+  committedAt DateTime?
+
+  appeal          Appeal            @relation(fields: [appealId], references: [id])
+  uploadedBy      User              @relation(fields: [uploadedById], references: [id])
+  offlineDonations OfflineDonation[]
+}
+
+// ─────────────────────────────────────────────
+// GIFT AID
+// ─────────────────────────────────────────────
+
+enum GiftAidDeclarationType {
+  SINGLE
+  ENDURING
+}
+
+model GiftAidDeclaration {
+  id                String                 @id @default(cuid())
+  userId            String?
+  donationId        String?                @unique
+  offlineDonationId String?                @unique
+  donorFullName     String
+  donorAddressLine1 String
+  donorAddressLine2 String?
+  donorCity         String
+  donorPostcode     String
+  donorCountry      String                 @default("GB")
+  type              GiftAidDeclarationType @default(SINGLE)
+  statementVersion  String
+  statementText     String                 @db.Text
+  ipAddress         String?
+  userAgent         String?
+  createdById       String?
+  createdAt         DateTime               @default(now())
+  revokedAt         DateTime?
+
+  user              User?              @relation(fields: [userId], references: [id])
+  donation          Donation?          @relation(fields: [donationId], references: [id])
+  offlineDonation   OfflineDonation?   @relation(fields: [offlineDonationId], references: [id])
+  giftAidClaimItems GiftAidClaimItem[]
+}
+
+enum GiftAidClaimStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  PAID
+}
+
+model GiftAidClaim {
+  id              String             @id @default(cuid())
+  charityId       String
+  periodStart     DateTime
+  periodEnd       DateTime
+  status          GiftAidClaimStatus @default(DRAFT)
+  totalDonations  Decimal            @db.Decimal(12, 2)
+  reclaimAmount   Decimal            @db.Decimal(12, 2)
+  submittedAt     DateTime?
+  paidAt          DateTime?
+  hmrcRef         String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  charity Charity          @relation(fields: [charityId], references: [id])
+  items   GiftAidClaimItem[]
+}
+
+model GiftAidClaimItem {
+  id            String   @id @default(cuid())
+  claimId       String
+  declarationId String
+  donationAmount Decimal @db.Decimal(10, 2)
+  reclaimAmount  Decimal @db.Decimal(10, 2)
+
+  claim       GiftAidClaim       @relation(fields: [claimId], references: [id])
+  declaration GiftAidDeclaration @relation(fields: [declarationId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// BANK ACCOUNTS & PAYOUTS
+// ─────────────────────────────────────────────
+
+model BankAccount {
+  id            String   @id @default(cuid())
+  charityId     String
+  accountName   String
+  maskedIban    String?
+  maskedSortCode String?
+  maskedAccount String?
+  currency      String   @default("GBP")
+  provider      String   // stripe_connect | gocardless | bacs
+  providerRef   String?
+  isDefault     Boolean  @default(false)
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  charity       Charity       @relation(fields: [charityId], references: [id])
+  payoutBatches PayoutBatch[]
+}
+
+enum PayoutStatus {
+  SCHEDULED
+  PROCESSING
+  PAID
+  FAILED
+}
+
+model PayoutBatch {
+  id            String       @id @default(cuid())
+  charityId     String
+  bankAccountId String
+  currency      String       @default("GBP")
+  grossAmount   Decimal      @db.Decimal(12, 2)
+  feesAmount    Decimal      @db.Decimal(12, 2)
+  netAmount     Decimal      @db.Decimal(12, 2)
+  status        PayoutStatus @default(SCHEDULED)
+  scheduledFor  DateTime
+  processedAt   DateTime?
+  bankRef       String?
+  providerRef   String?
+  idempotencyKey String?     @unique
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  charity       Charity        @relation(fields: [charityId], references: [id])
+  bankAccount   BankAccount    @relation(fields: [bankAccountId], references: [id])
+  journalEntries JournalEntry[]
+}
+
+// ─────────────────────────────────────────────
+// DOUBLE-ENTRY LEDGER
+// ─────────────────────────────────────────────
+
+// Account codes per spec appendix 16.B
+// 1010 ExternalBank | 1100 DonorClearing | 1300 GiftAidReceivable
+// 2100 CharityPayable | 4100 PlatformRevenue | 5200 ProcessingFees
+// 6900 FXGainLoss | 3900 Adjustments
+
+model JournalEntry {
+  id            String   @id @default(cuid())
+  correlationId String
+  donationId    String?
+  refundId      String?
+  payoutBatchId String?
+  description   String
+  createdAt     DateTime @default(now())
+
+  donation    Donation?    @relation(fields: [donationId], references: [id])
+  refund      Refund?      @relation(fields: [refundId], references: [id])
+  payoutBatch PayoutBatch? @relation(fields: [payoutBatchId], references: [id])
+  lines       LedgerLine[]
+}
+
+model LedgerLine {
+  id           String   @id @default(cuid())
+  entryId      String
+  accountCode  String   // e.g. "1100-DonorClearing"
+  debit        Decimal  @db.Decimal(12, 2)
+  credit       Decimal  @db.Decimal(12, 2)
+  currency     String   @default("GBP")
+  fxRate       Decimal  @db.Decimal(10, 6) @default(1)
+  description  String?
+  createdAt    DateTime @default(now())
+
+  entry JournalEntry @relation(fields: [entryId], references: [id])
+
+  @@index([accountCode])
+  @@index([entryId])
+}
+
+// ─────────────────────────────────────────────
+// MODERATION LOG (immutable)
+// ─────────────────────────────────────────────
+
+model ModerationLog {
+  id         String   @id @default(cuid())
+  entityType String   // Donation | Page | User | Comment
+  entityId   String
+  action     String   // SOFT_HOLD | HARD_HOLD | SHADOW_BAN | AUTO_REFUND | KYC_REQ
+  reason     String?
+  actorId    String?  // null = system
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
