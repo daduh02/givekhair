@@ -7,7 +7,8 @@ export default async function DashboardPage() {
 
   // Redirect to appropriate place based on role
   const adminRoles = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"];
-  if (adminRoles.includes(session.user.role)) {
+  const adminRole = (session.user as { role?: string } | undefined)?.role;
+if (adminRole && adminRoles.includes(adminRole)) {
     redirect("/admin");
   }
 

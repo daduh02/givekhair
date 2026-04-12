@@ -180,8 +180,13 @@ export const pagesRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const userId = (ctx.session.user as { id?: string } | undefined)?.id;
+      if (!userId) {
+        throw new Error("Unauthenticated");
+      }
+
       return ctx.db.fundraisingPage.create({
-        data: { ...input, userId: ctx.session.user.id },
+        data: { ...input, userId },
       });
     }),
 
@@ -199,7 +204,11 @@ export const pagesRouter = createTRPCRouter({
       const { id, ...data } = input;
       const page = await ctx.db.fundraisingPage.findUnique({ where: { id } });
       if (!page) throw new TRPCError({ code: "NOT_FOUND" });
-      if (page.userId !== ctx.session.user.id && ctx.session.user.role !== "PLATFORM_ADMIN") {
+      const sessionUser = ctx.session.user as { id?: string; role?: string } | undefined;
+      const sessionUserId = sessionUser?.id;
+      const sessionUserRole = sessionUser?.role;
+
+      if (page.userId !== sessionUserId && sessionUserRole !== "PLATFORM_ADMIN") {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
       return ctx.db.fundraisingPage.update({ where: { id }, data });
@@ -245,10 +254,16 @@ export const donationsRouter = createTRPCRouter({
 
       // Create donation + FeeSet in a transaction
       const donation = await ctx.db.$transaction(async (tx) => {
-        const don = await tx.donation.create({
+        const sessionUserId = (ctx.session.user as { id?: string } | undefined)?.id;
+    if (!sessionUserId) {
+      throw new Error("Unauthenticated");
+    }
+
+    const don = await tx.donation.create({
+
           data: {
             pageId: input.pageId,
-            userId: ctx.session.user.id,
+            userId: sessionUserId,
             amount: new Decimal(input.amount).toFixed(2),
             currency: input.currency,
             status: "PENDING",
@@ -276,7 +291,7 @@ export const donationsRouter = createTRPCRouter({
           await tx.giftAidDeclaration.create({
             data: {
               donationId: don.id,
-              userId: ctx.session.user.id,
+              userId: sessionUserId,
               donorFullName: input.giftAid.donorFullName,
               donorAddressLine1: input.giftAid.addressLine1,
               donorAddressLine2: input.giftAid.addressLine2,

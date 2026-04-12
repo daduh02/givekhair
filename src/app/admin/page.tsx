@@ -25,8 +25,11 @@ export default async function AdminOverviewPage() {
   const session = await auth();
   if (!session) redirect("/auth/signin");
 
-  const charityAdmin = await db.charityAdmin.findFirst({
-    where: { userId: session.user.id },
+  const userId = (session.user as { id?: string } | undefined)?.id;
+if (!userId) redirect("/auth/signin?callbackUrl=/admin");
+
+const charityAdmin = await db.charityAdmin.findFirst({
+    where: { userId },
     include: { charity: true },
   });
 

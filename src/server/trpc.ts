@@ -53,7 +53,8 @@ const enforceRole = (allowed: UserRole[]) =>
     if (!ctx.session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
-    if (!allowed.includes(ctx.session.user.role)) {
+    const role = (ctx.session.user as { role?: typeof allowed[number] }).role;
+    if (!role || !allowed.includes(role)) {
       throw new TRPCError({ code: "FORBIDDEN" });
     }
     return next({ ctx: { session: ctx.session } });

@@ -28,7 +28,7 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
   const [message, setMessage] = useState("");
   const [claimGiftAid, setClaimGiftAid] = useState(false);
   const [giftAidDetails, setGiftAidDetails] = useState({
-    donorFullName: session?.user.name ?? "",
+    donorFullName: session?.user?.name ?? "",
     addressLine1: "",
     city: "",
     postcode: "",

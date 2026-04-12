@@ -35,16 +35,16 @@ export function Navbar() {
                 <button onClick={() => setMenuOpen(!menuOpen)}
                   className="flex h-9 w-9 items-center justify-center rounded-full font-semibold text-sm"
                   style={{ background: "#1E8C6E22", color: "#124E40" }} aria-label="User menu">
-                  {session.user.name?.charAt(0) ?? session.user.email.charAt(0).toUpperCase()}
+                  {session.user?.name?.charAt(0) ?? session.user?.email?.charAt(0)?.toUpperCase() ?? "U"}
                 </button>
                 {menuOpen && (
                   <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white py-1 shadow-lg" style={{ border: "1px solid rgba(18,78,64,0.12)" }}>
                     <div className="border-b px-4 py-2" style={{ borderColor: "rgba(18,78,64,0.1)" }}>
-                      <p className="text-sm font-semibold truncate" style={{ color: "#233029" }}>{session.user.name}</p>
-                      <p className="text-xs truncate" style={{ color: "#3A4A42" }}>{session.user.email}</p>
+                      <p className="text-sm font-semibold truncate" style={{ color: "#233029" }}>{session.user?.name ?? "User"}</p>
+                      <p className="text-xs truncate" style={{ color: "#3A4A42" }}>{session.user?.email ?? ""}</p>
                     </div>
                     <Link href="/dashboard" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Dashboard</Link>
-                    {["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"].includes(session.user.role) && (
+                    {(["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"] as const).includes(((session.user as { role?: string } | undefined)?.role ?? "") as any) && (
                       <Link href="/admin" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Admin</Link>
                     )}
                     <Link href="/account" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Account settings</Link>

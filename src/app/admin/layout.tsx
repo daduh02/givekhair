@@ -20,8 +20,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await auth();
   if (!session) redirect("/auth/signin?callbackUrl=/admin");
 
+  const role = (session.user as { role?: string } | undefined)?.role ?? "DONOR";
   const allowed = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"];
-  if (!allowed.includes(session.user.role)) redirect("/403");
+  if (!allowed.includes(role)) redirect("/403");
 
   return (
     <div style={{ minHeight: "100vh", background: "#F6F1E8", display: "flex", flexDirection: "column" }}>
@@ -41,7 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="text-sm font-medium" style={{ color: "rgba(246,241,232,0.8)" }}>Admin</span>
           </div>
           <div className="flex items-center gap-3 text-sm" style={{ color: "rgba(246,241,232,0.8)" }}>
-            <span>{session.user.name ?? session.user.email}</span>
+            <span>{session.user?.name ?? session.user?.email ?? "Admin user"}</span>
             <Link href="/api/auth/signout" className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
               style={{ background: "rgba(246,241,232,0.12)", color: "#F6F1E8" }}>
               Sign out
