@@ -38,10 +38,15 @@ function statusPill(status: string) {
   );
 }
 
-export default async function AdminAppealsPage() {
-  const { managedCharity } = await getAdminContext();
+export default async function AdminAppealsPage({
+  searchParams,
+}: {
+  searchParams: { charityId?: string };
+}) {
+  const { managedCharity, role } = await getAdminContext();
+  const selectedCharityId = searchParams.charityId?.trim() || "";
 
-  if (!managedCharity) {
+  if (!managedCharity && role !== "PLATFORM_ADMIN") {
     return (
       <div>
         <h1 className="text-xl font-bold mb-2" style={{ color: "#233029" }}>Appeals</h1>
@@ -52,14 +57,28 @@ export default async function AdminAppealsPage() {
     );
   }
 
-  const appeals = await db.appeal.findMany({
-    where: { charityId: managedCharity.id },
-    include: {
-      category: { select: { name: true } },
-      _count: { select: { fundraisingPages: true, teams: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const [appeals, charities] = await Promise.all([
+    db.appeal.findMany({
+      where:
+        role === "PLATFORM_ADMIN"
+          ? {
+              ...(selectedCharityId ? { charityId: selectedCharityId } : {}),
+            }
+          : { charityId: managedCharity!.id },
+      include: {
+        charity: { select: { id: true, name: true } },
+        category: { select: { name: true } },
+        _count: { select: { fundraisingPages: true, teams: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    role === "PLATFORM_ADMIN"
+      ? db.charity.findMany({
+          orderBy: { name: "asc" },
+          select: { id: true, name: true },
+        })
+      : Promise.resolve([]),
+  ]);
 
   const summary = appeals.reduce(
     (acc, appeal) => {
@@ -71,19 +90,58 @@ export default async function AdminAppealsPage() {
     { totalGoal: 0, active: 0, draft: 0 }
   );
 
+  const selectedCharity =
+    role === "PLATFORM_ADMIN"
+      ? charities.find((charity) => charity.id === selectedCharityId) ?? null
+      : managedCharity;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold" style={{ color: "#233029" }}>Appeals</h1>
           <p className="text-sm" style={{ color: "#8A9E94" }}>
-            Manage campaign visibility, goals, and structure for {managedCharity.name}.
+            {role === "PLATFORM_ADMIN"
+              ? selectedCharity
+                ? `Manage campaign visibility, goals, and structure for ${selectedCharity.name}.`
+                : "Manage campaign visibility, goals, and structure across all charities."
+              : `Manage campaign visibility, goals, and structure for ${managedCharity!.name}.`}
           </p>
         </div>
         <Link href="/admin/appeals/new" className="btn-primary" style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}>
           + New appeal
         </Link>
       </div>
+
+      {role === "PLATFORM_ADMIN" ? (
+        <div className="mb-5 flex items-center gap-3">
+          <span className="text-sm font-medium" style={{ color: "#3A4A42" }}>Charity filter</span>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/appeals"
+              className="btn-outline"
+              style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
+            >
+              All charities
+            </Link>
+            {charities.map((charity) => (
+              <Link
+                key={charity.id}
+                href={`/admin/appeals?charityId=${charity.id}`}
+                className="btn-outline"
+                style={{
+                  padding: "0.4rem 0.8rem",
+                  fontSize: "0.8rem",
+                  background: charity.id === selectedCharityId ? "rgba(30,140,110,0.1)" : undefined,
+                  color: charity.id === selectedCharityId ? "#124E40" : undefined,
+                }}
+              >
+                {charity.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 mb-6 sm:grid-cols-3">
         <SummaryCard label="Total appeals" value={String(appeals.length)} sub={`${summary.active} active`} />
@@ -95,7 +153,17 @@ export default async function AdminAppealsPage() {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
           <thead>
             <tr style={{ background: "#F6F1E8" }}>
-              {["Appeal", "Category", "Goal", "Pages", "Teams", "Status", "Visibility", "Actions"].map((heading) => (
+              {[
+                "Appeal",
+                ...(role === "PLATFORM_ADMIN" ? ["Charity"] : []),
+                "Category",
+                "Goal",
+                "Pages",
+                "Teams",
+                "Status",
+                "Visibility",
+                "Actions",
+              ].map((heading) => (
                 <th key={heading} style={{ padding: "0.8rem 1rem", textAlign: "left", fontSize: "0.75rem", color: "#8A9E94" }}>
                   {heading}
                 </th>
@@ -109,6 +177,9 @@ export default async function AdminAppealsPage() {
                   <div className="font-semibold" style={{ color: "#233029" }}>{appeal.title}</div>
                   <div className="text-xs" style={{ color: "#8A9E94" }}>/appeals/{appeal.slug}</div>
                 </td>
+                {role === "PLATFORM_ADMIN" ? (
+                  <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>{appeal.charity.name}</td>
+                ) : null}
                 <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>{appeal.category?.name ?? "Uncategorised"}</td>
                 <td style={{ padding: "0.9rem 1rem", color: "#233029", fontWeight: 600 }}>
                   {formatCurrency(appeal.goalAmount.toString(), appeal.currency)}
@@ -139,7 +210,7 @@ export default async function AdminAppealsPage() {
             ))}
             {appeals.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ padding: "2rem", textAlign: "center", color: "#8A9E94" }}>
+                <td colSpan={role === "PLATFORM_ADMIN" ? 9 : 8} style={{ padding: "2rem", textAlign: "center", color: "#8A9E94" }}>
                   No appeals yet. Create the first one to start accepting fundraising pages.
                 </td>
               </tr>
