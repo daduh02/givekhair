@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
 interface Props {
   pageId: string;
@@ -17,9 +15,6 @@ const PRESET_AMOUNTS = [5, 10, 25, 50, 100];
 const GIFT_AID_MULTIPLIER = 0.25;
 
 export function DonationCheckout({ pageId, charityId, charityName, pageName }: Props) {
-  const { data: session } = useSession();
-  const router = useRouter();
-
   const [step, setStep] = useState<"amount" | "details" | "giftaid">("amount");
   const [amount, setAmount] = useState<number>(10);
   const [customAmount, setCustomAmount] = useState("");
@@ -28,7 +23,7 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
   const [message, setMessage] = useState("");
   const [claimGiftAid, setClaimGiftAid] = useState(false);
   const [giftAidDetails, setGiftAidDetails] = useState({
-    donorFullName: session?.user?.name ?? "",
+    donorFullName: "",
     addressLine1: "",
     city: "",
     postcode: "",

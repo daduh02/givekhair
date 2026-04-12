@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { Navbar } from "@/components/layout/Navbar";
 import { DonationCheckout } from "@/components/donation/DonationCheckout";
+import { TRPCProvider } from "@/components/providers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -146,12 +147,14 @@ export default async function AppealPage({ params }: Props) {
           {/* Right col — donation widget */}
           <div className="lg:sticky lg:top-20 lg:self-start">
             {firstPage ? (
-              <DonationCheckout
-                pageId={firstPage.id}
-                charityId={appeal.charityId}
-                charityName={appeal.charity.name}
-                pageName={appeal.title}
-              />
+              <TRPCProvider>
+                <DonationCheckout
+                  pageId={firstPage.id}
+                  charityId={appeal.charityId}
+                  charityName={appeal.charity.name}
+                  pageName={appeal.title}
+                />
+              </TRPCProvider>
             ) : (
               <div className="card text-center text-sm text-gray-500">
                 <p className="mb-3">No fundraising pages yet.</p>

@@ -1,13 +1,6 @@
-"use client";
-
 import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
-import { useState } from "react";
 
 export function Navbar() {
-  const { data: session } = useSession();
-  const [menuOpen, setMenuOpen] = useState(false);
-
   return (
     <nav style={{ background: "#F6F1E8", borderBottom: "1px solid rgba(18,78,64,0.12)" }}
       className="sticky top-0 z-50">
@@ -26,39 +19,8 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          {session ? (
-            <>
-              <Link href="/fundraise/new" className="btn-primary hidden sm:inline-flex" style={{ fontSize: "0.875rem", padding: "0.5rem 1.25rem" }}>
-                Start fundraising
-              </Link>
-              <div className="relative">
-                <button onClick={() => setMenuOpen(!menuOpen)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full font-semibold text-sm"
-                  style={{ background: "#1E8C6E22", color: "#124E40" }} aria-label="User menu">
-                  {session.user?.name?.charAt(0) ?? session.user?.email?.charAt(0)?.toUpperCase() ?? "U"}
-                </button>
-                {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white py-1 shadow-lg" style={{ border: "1px solid rgba(18,78,64,0.12)" }}>
-                    <div className="border-b px-4 py-2" style={{ borderColor: "rgba(18,78,64,0.1)" }}>
-                      <p className="text-sm font-semibold truncate" style={{ color: "#233029" }}>{session.user?.name ?? "User"}</p>
-                      <p className="text-xs truncate" style={{ color: "#3A4A42" }}>{session.user?.email ?? ""}</p>
-                    </div>
-                    <Link href="/dashboard" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Dashboard</Link>
-                    {(["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"] as const).includes(((session.user as { role?: string } | undefined)?.role ?? "") as any) && (
-                      <Link href="/admin" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Admin</Link>
-                    )}
-                    <Link href="/account" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Account settings</Link>
-                    <button onClick={() => signOut({ callbackUrl: "/" })} className="block w-full px-4 py-2 text-left text-sm hover:bg-[#F6F1E8]" style={{ color: "#c0392b" }}>Sign out</button>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <Link href="/auth/signin?callbackUrl=%2Fadmin" className="btn-ghost text-sm">Log in</Link>
-              <Link href="/auth/signin?callbackUrl=%2Fadmin" className="btn-primary hidden sm:inline-flex" style={{ fontSize: "0.875rem", padding: "0.5rem 1.25rem" }}>Start fundraising</Link>
-            </>
-          )}
+          <Link href="/auth/signin?callbackUrl=%2Fdashboard" className="btn-ghost text-sm">Log in</Link>
+          <Link href="/auth/signin?callbackUrl=%2Ffundraise%2Fnew" className="btn-primary hidden sm:inline-flex" style={{ fontSize: "0.875rem", padding: "0.5rem 1.25rem" }}>Start fundraising</Link>
         </div>
       </div>
     </nav>
