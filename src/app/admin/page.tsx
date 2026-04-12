@@ -21,8 +21,115 @@ function StatCard({ label, value, sub, color }: { label: string; value: string; 
 }
 
 export default async function AdminOverviewPage() {
-  const { managedCharity } = await getAdminContext();
+  const { role, managedCharity } = await getAdminContext();
   const charityId = managedCharity?.id ?? "";
+
+  if (role === "PLATFORM_ADMIN") {
+    const [charities, onlineAgg, offlineAgg, pendingPayoutAgg, giftAidAgg, recentDonations] = await Promise.all([
+      db.charity.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          _count: { select: { appeals: true, admins: true } },
+          appeals: { select: { id: true } },
+        },
+      }),
+      db.donation.aggregate({ where: { status: "CAPTURED" }, _sum: { amount: true }, _count: true }),
+      db.offlineDonation.aggregate({ where: { status: "APPROVED" }, _sum: { amount: true }, _count: true }),
+      db.payoutBatch.aggregate({ where: { status: { in: ["SCHEDULED", "PROCESSING"] } }, _sum: { netAmount: true } }),
+      db.giftAidClaim.aggregate({ where: { status: { in: ["DRAFT", "SUBMITTED"] } }, _sum: { reclaimAmount: true } }),
+      db.donation.findMany({
+        include: {
+          page: { select: { title: true, appeal: { select: { title: true, charity: { select: { name: true } } } } } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+    ]);
+
+    const fmtPlatform = (val: string | number | null | undefined, currency = "GBP") => {
+      const n = typeof val === "string" ? parseFloat(val) : (val ?? 0);
+      return new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
+    };
+
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-bold" style={{ color: "#233029" }}>Platform overview</h1>
+            <p className="text-sm" style={{ color: "#8A9E94" }}>All charity summary across the platform</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/admin/charities" className="btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}>Open charities</Link>
+            <Link href="/admin/charities/new" className="btn-primary" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}>Create charity</Link>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-6 lg:grid-cols-3 xl:grid-cols-6">
+          <StatCard label="Charities" value={String(charities.length)} sub="active and draft profiles" />
+          <StatCard label="Platform raised" value={fmtPlatform((parseFloat(onlineAgg._sum.amount?.toString() ?? "0") + parseFloat(offlineAgg._sum.amount?.toString() ?? "0")).toString())} color="#1E8C6E" />
+          <StatCard label="Online raised" value={fmtPlatform(onlineAgg._sum.amount?.toString())} sub={`${onlineAgg._count} donations`} />
+          <StatCard label="Offline raised" value={fmtPlatform(offlineAgg._sum.amount?.toString())} sub={`${offlineAgg._count} entries`} />
+          <StatCard label="Pending payouts" value={fmtPlatform(pendingPayoutAgg._sum.netAmount?.toString())} />
+          <StatCard label="Gift Aid pending" value={fmtPlatform(giftAidAgg._sum.reclaimAmount?.toString())} />
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold" style={{ color: "#233029" }}>Charity overview</h2>
+              <Link href="/admin/charities" className="text-xs font-medium" style={{ color: "#1E8C6E" }}>View all →</Link>
+            </div>
+            <div style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
+                <thead>
+                  <tr style={{ background: "#F6F1E8" }}>
+                    {["Charity", "Appeals", "Admins", "Currency", "Status", "Action"].map((h) => (
+                      <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "left", fontWeight: 600, color: "#8A9E94", fontSize: "0.75rem" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {charities.map((charity, i) => (
+                    <tr key={charity.id} style={{ borderTop: i > 0 ? "1px solid rgba(18,78,64,0.06)" : "none" }}>
+                      <td style={{ padding: "0.75rem 1rem", color: "#233029", fontWeight: 600 }}>{charity.name}</td>
+                      <td style={{ padding: "0.75rem 1rem", color: "#3A4A42" }}>{charity._count.appeals}</td>
+                      <td style={{ padding: "0.75rem 1rem", color: "#3A4A42" }}>{charity._count.admins}</td>
+                      <td style={{ padding: "0.75rem 1rem", color: "#3A4A42" }}>{charity.defaultCurrency}</td>
+                      <td style={{ padding: "0.75rem 1rem", color: "#3A4A42" }}>{charity.status}</td>
+                      <td style={{ padding: "0.75rem 1rem" }}>
+                        <Link href={`/admin/charities/${charity.id}`} className="btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
+                          Open overview
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold" style={{ color: "#233029" }}>Recent donations</h2>
+              <Link href="/admin/donations" className="text-xs font-medium" style={{ color: "#1E8C6E" }}>View all →</Link>
+            </div>
+            <div className="space-y-2">
+              {recentDonations.map((d) => (
+                <div key={d.id} style={{ background: "white", borderRadius: "0.875rem", padding: "0.875rem 1rem", boxShadow: "0 2px 8px rgba(18,78,64,0.06)" }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium truncate" style={{ color: "#233029" }}>{d.page.appeal.charity.name}</p>
+                    {pill(d.status)}
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: "#8A9E94" }}>{d.page.appeal.title} · {d.page.title}</p>
+                </div>
+              ))}
+              {recentDonations.length === 0 ? <p className="text-sm" style={{ color: "#8A9E94" }}>No donations yet</p> : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const [onlineAgg, offlineAgg, pendingPayoutAgg, giftAidAgg, recentDonations, appeals, payouts] =
     await Promise.all([
