@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 
 interface Props {
@@ -15,11 +16,15 @@ const PRESET_AMOUNTS = [5, 10, 25, 50, 100];
 const GIFT_AID_MULTIPLIER = 0.25;
 
 export function DonationCheckout({ pageId, charityId, charityName, pageName }: Props) {
+  const router = useRouter();
   const [step, setStep] = useState<"amount" | "details" | "giftaid">("amount");
   const [amount, setAmount] = useState<number>(10);
   const [customAmount, setCustomAmount] = useState("");
   const [donorCoversFees, setDonorCoversFees] = useState(true);
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [donorName, setDonorName] = useState("");
+  const [donorEmail, setDonorEmail] = useState("");
   const [message, setMessage] = useState("");
   const [claimGiftAid, setClaimGiftAid] = useState(false);
   const [giftAidDetails, setGiftAidDetails] = useState({
@@ -38,9 +43,7 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
 
   const createIntent = trpc.donations.createIntent.useMutation({
     onSuccess: (data) => {
-      // TODO: redirect to Stripe hosted checkout URL
-      // router.push(data.checkoutUrl)
-      alert(`Donation intent created! ID: ${data.donationId}\nDonor pays: £${data.donorPays}\nCharity receives: £${data.netToCharity}\n\n(Stripe redirect not yet wired — add STRIPE_SECRET_KEY)`);
+      router.push(data.checkoutUrl);
     },
   });
 
@@ -56,6 +59,9 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
       amount: effectiveAmount,
       donorCoversFees,
       isAnonymous,
+      isRecurring,
+      donorName: donorName || undefined,
+      donorEmail,
       message: message || undefined,
       giftAid: claimGiftAid
         ? {
@@ -172,6 +178,16 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
             <div className="mb-4 h-20 animate-pulse rounded-lg bg-gray-100" />
           )}
 
+          <label className="mb-4 flex cursor-pointer items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-green-600"
+            />
+            Make this a recurring monthly donation when supported
+          </label>
+
           <button
             className="btn-primary w-full"
             disabled={effectiveAmount <= 0}
@@ -185,6 +201,24 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
       {/* ── Step 2: Donor details ── */}
       {step === "details" && (
         <>
+          <div className="mb-4 grid gap-3">
+            <input
+              className="input"
+              placeholder="Your name"
+              value={donorName}
+              onChange={(e) => setDonorName(e.target.value)}
+              aria-label="Your name"
+            />
+            <input
+              className="input"
+              type="email"
+              placeholder="Email for receipt"
+              value={donorEmail}
+              onChange={(e) => setDonorEmail(e.target.value)}
+              aria-label="Email for receipt"
+            />
+          </div>
+
           <div className="mb-5 flex items-center justify-between rounded-lg bg-gray-50 p-3 text-sm">
             <span className="text-gray-600">Donating</span>
             <span className="font-medium text-gray-900">
@@ -218,7 +252,9 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
 
           <div className="flex gap-3">
             <button className="btn-ghost flex-1" onClick={() => setStep("amount")}>← Back</button>
-            <button className="btn-primary flex-1" onClick={() => setStep("giftaid")}>Continue →</button>
+            <button className="btn-primary flex-1" onClick={() => setStep("giftaid")} disabled={!donorEmail}>
+              Continue →
+            </button>
           </div>
         </>
       )}

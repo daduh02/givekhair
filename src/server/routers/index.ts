@@ -13,6 +13,7 @@ import {
   recordPayoutPaid,
   recordRefund,
 } from "@/server/lib/ledger";
+import { createDonationIntent, markDonationCaptured } from "@/server/lib/donation-processing";
 import { TRPCError } from "@trpc/server";
 import Decimal from "decimal.js";
 import { randomUUID } from "crypto";
@@ -218,7 +219,7 @@ export const pagesRouter = createTRPCRouter({
 // ── Donations router ──────────────────────────────────────────────────────────
 
 export const donationsRouter = createTRPCRouter({
-  createIntent: protectedProcedure
+  createIntent: publicProcedure
     .input(
       z.object({
         pageId: z.string(),
@@ -226,6 +227,9 @@ export const donationsRouter = createTRPCRouter({
         currency: z.string().default("GBP"),
         donorCoversFees: z.boolean().default(false),
         isAnonymous: z.boolean().default(false),
+        isRecurring: z.boolean().default(false),
+        donorName: z.string().max(120).optional(),
+        donorEmail: z.string().email(),
         message: z.string().max(500).optional(),
         giftAid: z
           .object({
@@ -239,86 +243,29 @@ export const donationsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const page = await ctx.db.fundraisingPage.findUnique({
-        where: { id: input.pageId },
-        include: { appeal: { include: { charity: true } } },
-      });
-      if (!page) throw new TRPCError({ code: "NOT_FOUND" });
-
-      const feePreview = await previewFees(input.amount, {
-        charityId: page.appeal.charityId,
-        donorCoversFees: input.donorCoversFees,
-      });
-
-      const idempotencyKey = randomUUID();
-
-      // Create donation + FeeSet in a transaction
-      const donation = await ctx.db.$transaction(async (tx) => {
-        const sessionUserId = (ctx.session.user as { id?: string } | undefined)?.id;
-    if (!sessionUserId) {
-      throw new Error("Unauthenticated");
-    }
-
-    const don = await tx.donation.create({
-
-          data: {
-            pageId: input.pageId,
-            userId: sessionUserId,
-            amount: new Decimal(input.amount).toFixed(2),
-            currency: input.currency,
-            status: "PENDING",
-            isAnonymous: input.isAnonymous,
-            message: input.message,
-            idempotencyKey,
-          },
+      try {
+        const sessionUserId = (ctx.session?.user as { id?: string } | undefined)?.id;
+        return await createDonationIntent({
+          pageId: input.pageId,
+          amount: input.amount,
+          currency: input.currency,
+          donorCoversFees: input.donorCoversFees,
+          isAnonymous: input.isAnonymous,
+          isRecurring: input.isRecurring,
+          donorName: input.donorName,
+          donorEmail: input.donorEmail,
+          message: input.message,
+          giftAid: input.giftAid,
+          userId: sessionUserId,
+          ipAddress: ctx.req.headers.get("x-forwarded-for"),
+          userAgent: ctx.req.headers.get("user-agent"),
         });
-
-        await tx.feeSet.create({
-          data: {
-            scheduleId: feePreview.scheduleId === "none" ? await getOrCreateDefaultScheduleId(tx) : feePreview.scheduleId,
-            donationId: don.id,
-            platformFeeAmount: feePreview.platformFeeAmount.toFixed(2),
-            processingFeeAmount: feePreview.processingFeeAmount.toFixed(2),
-            giftAidFeeAmount: feePreview.giftAidFeeAmount.toFixed(2),
-            totalFees: feePreview.totalFees.toFixed(2),
-            donorCoversFees: input.donorCoversFees,
-            netToCharity: feePreview.netToCharity.toFixed(2),
-            snapshotJson: feePreview.snapshotJson,
-          },
+      } catch (error) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "Unable to create donation intent.",
         });
-
-        if (input.giftAid) {
-          await tx.giftAidDeclaration.create({
-            data: {
-              donationId: don.id,
-              userId: sessionUserId,
-              donorFullName: input.giftAid.donorFullName,
-              donorAddressLine1: input.giftAid.addressLine1,
-              donorAddressLine2: input.giftAid.addressLine2,
-              donorCity: input.giftAid.city,
-              donorPostcode: input.giftAid.postcode,
-              type: "SINGLE",
-              statementVersion: "v1",
-              statementText:
-                "I am a UK taxpayer and understand that if I pay less Income Tax and/or Capital Gains Tax than the amount of Gift Aid claimed on all my donations in that tax year it is my responsibility to pay any difference.",
-              ipAddress: ctx.req.headers.get("x-forwarded-for") ?? undefined,
-            },
-          });
-        }
-
-        return don;
-      });
-
-      // TODO: Call Donations API stub / Stripe to create checkout session
-      // const checkoutUrl = await donationsApiStub.createCheckout({ donationId: donation.id, amount: feePreview.donorPays, ... })
-
-      return {
-        donationId: donation.id,
-        idempotencyKey,
-        donorPays: feePreview.donorPays.toFixed(2),
-        netToCharity: feePreview.netToCharity.toFixed(2),
-        // checkoutUrl  ← returned once Donations API is wired
-      };
+      }
     }),
 
   // Called by webhook handler after payment confirmed
@@ -330,40 +277,11 @@ export const donationsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const donation = await ctx.db.donation.findUnique({
-        where: { id: input.donationId },
-        include: { feeSet: true },
+      await markDonationCaptured({
+        donationId: input.donationId,
+        provider: "stripe",
+        providerRef: input.providerRef,
       });
-      if (!donation) throw new TRPCError({ code: "NOT_FOUND" });
-
-      await ctx.db.$transaction(async (tx) => {
-        await tx.donation.update({
-          where: { id: input.donationId },
-          data: { status: "CAPTURED" },
-        });
-        await tx.payment.create({
-          data: {
-            donationId: input.donationId,
-            provider: "stripe",
-            providerRef: input.providerRef,
-            amount: donation.amount,
-            currency: donation.currency,
-            settledAt: new Date(),
-          },
-        });
-      });
-
-      // Write ledger entries
-      const amount = new Decimal(donation.amount.toString());
-      await recordDonationAuthorised({ donationId: input.donationId, amount });
-      if (donation.feeSet) {
-        await recordFeesRecognised({
-          donationId: input.donationId,
-          platformFee: new Decimal(donation.feeSet.platformFeeAmount.toString()),
-          processingFee: new Decimal(donation.feeSet.processingFeeAmount.toString()),
-        });
-      }
-
       return { ok: true };
     }),
 });
@@ -436,10 +354,3 @@ export const appRouter = createTRPCRouter({
 });
 
 export type AppRouter = typeof appRouter;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function getOrCreateDefaultScheduleId(tx: Parameters<Parameters<typeof import("@/lib/db")["db"]["$transaction"]>[0]>[0]) {
-  const s = await tx.feeSchedule.findFirst({ where: { charityId: null, isActive: true } });
-  return s?.id ?? "default";
-}

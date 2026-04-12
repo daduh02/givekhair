@@ -1,10 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import {
-  recordDonationAuthorised,
-  recordFeesRecognised,
-} from "@/server/lib/ledger";
-import Decimal from "decimal.js";
+import { markDonationCaptured, markDonationFailed } from "@/server/lib/donation-processing";
 
 // Stub: replace with `import Stripe from 'stripe'` once key is set
 async function constructStripeEvent(req: NextRequest) {
@@ -32,52 +28,28 @@ export async function POST(req: NextRequest) {
 
         const donation = await db.donation.findUnique({
           where: { id: donationId },
-          include: { feeSet: true },
+          select: { id: true, status: true },
         });
         if (!donation || donation.status !== "PENDING") break;
 
-        await db.$transaction([
-          db.donation.update({
-            where: { id: donationId },
-            data: { status: "CAPTURED", externalRef: pi.id },
-          }),
-          db.payment.create({
-            data: {
-              donationId,
-              provider: "stripe",
-              providerRef: pi.id,
-              amount: donation.amount,
-              currency: donation.currency,
-              settledAt: new Date(),
-            },
-          }),
-        ]);
-
-        await recordDonationAuthorised({
+        await markDonationCaptured({
           donationId,
-          amount: new Decimal(donation.amount.toString()),
-          currency: donation.currency,
+          provider: "stripe",
+          providerRef: pi.id,
         });
 
-        if (donation.feeSet) {
-          await recordFeesRecognised({
-            donationId,
-            platformFee: new Decimal(donation.feeSet.platformFeeAmount.toString()),
-            processingFee: new Decimal(donation.feeSet.processingFeeAmount.toString()),
-          });
-        }
-
-        // TODO: enqueue email receipt via BullMQ
+        // TODO: enqueue email receipt via BullMQ or Resend
         break;
       }
 
       case "payment_intent.payment_failed": {
-        const pi = event.data.object as { metadata: { donationId?: string }; last_payment_error?: { message?: string } };
+        const pi = event.data.object as { metadata: { donationId?: string }; id?: string; last_payment_error?: { message?: string } };
         const donationId = pi.metadata?.donationId;
         if (!donationId) break;
-        await db.donation.update({
-          where: { id: donationId },
-          data: { status: "FAILED" },
+        await markDonationFailed({
+          donationId,
+          providerRef: pi.id,
+          failureReason: pi.last_payment_error?.message ?? "Payment failed at checkout.",
         });
         break;
       }

@@ -359,11 +359,11 @@ async function main() {
 
   // ── Donations + FeeSet + Ledger ─────────────────────────────────────────────
   const donationData = [
-    { pageId: aminaPage.id, userId: amina.id, amount: "50.00", donorName: "Khalid M.", giftAid: true, coversFees: true },
-    { pageId: aminaPage.id, userId: null, amount: "25.00", donorName: null, giftAid: false, coversFees: false },
-    { pageId: aminaPage.id, userId: fatima.id, amount: "100.00", donorName: "Sarah T.", giftAid: true, coversFees: false },
-    { pageId: yusufPage.id, userId: null, amount: "10.00", donorName: "Anonymous", giftAid: false, coversFees: true },
-    { pageId: yusufPage.id, userId: yusuf.id, amount: "75.00", donorName: "Mohammed R.", giftAid: true, coversFees: false },
+    { pageId: aminaPage.id, userId: amina.id, amount: "50.00", donorName: "Khalid M.", donorEmail: "khalid@example.com", giftAid: true, coversFees: true },
+    { pageId: aminaPage.id, userId: null, amount: "25.00", donorName: null, donorEmail: "anonymous@example.com", giftAid: false, coversFees: false },
+    { pageId: aminaPage.id, userId: fatima.id, amount: "100.00", donorName: "Sarah T.", donorEmail: "sarah@example.com", giftAid: true, coversFees: false },
+    { pageId: yusufPage.id, userId: null, amount: "10.00", donorName: "Anonymous", donorEmail: "anon2@example.com", giftAid: false, coversFees: true },
+    { pageId: yusufPage.id, userId: yusuf.id, amount: "75.00", donorName: "Mohammed R.", donorEmail: "mohammed@example.com", giftAid: true, coversFees: false },
   ];
 
   for (const d of donationData) {
@@ -383,6 +383,8 @@ async function main() {
         status: "CAPTURED",
         isAnonymous: !d.donorName,
         donorName: d.donorName ?? undefined,
+        donorEmail: d.donorEmail,
+        receiptIssuedAt: new Date(),
         externalRef: `pi_seed_${randomUUID().slice(0, 8)}`,
         idempotencyKey: randomUUID(),
       },

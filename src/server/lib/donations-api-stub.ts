@@ -110,7 +110,7 @@ export const donationsApi = {
     if (IS_STUB) {
       return {
         id: `sess-${randomUUID().slice(0, 8)}`,
-        checkoutUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/dev/checkout-stub?donationId=${input.donationId}`,
+        checkoutUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/checkout/test/${input.donationId}`,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       };
     }

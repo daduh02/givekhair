@@ -444,6 +444,7 @@ model Donation {
   isRecurring     Boolean        @default(false)
   donorName       String?
   donorEmail      String?
+  receiptIssuedAt DateTime?
   message         String?        @db.Text
   externalRef     String?        // Donations API / Stripe ref
   idempotencyKey  String?        @unique
