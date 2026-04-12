@@ -95,7 +95,7 @@ export default async function AdminAppealsPage() {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
           <thead>
             <tr style={{ background: "#F6F1E8" }}>
-              {["Appeal", "Category", "Goal", "Pages", "Teams", "Status", "Visibility"].map((heading) => (
+              {["Appeal", "Category", "Goal", "Pages", "Teams", "Status", "Visibility", "Actions"].map((heading) => (
                 <th key={heading} style={{ padding: "0.8rem 1rem", textAlign: "left", fontSize: "0.75rem", color: "#8A9E94" }}>
                   {heading}
                 </th>
@@ -117,11 +117,29 @@ export default async function AdminAppealsPage() {
                 <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>{appeal._count.teams}</td>
                 <td style={{ padding: "0.9rem 1rem" }}>{statusPill(appeal.status)}</td>
                 <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>{appeal.visibility}</td>
+                <td style={{ padding: "0.9rem 1rem" }}>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/admin/appeals/${appeal.id}`}
+                      className="btn-outline"
+                      style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}
+                    >
+                      Edit
+                    </Link>
+                    <Link
+                      href={`/appeals/${appeal.slug}`}
+                      className="btn-outline"
+                      style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}
+                    >
+                      View
+                    </Link>
+                  </div>
+                </td>
               </tr>
             ))}
             {appeals.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ padding: "2rem", textAlign: "center", color: "#8A9E94" }}>
+                <td colSpan={8} style={{ padding: "2rem", textAlign: "center", color: "#8A9E94" }}>
                   No appeals yet. Create the first one to start accepting fundraising pages.
                 </td>
               </tr>
