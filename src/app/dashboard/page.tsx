@@ -206,6 +206,12 @@ export default async function DashboardPage() {
                     href="/admin/appeals"
                     cta="Manage appeals"
                   />
+                  <ActionCard
+                    title="Create a new appeal"
+                    description="Jump straight into the appeal form to add a new campaign without digging through the admin panel first."
+                    href="/admin/appeals/new"
+                    cta="Add appeal"
+                  />
                 </>
               ) : (
                 <>

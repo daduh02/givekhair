@@ -69,6 +69,7 @@ export default async function AdminOverviewPage() {
           <p className="text-sm" style={{ color: "#8A9E94" }}>Charity dashboard</p>
         </div>
         <div className="flex gap-2">
+          <Link href="/admin/appeals" className="btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}>Manage appeals</Link>
           <Link href="/admin/appeals/new" className="btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}>+ New appeal</Link>
           <Link href="/admin/reports" className="btn-primary" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}>Export CSV</Link>
         </div>
@@ -133,9 +134,18 @@ export default async function AdminOverviewPage() {
                     {pill(a.status)}
                   </div>
                   <p className="text-xs mt-1" style={{ color: "#8A9E94" }}>{a._count.fundraisingPages} pages</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link href={`/admin/appeals/${a.id}`} className="btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
+                      Edit
+                    </Link>
+                    <Link href={`/appeals/${a.slug}`} className="btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
+                      View
+                    </Link>
+                  </div>
                 </div>
               ))}
               {appeals.length === 0 && <p className="text-sm" style={{ color: "#8A9E94" }}>No appeals yet</p>}
+              <Link href="/admin/appeals" className="btn-outline w-full justify-center" style={{ padding: "0.5rem", fontSize: "0.8rem" }}>Open appeals manager</Link>
               <Link href="/admin/appeals/new" className="btn-outline w-full justify-center mt-2" style={{ padding: "0.5rem", fontSize: "0.8rem" }}>+ New appeal</Link>
             </div>
           </div>
