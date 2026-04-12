@@ -6,7 +6,7 @@ export default function SignInPage({
 }: {
   searchParams: { callbackUrl?: string; error?: string };
 }) {
-  const callbackUrl = searchParams.callbackUrl ?? "/admin";
+  const callbackUrl = searchParams.callbackUrl ?? "/dashboard";
   const error = searchParams.error;
 
   return (
