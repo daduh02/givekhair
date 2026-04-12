@@ -2,6 +2,13 @@
 
 Peer-to-peer fundraising platform. Gift Aid eligible, fee-transparent, UK-focused.
 
+## Project Docs
+
+- [Documentation Hub](./docs/README.md)
+- [Progress Tracker](./docs/PROGRESS.md)
+- [Architecture](./docs/ARCHITECTURE.md)
+- [Implementation Roadmap](./docs/ROADMAP.md)
+
 ## Stack
 
 | Layer | Technology |
@@ -54,6 +61,7 @@ npm run dev
 | amina@example.com | FUNDRAISER |
 
 > No passwords set — use OAuth or add passwordHash via Prisma Studio (`npm run db:studio`)
+> Demo password for seeded accounts in the current environment: `GiveKhair123!`
 
 ## Key routes
 

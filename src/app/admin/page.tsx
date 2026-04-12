@@ -1,8 +1,7 @@
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getAdminContext } from "@/lib/admin";
 
 export const metadata: Metadata = { title: "Admin — Overview" };
 
@@ -22,18 +21,8 @@ function StatCard({ label, value, sub, color }: { label: string; value: string; 
 }
 
 export default async function AdminOverviewPage() {
-  const session = await auth();
-  if (!session) redirect("/auth/signin");
-
-  const userId = (session.user as { id?: string } | undefined)?.id;
-if (!userId) redirect("/auth/signin?callbackUrl=/admin");
-
-const charityAdmin = await db.charityAdmin.findFirst({
-    where: { userId },
-    include: { charity: true },
-  });
-
-  const charityId = charityAdmin?.charityId ?? "";
+  const { managedCharity } = await getAdminContext();
+  const charityId = managedCharity?.id ?? "";
 
   const [onlineAgg, offlineAgg, pendingPayoutAgg, giftAidAgg, recentDonations, appeals, payouts] =
     await Promise.all([
@@ -76,7 +65,7 @@ const charityAdmin = await db.charityAdmin.findFirst({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "#233029" }}>{charityAdmin?.charity.name ?? "Overview"}</h1>
+          <h1 className="text-xl font-bold" style={{ color: "#233029" }}>{managedCharity?.name ?? "Overview"}</h1>
           <p className="text-sm" style={{ color: "#8A9E94" }}>Charity dashboard</p>
         </div>
         <div className="flex gap-2">
