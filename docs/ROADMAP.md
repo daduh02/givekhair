@@ -20,7 +20,9 @@ Prioritise slices that:
 - Production deployment fixed on Vercel
 - Credentials and Google sign-in
 - Role-aware homepage and admin entrypoints
-- Admin appeal list and create flow
+- Charity setup and appeal management
+- Moderation queue
+- Offline donations admin workflow
 
 ### Remaining in this phase
 
@@ -33,10 +35,10 @@ Prioritise slices that:
 
 ### Recommended next
 
-1. Offline donations management
-2. CSV upload dry-run and commit
-3. Donations admin list and detail views
-4. Appeal moderation/visibility controls
+1. Donations admin list and detail views
+2. Fundraising page public route and page management UI
+3. Reports and exports
+4. Appeal/team analytics and leaderboards
 
 ### Why this phase matters
 
@@ -66,30 +68,29 @@ This is the shortest path to matching the operational needs in the spec for real
 
 ## Candidate next tickets
 
-### Ticket 1: Offline donations admin page
+### Ticket 1: Admin donations management
 
-- Replace `/admin/offline` placeholder
-- List offline donations by charity
-- Add manual create/edit/delete flow
-- Show impact on appeal/team/page totals
+- Replace `/admin/donations` placeholder
+- Add filters, statuses, donor view, Gift Aid marker, and refund hook points
+- Show donation source, fee snapshot, and charity/page linkage
 
-### Ticket 2: Offline CSV upload
-
-- Create upload batch model workflow in UI
-- Dry-run parser and row validation
-- Commit flow to create offline donations and optional Gift Aid declarations
-- Result summary and downloadable error report
-
-### Ticket 3: Fundraising page public experience
+### Ticket 2: Fundraising page public experience
 
 - Add `/fundraise/[shortName]`
 - Show totals, story, updates, media, donation feed
 - Reuse donation widget where appropriate
 
-### Ticket 4: Admin donations management
+### Ticket 3: Reports and exports
 
-- Replace `/admin/donations` placeholder
-- Add filters, statuses, donor view, Gift Aid marker, and refund hook points
+- Replace `/admin/reports` placeholder
+- Add donations, offline, Gift Aid, and payout export actions
+- Add charity-scoped filters and export history
+
+### Ticket 4: Finance workflows
+
+- Build payout batches and history
+- Build Gift Aid claim queue
+- Add finance summaries and reconciliation hooks
 
 ## What to keep updating
 

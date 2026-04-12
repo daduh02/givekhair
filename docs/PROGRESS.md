@@ -15,8 +15,8 @@ This file tracks the current delivery state of the product against the working g
 - Product foundation is in place: auth, core schema, homepage, appeal pages, fee preview, donation intent creation, admin shell, and production deployment flow.
 - Email/password login and Google login are both now available.
 - Admin and homepage role-aware navigation are working.
-- Appeals management is now started with a real admin list and create flow.
-- Major finance, offline, payout, reporting, moderation, and reconciliation workflows are still incomplete.
+- Charity setup, appeal management, moderation, and offline donation operations now have real admin workflows.
+- Major finance, payout, reporting, reconciliation, and dispute workflows are still incomplete.
 
 ## Completed
 
@@ -48,9 +48,16 @@ This file tracks the current delivery state of the product against the working g
 ### Admin experience
 
 - `Done` Admin dashboard shell and overview page
+- `Done` Admin charities list and edit pages
 - `Done` Admin appeals list page
 - `Done` Admin appeal creation page
+- `Done` Admin appeal edit page
+- `Done` Team creation and membership management within appeal admin
+- `Done` Moderation queue page
+- `Done` Offline donations admin page
+- `Done` Offline CSV dry-run and commit flow
 - `Done` Shared admin context helper for resolving current charity/admin scope
+- `Done` Platform-admin appeal visibility across all charities
 
 ## Partially Implemented
 
@@ -77,26 +84,28 @@ This file tracks the current delivery state of the product against the working g
 
 - `Partial` Data model exists
 - `Partial` Donation flow captures Gift Aid fields
+- `Partial` Offline donation flow can create Gift Aid declarations
 - `Partial` Claim building, submission, and admin operations are not complete
 
 ### Offline donations
 
-- `Partial` Offline donation schema exists
+- `Done` Offline donation schema exists
+- `Done` Admin manual offline donation workflow
+- `Done` CSV dry-run validation and commit flow
+- `Done` Duplicate detection and Gift Aid validation for offline imports
 - `Partial` Offline totals are included in some aggregate views
-- `Partial` Admin workflow and CSV upload flow are not built
+- `Partial` Downloadable error/result exports are not built
 
 ## Not Started
 
 ### Spec-critical product slices
 
-- `Not started` Offline donation bulk upload dry-run and commit flow
 - `Not started` Full donations management and case handling
 - `Not started` Refunds, disputes, and chargeback workflows
 - `Not started` Payout batching lifecycle and reconciliation UI
 - `Not started` GL export and finance CSV exports per accounting structure
 - `Not started` Gift Aid claim queue, submission, and paid-state workflow
-- `Not started` Page moderation queue and visibility management tooling
-- `Not started` Team management UI and leaderboards
+- `Not started` Team leaderboards
 - `Not started` Charity directory and richer public charity profiles
 - `Not started` Reporting center with downloadable exports
 - `Not started` Risk scoring, hold states, and moderation logs
@@ -114,14 +123,16 @@ This file tracks the current delivery state of the product against the working g
 
 ### 5.2 Charity & Appeal Management
 
-- `Partial` appeal creation
-- `Partial` charity-admin scope
-- `Not started` moderation queue
-- `Not started` visibility/moderation ops UI beyond appeal create form
+- `Done` charity setup and edit workflow
+- `Done` appeal creation and edit workflow
+- `Done` charity-admin scope
+- `Done` moderation queue
+- `Done` visibility/moderation ops UI for appeals and fundraiser pages
 
 ### 5.3 Fundraising Pages
 
 - `Partial` schema and mutations
+- `Partial` moderation controls exist in admin appeal flows
 - `Not started` dedicated fundraiser page management UI
 
 ### 5.4 Donations
@@ -142,6 +153,7 @@ This file tracks the current delivery state of the product against the working g
 ### 5.7 Gift Aid
 
 - `Partial` declaration capture
+- `Partial` offline declaration creation
 - `Not started` claims lifecycle
 
 ### 5.8 Reporting
@@ -150,16 +162,20 @@ This file tracks the current delivery state of the product against the working g
 
 ### 5.9 Risk, Trust & Moderation
 
-- `Not started`
+- `Partial` moderation queue and page status controls
+- `Not started` risk scoring, hold states, and immutable moderation log workflow
 
 ### 5.10 Offline Donations & Teams
 
-- `Partial` schema
-- `Not started` management workflows
+- `Done` schema
+- `Done` team creation and member management in appeal admin
+- `Done` offline donation management workflow
+- `Partial` leaderboards and richer team analytics
 
 ### 5.11 Bulk Upload
 
-- `Not started`
+- `Done` dry-run and commit flow for offline donations
+- `Not started` downloadable result CSV and batch audit exports
 
 ### 5.12 Refunds, Disputes & Chargebacks
 
@@ -167,7 +183,7 @@ This file tracks the current delivery state of the product against the working g
 
 ## Immediate Next Recommendations
 
-1. Build `Offline donations + CSV upload` because the schema is already there and it unlocks both charity operations and team/appeal totals.
+1. Build `Admin donations management` so finance and support workflows have a real operational home.
 2. Build `Fundraising page public route + page management UI` because it is a core product promise already referenced by the schema and homepage.
-3. Build `Admin donations management` so finance and support workflows have a real home.
-4. Build `Payouts + Gift Aid workflows` after the above operational flows are stable.
+3. Build `Payouts + Gift Aid workflows` after the above operational flows are stable.
+4. Build `Reports and exports` so charities can actually use the data they are entering.

@@ -43,7 +43,7 @@ The codebase is currently a modular monolith built in Next.js. The UI, route han
 ### Shared libraries
 
 - `src/lib/`
-- Database client, auth config, password utilities, admin-context helper, tRPC client helpers
+- Database client, auth config, password utilities, admin-context helper, admin management helpers, offline donation import helpers, tRPC client helpers
 
 ### Server domain logic
 
@@ -97,8 +97,24 @@ Recent production fixes showed that shared providers in the root layout can crea
 ### Admin appeal flow
 
 1. Admin context resolves current user and managed charity
-2. Appeals list queries appeals for that charity
-3. New appeal form creates an appeal and revalidates admin/public paths
+2. Platform admins can query across all charities, while charity admins stay scoped to their managed charity
+3. Appeals list and edit routes expose teams, fundraiser pages, visibility, and moderation controls
+4. Appeal create/update actions revalidate admin and public paths
+
+### Admin charity and moderation flow
+
+1. Charity admins manage charity profile fields from `/admin/charities`
+2. Appeal edit routes manage team creation and team membership
+3. Fundraiser page approval, rejection, hide, and ban actions are coordinated from the appeal admin route
+4. `/admin/moderation` provides a queue view across moderation record types
+
+### Offline donations flow
+
+1. Admin visits `/admin/offline`
+2. Manual entries create `OfflineDonation` records directly, with optional linked `GiftAidDeclaration`
+3. CSV uploads run a dry-run parser and persist an `OfflineUploadBatch`
+4. Only valid dry-run rows are committed into `OfflineDonation` records
+5. Batch and record updates revalidate admin surfaces so totals stay fresh
 
 ## Known architectural gaps
 
@@ -106,9 +122,9 @@ Recent production fixes showed that shared providers in the root layout can crea
 
 The schema and router support fundraiser pages, but the dedicated public route and management UX are still absent.
 
-### 2. Admin workflows are uneven
+### 2. Admin workflows are still uneven
 
-`Appeals` now has a real workflow, but donations, payouts, offline uploads, reports, and settings are still mostly placeholders.
+`Charities`, `Appeals`, `Moderation`, and `Offline donations` now have real workflows, but donations, payouts, reports, Gift Aid operations, and settings are still mostly placeholders.
 
 ### 3. Payments integration is stubbed
 
@@ -121,6 +137,10 @@ Queues exist conceptually, but operational workers and async processing flows ar
 ### 5. Finance reconciliation exists more in schema than in workflows
 
 The ledger and payout models are present, but finance operations still need real end-user surfaces and automated processing.
+
+### 6. Offline ingestion is functional but not yet complete
+
+The platform can now validate and import offline donations, but downloadable batch reports, richer audit tooling, and broader totals/reconciliation visibility still need to be added.
 
 ## Recommended future documentation
 
