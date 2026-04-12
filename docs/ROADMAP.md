@@ -20,6 +20,7 @@ Prioritise slices that:
 - Production deployment fixed on Vercel
 - Credentials and Google sign-in
 - Role-aware homepage and admin entrypoints
+- Platform overview and charity-overview split in admin
 - Charity setup and appeal management
 - Moderation queue
 - Offline donations admin workflow

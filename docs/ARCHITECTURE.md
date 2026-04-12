@@ -106,10 +106,12 @@ Recent production fixes showed that shared providers in the root layout can crea
 
 ### Admin charity and moderation flow
 
-1. Charity admins manage charity profile fields from `/admin/charities`
-2. Appeal edit routes manage team creation and team membership
-3. Fundraiser page approval, rejection, hide, and ban actions are coordinated from the appeal admin route
-4. `/admin/moderation` provides a queue view across moderation record types
+1. `/admin` shows a platform-wide overview for platform admins and a charity-scoped overview for charity admins
+2. `/admin/charities` lists available charities and links into charity-specific overview pages
+3. Charity creation and charity editing live on dedicated routes rather than inline on the list page
+4. Appeal edit routes manage team creation and team membership
+5. Fundraiser page approval, rejection, hide, and ban actions are coordinated from the appeal admin route
+6. `/admin/moderation` provides a queue view across moderation record types
 
 ### Offline donations flow
 

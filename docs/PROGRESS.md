@@ -49,7 +49,9 @@ This file tracks the current delivery state of the product against the working g
 ### Admin experience
 
 - `Done` Admin dashboard shell and overview page
-- `Done` Admin charities list and edit pages
+- `Done` Platform-level admin overview across all charities
+- `Done` Charity-specific overview pages
+- `Done` Admin charities list and dedicated create/edit pages
 - `Done` Admin appeals list page
 - `Done` Admin appeal creation page
 - `Done` Admin appeal edit page
@@ -129,6 +131,8 @@ This file tracks the current delivery state of the product against the working g
 ### 5.2 Charity & Appeal Management
 
 - `Done` charity setup and edit workflow
+- `Done` charity create flow on its own page
+- `Done` charity overview pages linked from the charities list
 - `Done` appeal creation and edit workflow
 - `Done` charity-admin scope
 - `Done` moderation queue
