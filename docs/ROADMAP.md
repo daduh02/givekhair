@@ -23,21 +23,22 @@ Prioritise slices that:
 - Charity setup and appeal management
 - Moderation queue
 - Offline donations admin workflow
+- Donations admin workflow and hosted test checkout
 
 ### Remaining in this phase
 
 - Fundraising page public route `/fundraise/[shortName]`
 - Fundraising page creation and edit UI
-- Donation checkout completion with hosted checkout redirect
+- Live payment-provider checkout beyond the hosted test flow
 - Better admin charity resolution and switching for platform admins
 
 ## Phase 2: Charity Operations
 
 ### Recommended next
 
-1. Donations admin list and detail views
-2. Fundraising page public route and page management UI
-3. Reports and exports
+1. Fundraising page public route and page management UI
+2. Reports and exports
+3. Payouts and Gift Aid workflows
 4. Appeal/team analytics and leaderboards
 
 ### Why this phase matters
@@ -68,29 +69,29 @@ This is the shortest path to matching the operational needs in the spec for real
 
 ## Candidate next tickets
 
-### Ticket 1: Admin donations management
-
-- Replace `/admin/donations` placeholder
-- Add filters, statuses, donor view, Gift Aid marker, and refund hook points
-- Show donation source, fee snapshot, and charity/page linkage
-
-### Ticket 2: Fundraising page public experience
+### Ticket 1: Fundraising page public experience
 
 - Add `/fundraise/[shortName]`
 - Show totals, story, updates, media, donation feed
 - Reuse donation widget where appropriate
 
-### Ticket 3: Reports and exports
+### Ticket 2: Reports and exports
 
 - Replace `/admin/reports` placeholder
 - Add donations, offline, Gift Aid, and payout export actions
 - Add charity-scoped filters and export history
 
-### Ticket 4: Finance workflows
+### Ticket 3: Finance workflows
 
 - Build payout batches and history
 - Build Gift Aid claim queue
 - Add finance summaries and reconciliation hooks
+
+### Ticket 4: Refunds and disputes
+
+- Add refund records and admin actions from the donations workflow
+- Add dispute ingestion and case visibility
+- Show reversal/recovery state alongside donation status
 
 ## What to keep updating
 

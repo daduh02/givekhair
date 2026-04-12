@@ -15,8 +15,8 @@ This file tracks the current delivery state of the product against the working g
 - Product foundation is in place: auth, core schema, homepage, appeal pages, fee preview, donation intent creation, admin shell, and production deployment flow.
 - Email/password login and Google login are both now available.
 - Admin and homepage role-aware navigation are working.
-- Charity setup, appeal management, moderation, and offline donation operations now have real admin workflows.
-- Major finance, payout, reporting, reconciliation, and dispute workflows are still incomplete.
+- Charity setup, appeal management, moderation, offline donation operations, and donation management now have real admin workflows.
+- Major finance, payout, reporting, reconciliation, refund, and dispute workflows are still incomplete.
 
 ## Completed
 
@@ -44,6 +44,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Fee preview in donation widget
 - `Done` Donation intent creation flow in tRPC
 - `Done` Gift Aid capture fields in donation intent flow
+- `Done` Hosted test checkout route and thank-you flow
 
 ### Admin experience
 
@@ -54,6 +55,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Admin appeal edit page
 - `Done` Team creation and membership management within appeal admin
 - `Done` Moderation queue page
+- `Done` Donations admin page
 - `Done` Offline donations admin page
 - `Done` Offline CSV dry-run and commit flow
 - `Done` Shared admin context helper for resolving current charity/admin scope
@@ -69,10 +71,12 @@ This file tracks the current delivery state of the product against the working g
 
 ### Donations
 
-- `Partial` Donation intent creation exists
-- `Partial` Fee snapshot and ledger hooks exist in code
-- `Partial` Hosted checkout handoff is not fully wired to a real provider
-- `Partial` Webhook route exists, but the end-to-end provider integration is not complete
+- `Done` Donation intent creation exists
+- `Done` Fee snapshot is stored per donation
+- `Done` Hosted test checkout handoff exists for end-to-end development
+- `Done` Webhook route reuses donation capture and failure processing
+- `Partial` Live payment-provider checkout is not yet wired
+- `Partial` Refund and dispute operations are not yet built
 
 ### Fees and finance
 
@@ -85,6 +89,7 @@ This file tracks the current delivery state of the product against the working g
 - `Partial` Data model exists
 - `Partial` Donation flow captures Gift Aid fields
 - `Partial` Offline donation flow can create Gift Aid declarations
+- `Partial` Online donations are linked into a draft claim queue on capture
 - `Partial` Claim building, submission, and admin operations are not complete
 
 ### Offline donations
@@ -100,7 +105,7 @@ This file tracks the current delivery state of the product against the working g
 
 ### Spec-critical product slices
 
-- `Not started` Full donations management and case handling
+- `Partial` Donations management and operational visibility
 - `Not started` Refunds, disputes, and chargeback workflows
 - `Not started` Payout batching lifecycle and reconciliation UI
 - `Not started` GL export and finance CSV exports per accounting structure
@@ -137,8 +142,9 @@ This file tracks the current delivery state of the product against the working g
 
 ### 5.4 Donations
 
-- `Partial` donation intent and hosted-checkout preparation
-- `Not started` real checkout completion flow and robust receipt workflow
+- `Done` donation intent, fee snapshot, and hosted test-checkout completion flow
+- `Done` webhook-driven payment confirmation and failure handling foundation
+- `Partial` robust receipt delivery, provider-specific recurring billing, and refund operations
 
 ### 5.5 Fee & Pricing Model
 
@@ -154,6 +160,7 @@ This file tracks the current delivery state of the product against the working g
 
 - `Partial` declaration capture
 - `Partial` offline declaration creation
+- `Partial` online capture adds declarations into a draft claim queue
 - `Not started` claims lifecycle
 
 ### 5.8 Reporting
@@ -183,7 +190,7 @@ This file tracks the current delivery state of the product against the working g
 
 ## Immediate Next Recommendations
 
-1. Build `Admin donations management` so finance and support workflows have a real operational home.
-2. Build `Fundraising page public route + page management UI` because it is a core product promise already referenced by the schema and homepage.
-3. Build `Payouts + Gift Aid workflows` after the above operational flows are stable.
-4. Build `Reports and exports` so charities can actually use the data they are entering.
+1. Build `Fundraising page public route + page management UI` because it is a core product promise already referenced by the schema and homepage.
+2. Build `Payouts + Gift Aid workflows` after the above operational flows are stable.
+3. Build `Reports and exports` so charities can actually use the data they are entering.
+4. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.

@@ -48,7 +48,7 @@ The codebase is currently a modular monolith built in Next.js. The UI, route han
 ### Server domain logic
 
 - `src/server/lib/`
-- Fee engine, ledger helpers, queue setup, donations API stub
+- Fee engine, ledger helpers, queue setup, donations API stub, donation processing helpers
 
 - `src/server/routers/`
 - tRPC procedures for appeals, pages, donations, fees, and admin-adjacent operations
@@ -91,8 +91,10 @@ Recent production fixes showed that shared providers in the root layout can crea
 1. User opens donation widget on an appeal page
 2. Frontend previews fees through tRPC
 3. Frontend creates donation intent through tRPC
-4. Server resolves fee schedule and persists donation intent data
-5. Next step should be hosted checkout handoff and webhook completion
+4. Server resolves fee schedule, persists the donation intent, fee snapshot, and optional Gift Aid declaration
+5. Hosted test checkout route simulates provider completion for development and staging-like testing
+6. Shared donation-processing helpers capture or fail the donation, create payment records, update receipt state, write ledger entries, and attach Gift Aid declarations to a draft claim queue
+7. Stripe webhook route reuses the same donation-processing helpers for provider-driven confirmation
 
 ### Admin appeal flow
 
@@ -116,6 +118,13 @@ Recent production fixes showed that shared providers in the root layout can crea
 4. Only valid dry-run rows are committed into `OfflineDonation` records
 5. Batch and record updates revalidate admin surfaces so totals stay fresh
 
+### Donations operations flow
+
+1. Admin visits `/admin/donations`
+2. Charity admins see charity-scoped donation records, while platform admins can filter across charities
+3. The screen exposes donation status, fee coverage, Gift Aid state, recurring flag, provider refs, and receipt state
+4. Pending donations can be opened in the hosted test checkout route to complete or fail the payment loop manually
+
 ## Known architectural gaps
 
 ### 1. Public fundraising page route is missing
@@ -124,11 +133,11 @@ The schema and router support fundraiser pages, but the dedicated public route a
 
 ### 2. Admin workflows are still uneven
 
-`Charities`, `Appeals`, `Moderation`, and `Offline donations` now have real workflows, but donations, payouts, reports, Gift Aid operations, and settings are still mostly placeholders.
+`Charities`, `Appeals`, `Moderation`, `Offline donations`, and `Donations` now have real workflows, but payouts, reports, Gift Aid operations, and settings are still mostly placeholders.
 
 ### 3. Payments integration is stubbed
 
-The current donation flow prepares data but does not yet complete a real hosted checkout lifecycle.
+The current donation flow supports an end-to-end hosted test checkout lifecycle, but a live payment provider still needs to replace the stubbed checkout session creation.
 
 ### 4. Background jobs are modeled but not operational
 
