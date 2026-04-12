@@ -6,8 +6,6 @@ const PROTECTED_PREFIXES = ["/admin", "/account", "/fundraise"];
 
 const ROLE_ROUTES: Record<string, string[]> = {
   "/admin": ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"],
-  "/admin/finance": ["FINANCE", "PLATFORM_ADMIN"],
-  "/admin/platform": ["PLATFORM_ADMIN"],
 };
 
 export async function middleware(req: NextRequest) {
@@ -22,9 +20,8 @@ export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.AUTH_SECRET });
 
   if (!token) {
-    // Always redirect to /admin after sign-in for protected routes
-    const signInUrl = new URL("/auth/signin", req.url);
-    signInUrl.searchParams.set("callbackUrl", "/admin");
+    const signInUrl = new URL("/api/auth/signin", req.url);
+    signInUrl.searchParams.set("callbackUrl", "https://givekhair.vercel.app/admin");
     return NextResponse.redirect(signInUrl);
   }
 
@@ -38,5 +35,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|auth).*)"],
+  // Exclude ALL api routes, auth routes, static files
+  matcher: ["/admin/:path*", "/account/:path*", "/fundraise/:path*"],
 };
