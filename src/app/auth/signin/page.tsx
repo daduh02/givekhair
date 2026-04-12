@@ -1,23 +1,15 @@
-import { redirect } from "next/navigation";
-
-// In Next-Auth v5, the correct signin URL is /api/auth/signin (not /api/auth/signin/google)
-// Next-Auth will then redirect to Google automatically since it's the only provider
 export default function SignInPage({
   searchParams,
 }: {
   searchParams: { callbackUrl?: string; error?: string };
 }) {
   const callbackUrl = searchParams.callbackUrl ?? "/admin";
+  const error = searchParams.error;
 
-  // If no error, redirect straight to the Next-Auth signin handler
-  if (!searchParams.error) {
-    redirect(`/api/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-  }
-
-  // Show error page if something went wrong
   return (
     <div style={{ minHeight: "100vh", background: "#F6F1E8", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
       <div style={{ width: "100%", maxWidth: "360px", textAlign: "center" }}>
+
         <div style={{ display: "inline-flex", alignItems: "center", gap: "10px", marginBottom: "2rem" }}>
           <span style={{ display: "grid", height: "40px", width: "40px", placeItems: "center", borderRadius: "12px", background: "#124E40" }}>
             <svg viewBox="0 0 24 24" style={{ height: "24px", width: "24px" }} fill="none" stroke="#F6F1E8" strokeWidth="2">
@@ -27,19 +19,43 @@ export default function SignInPage({
           <span style={{ fontSize: "1.25rem", fontWeight: 700, color: "#233029" }}>GiveKhair</span>
         </div>
 
-        <div style={{ background: "white", borderRadius: "1rem", padding: "1.5rem", boxShadow: "0 4px 24px rgba(18,78,64,0.1)", marginBottom: "1rem" }}>
-          <p style={{ color: "#991B1B", fontWeight: 600, marginBottom: "0.5rem" }}>Sign in failed</p>
-          <p style={{ fontSize: "0.875rem", color: "#3A4A42", marginBottom: "1.5rem" }}>
-            {searchParams.error === "Configuration" ? "Auth configuration error — please contact support." : "There was a problem signing you in."}
-          </p>
+        <div style={{ background: "white", borderRadius: "1rem", padding: "1.5rem", boxShadow: "0 4px 24px rgba(18,78,64,0.1)" }}>
+          <p style={{ fontSize: "0.875rem", color: "#3A4A42", marginBottom: "1.25rem" }}>Sign in to your account</p>
+
+          {error && (
+            <div style={{ marginBottom: "1rem", padding: "10px", borderRadius: "8px", background: "#FEE2E2", color: "#991B1B", fontSize: "0.8rem" }}>
+              Sign in failed — please try again.
+            </div>
+          )}
+
+          {/* v4 uses GET to /api/auth/signin/google */}
           <a
-            href={`/api/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-            style={{ display: "inline-block", padding: "10px 24px", borderRadius: "9999px", background: "#1E8C6E", color: "white", fontWeight: 600, fontSize: "0.875rem", textDecoration: "none" }}>
-            Try again
+            href={`/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "12px",
+              padding: "12px 16px",
+              borderRadius: "12px",
+              border: "1px solid rgba(18,78,64,0.2)",
+              background: "white",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              color: "#233029",
+              textDecoration: "none",
+            }}>
+            <svg width="18" height="18" viewBox="0 0 18 18">
+              <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+              <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/>
+              <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18z"/>
+              <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/>
+            </svg>
+            Continue with Google
           </a>
         </div>
 
-        <p style={{ fontSize: "0.75rem", color: "#8A9E94" }}>
+        <p style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#8A9E94" }}>
           Questions? <a href="mailto:hello@givekhair.com" style={{ color: "#1E8C6E" }}>Get in touch</a>
         </p>
       </div>
