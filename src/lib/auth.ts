@@ -5,20 +5,27 @@ import type { NextAuthOptions, Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import { db } from "@/lib/db";
 
+const googleClientId = process.env.AUTH_GOOGLE_ID;
+const googleClientSecret = process.env.AUTH_GOOGLE_SECRET;
+const authSecret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET;
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(db),
-  secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
+  ...(process.env.DATABASE_URL ? { adapter: PrismaAdapter(db) } : {}),
+  secret: authSecret,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
-  providers: [
-    GoogleProvider({
-      clientId: process.env.AUTH_GOOGLE_ID!,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-    }),
-  ],
+  providers:
+    googleClientId && googleClientSecret
+      ? [
+          GoogleProvider({
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          }),
+        ]
+      : [],
   callbacks: {
     async jwt({ token, user }: { token: JWT; user?: any }) {
       if (user) {
@@ -39,5 +46,8 @@ export const authOptions: NextAuthOptions = {
 
 // v4 compatibility: export auth() as a drop-in for server components
 export async function auth() {
+  if (!authSecret) {
+    return null;
+  }
   return getServerSession(authOptions);
 }

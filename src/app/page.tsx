@@ -1,10 +1,11 @@
 import { db } from "@/lib/db";
 import { Navbar } from "@/components/layout/Navbar";
-import { AppealCard } from "@/components/appeal/AppealCard";
+import { AppealCard, type AppealCardAppeal } from "@/components/appeal/AppealCard";
 import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Home" };
+export const dynamic = "force-dynamic";
 
 const CATEGORIES = [
   { label: "All", slug: "" },
@@ -16,30 +17,43 @@ const CATEGORIES = [
 ];
 
 export default async function HomePage({ searchParams }: { searchParams: { category?: string; q?: string } }) {
-  const appeals = await db.appeal.findMany({
-    where: {
-      status: "ACTIVE",
-      visibility: "PUBLIC",
-      ...(searchParams.category && { category: { slug: searchParams.category } }),
-      ...(searchParams.q && { title: { contains: searchParams.q, mode: "insensitive" } }),
-    },
-    include: {
-      charity: { select: { name: true, logoUrl: true, isVerified: true } },
-      _count: { select: { fundraisingPages: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 24,
-  });
-
+  let appeals: AppealCardAppeal[] = [];
   const raisedMap: Record<string, number> = {};
-  for (const appeal of appeals) {
-    const [online, offline] = await Promise.all([
-      db.donation.aggregate({ where: { page: { appealId: appeal.id }, status: "CAPTURED" }, _sum: { amount: true } }),
-      db.offlineDonation.aggregate({ where: { page: { appealId: appeal.id }, status: "APPROVED" }, _sum: { amount: true } }),
-    ]);
-    raisedMap[appeal.id] =
-      parseFloat(online._sum.amount?.toString() ?? "0") +
-      parseFloat(offline._sum.amount?.toString() ?? "0");
+  let loadError = false;
+
+  try {
+    const dbAppeals = await db.appeal.findMany({
+      where: {
+        status: "ACTIVE",
+        visibility: "PUBLIC",
+        ...(searchParams.category && { category: { slug: searchParams.category } }),
+        ...(searchParams.q && { title: { contains: searchParams.q, mode: "insensitive" } }),
+      },
+      include: {
+        charity: { select: { name: true, logoUrl: true, isVerified: true } },
+        _count: { select: { fundraisingPages: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 24,
+    });
+
+    appeals = dbAppeals.map((appeal) => ({
+      ...appeal,
+      goalAmount: appeal.goalAmount.toString(),
+    }));
+
+    for (const appeal of dbAppeals) {
+      const [online, offline] = await Promise.all([
+        db.donation.aggregate({ where: { page: { appealId: appeal.id }, status: "CAPTURED" }, _sum: { amount: true } }),
+        db.offlineDonation.aggregate({ where: { page: { appealId: appeal.id }, status: "APPROVED" }, _sum: { amount: true } }),
+      ]);
+      raisedMap[appeal.id] =
+        parseFloat(online._sum.amount?.toString() ?? "0") +
+        parseFloat(offline._sum.amount?.toString() ?? "0");
+    }
+  } catch (error) {
+    loadError = true;
+    console.error("Failed to load homepage appeals", error);
   }
 
   return (
@@ -102,13 +116,23 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
               : "Featured appeals"}
           </h2>
 
-          {appeals.length === 0 ? (
+          {loadError ? (
+            <div className="rounded-3xl border px-6 py-10 text-center" style={{ borderColor: "rgba(18,78,64,0.12)", background: "white" }}>
+              <p className="text-lg font-semibold" style={{ color: "#233029" }}>We&apos;re getting GiveKhair ready.</p>
+              <p className="mt-3" style={{ color: "#3A4A42" }}>
+                The public appeal directory is temporarily unavailable while the platform finishes connecting to its live services.
+              </p>
+              <p className="mt-2 text-sm" style={{ color: "#8A9E94" }}>
+                Please try again shortly, or contact hello@givekhair.com if you need help right away.
+              </p>
+            </div>
+          ) : appeals.length === 0 ? (
             <p className="py-16 text-center" style={{ color: "#3A4A42" }}>No appeals found.</p>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {appeals.map((appeal) => (
                 <AppealCard key={appeal.id}
-                  appeal={{ ...appeal, goalAmount: appeal.goalAmount.toString() }}
+                  appeal={appeal}
                   raisedAmount={raisedMap[appeal.id] ?? 0} />
               ))}
             </div>

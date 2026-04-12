@@ -8,7 +8,7 @@ Peer-to-peer fundraising platform. Gift Aid eligible, fee-transparent, UK-focuse
 |---|---|
 | Frontend + API | Next.js 14 (App Router) |
 | Type-safe API | tRPC v11 |
-| Auth | Auth.js (NextAuth v5) |
+| Auth | NextAuth v4 |
 | Database | PostgreSQL + Prisma |
 | Background jobs | BullMQ + Redis |
 | Payments | Stripe (hosted checkout) |
@@ -30,9 +30,9 @@ npm install
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env — set DATABASE_URL, REDIS_URL, AUTH_SECRET at minimum
+# Edit .env — set DATABASE_URL, REDIS_URL, NEXTAUTH_SECRET, NEXTAUTH_URL at minimum
 
-# 3. Generate AUTH_SECRET
+# 3. Generate NEXTAUTH_SECRET
 openssl rand -base64 32
 
 # 4. Run database migrations
@@ -68,6 +68,14 @@ npm run dev
 | `/api/trpc/[trpc]` | tRPC endpoint |
 | `/api/webhooks/stripe` | Stripe webhook receiver |
 | `/api/auth/[...nextauth]` | Auth.js handlers |
+
+## Production deploy notes
+
+- Set `DATABASE_URL` to the production Postgres database used by Prisma
+- Set `NEXTAUTH_URL` to the deployed app URL, for example `https://givekhair.vercel.app`
+- Set `NEXTAUTH_SECRET` to a long random value
+- Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` before enabling Google sign-in
+- Run Prisma migrations or `prisma db push` against the production database before expecting the public site to load data
 
 ## Architecture notes
 

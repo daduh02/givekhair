@@ -1,21 +1,23 @@
 import Link from "next/link";
 import Image from "next/image";
 
-interface Props {
-  appeal: {
-    id: string;
-    slug: string;
-    title: string;
-    goalAmount: string | number;
-    currency: string;
-    bannerUrl?: string | null;
-    charity: {
-      name: string;
-      logoUrl?: string | null;
-      isVerified: boolean;
-    };
-    _count?: { fundraisingPages: number };
+export interface AppealCardAppeal {
+  id: string;
+  slug: string;
+  title: string;
+  goalAmount: string | number;
+  currency: string;
+  bannerUrl?: string | null;
+  charity: {
+    name: string;
+    logoUrl?: string | null;
+    isVerified: boolean;
   };
+  _count?: { fundraisingPages: number };
+}
+
+interface Props {
+  appeal: AppealCardAppeal;
   raisedAmount?: number;
 }
 
