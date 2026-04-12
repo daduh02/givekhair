@@ -6,11 +6,13 @@
 import { PrismaClient } from "@prisma/client";
 import Decimal from "decimal.js";
 import { randomUUID } from "crypto";
+import { hashPassword } from "../src/lib/password";
 
 const db = new PrismaClient();
 
 async function main() {
   console.log("🌱 Seeding database...");
+  const defaultPasswordHash = hashPassword("GiveKhair123!");
 
   // ── Fee schedule ────────────────────────────────────────────────────────────
   const schedule = await db.feeSchedule.upsert({
@@ -79,10 +81,15 @@ async function main() {
   // ── Users ───────────────────────────────────────────────────────────────────
   const adminUser = await db.user.upsert({
     where: { email: "admin@givekhair.dev" },
-    update: {},
+    update: {
+      passwordHash: defaultPasswordHash,
+      role: "PLATFORM_ADMIN",
+      emailVerified: new Date(),
+    },
     create: {
       email: "admin@givekhair.dev",
       name: "Platform Admin",
+      passwordHash: defaultPasswordHash,
       role: "PLATFORM_ADMIN",
       emailVerified: new Date(),
     },
@@ -90,10 +97,15 @@ async function main() {
 
   const charityAdmin = await db.user.upsert({
     where: { email: "charity@givekhair.dev" },
-    update: {},
+    update: {
+      passwordHash: defaultPasswordHash,
+      role: "CHARITY_ADMIN",
+      emailVerified: new Date(),
+    },
     create: {
       email: "charity@givekhair.dev",
       name: "Charity Manager",
+      passwordHash: defaultPasswordHash,
       role: "CHARITY_ADMIN",
       emailVerified: new Date(),
     },
@@ -101,20 +113,20 @@ async function main() {
 
   const amina = await db.user.upsert({
     where: { email: "amina@example.com" },
-    update: {},
-    create: { email: "amina@example.com", name: "Amina Abubakar", role: "FUNDRAISER", emailVerified: new Date() },
+    update: { passwordHash: defaultPasswordHash, role: "FUNDRAISER", emailVerified: new Date() },
+    create: { email: "amina@example.com", name: "Amina Abubakar", passwordHash: defaultPasswordHash, role: "FUNDRAISER", emailVerified: new Date() },
   });
 
   const yusuf = await db.user.upsert({
     where: { email: "yusuf@example.com" },
-    update: {},
-    create: { email: "yusuf@example.com", name: "Yusuf Khan", role: "FUNDRAISER", emailVerified: new Date() },
+    update: { passwordHash: defaultPasswordHash, role: "FUNDRAISER", emailVerified: new Date() },
+    create: { email: "yusuf@example.com", name: "Yusuf Khan", passwordHash: defaultPasswordHash, role: "FUNDRAISER", emailVerified: new Date() },
   });
 
   const fatima = await db.user.upsert({
     where: { email: "fatima@example.com" },
-    update: {},
-    create: { email: "fatima@example.com", name: "Fatima Hassan", role: "FUNDRAISER", emailVerified: new Date() },
+    update: { passwordHash: defaultPasswordHash, role: "FUNDRAISER", emailVerified: new Date() },
+    create: { email: "fatima@example.com", name: "Fatima Hassan", passwordHash: defaultPasswordHash, role: "FUNDRAISER", emailVerified: new Date() },
   });
 
   await db.charityAdmin.upsert({

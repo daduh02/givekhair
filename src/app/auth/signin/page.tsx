@@ -1,3 +1,4 @@
+import { CredentialsSignInForm } from "@/components/auth/CredentialsSignInForm";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 export default function SignInPage({
@@ -30,11 +31,22 @@ export default function SignInPage({
             </div>
           )}
 
+          <CredentialsSignInForm callbackUrl={callbackUrl} initialError={error} />
+
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "1rem 0" }}>
+            <div style={{ height: "1px", flex: 1, background: "rgba(18,78,64,0.14)" }} />
+            <span style={{ fontSize: "0.75rem", color: "#8A9E94" }}>or</span>
+            <div style={{ height: "1px", flex: 1, background: "rgba(18,78,64,0.14)" }} />
+          </div>
+
           <GoogleSignInButton callbackUrl={callbackUrl} />
         </div>
 
         <p style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#8A9E94" }}>
           Questions? <a href="mailto:hello@givekhair.com" style={{ color: "#1E8C6E" }}>Get in touch</a>
+        </p>
+        <p style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "#8A9E94" }}>
+          Demo password for seeded accounts: <span style={{ color: "#233029", fontWeight: 600 }}>GiveKhair123!</span>
         </p>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { Navbar } from "@/components/layout/Navbar";
 import { AppealCard, type AppealCardAppeal } from "@/components/appeal/AppealCard";
 import Link from "next/link";
@@ -17,6 +18,10 @@ const CATEGORIES = [
 ];
 
 export default async function HomePage({ searchParams }: { searchParams: { category?: string; q?: string } }) {
+  const session = await auth();
+  const role = (session?.user as { role?: string } | undefined)?.role ?? "DONOR";
+  const isAdmin = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"].includes(role);
+
   let appeals: AppealCardAppeal[] = [];
   const raisedMap: Record<string, number> = {};
   let loadError = false;
@@ -75,7 +80,14 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
             Gift Aid eligible and completely fee-transparent.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/fundraise/new" className="btn-primary">Start fundraising</Link>
+            {isAdmin ? (
+              <Link href="/admin" className="btn-primary">Open admin panel</Link>
+            ) : session ? (
+              <Link href="/dashboard" className="btn-primary">Open dashboard</Link>
+            ) : (
+              <Link href="/auth/signin?callbackUrl=%2Fdashboard" className="btn-primary">Log in</Link>
+            )}
+            <Link href="/fundraise/new" className="btn-outline">Start fundraising</Link>
             <Link href="#appeals" className="btn-outline">Browse appeals</Link>
             <span className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold"
               style={{ background: "linear-gradient(135deg,#D4A24C,#EBCB86)", color: "#2B210E" }}>

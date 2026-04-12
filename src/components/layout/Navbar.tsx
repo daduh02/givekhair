@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { auth } from "@/lib/auth";
 
-export function Navbar() {
+export async function Navbar() {
+  const session = await auth();
+  const role = (session?.user as { role?: string } | undefined)?.role ?? "DONOR";
+  const isAdmin = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"].includes(role);
+
   return (
     <nav style={{ background: "#F6F1E8", borderBottom: "1px solid rgba(18,78,64,0.12)" }}
       className="sticky top-0 z-50">
@@ -19,8 +24,17 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/auth/signin?callbackUrl=%2Fdashboard" className="btn-ghost text-sm">Log in</Link>
-          <Link href="/auth/signin?callbackUrl=%2Ffundraise%2Fnew" className="btn-primary hidden sm:inline-flex" style={{ fontSize: "0.875rem", padding: "0.5rem 1.25rem" }}>Start fundraising</Link>
+          {session ? (
+            <>
+              {isAdmin && (
+                <Link href="/admin" className="btn-ghost text-sm">Admin panel</Link>
+              )}
+              <Link href="/dashboard" className="btn-ghost text-sm">Dashboard</Link>
+            </>
+          ) : (
+            <Link href="/auth/signin?callbackUrl=%2Fdashboard" className="btn-ghost text-sm">Log in</Link>
+          )}
+          <Link href={session ? "/fundraise/new" : "/auth/signin?callbackUrl=%2Ffundraise%2Fnew"} className="btn-primary hidden sm:inline-flex" style={{ fontSize: "0.875rem", padding: "0.5rem 1.25rem" }}>Start fundraising</Link>
         </div>
       </div>
     </nav>
