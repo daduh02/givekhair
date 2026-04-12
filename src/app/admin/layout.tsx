@@ -7,7 +7,9 @@ export const metadata: Metadata = { title: "Admin" };
 
 const NAV = [
   { href: "/admin",          label: "Overview",         icon: "▦" },
+  { href: "/admin/charities",label: "Charities",        icon: "🏛️" },
   { href: "/admin/appeals",  label: "Appeals",          icon: "📣" },
+  { href: "/admin/moderation",label: "Moderation",      icon: "🛡️" },
   { href: "/admin/donations",label: "Donations",        icon: "💷" },
   { href: "/admin/payouts",  label: "Payouts",          icon: "🏦" },
   { href: "/admin/gift-aid", label: "Gift Aid",         icon: "🎁" },

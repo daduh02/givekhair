@@ -207,10 +207,22 @@ export default async function DashboardPage() {
                     cta="Manage appeals"
                   />
                   <ActionCard
+                    title="Charity setup"
+                    description="Edit the charity profile, verification state, contact details, and default settings used across appeals."
+                    href="/admin/charities"
+                    cta="Open charity setup"
+                  />
+                  <ActionCard
                     title="Create a new appeal"
                     description="Jump straight into the appeal form to add a new campaign without digging through the admin panel first."
                     href="/admin/appeals/new"
                     cta="Add appeal"
+                  />
+                  <ActionCard
+                    title="Moderation queue"
+                    description="Review charity updates, reported content, team changes, and fundraiser page moderation from one queue."
+                    href="/admin/moderation"
+                    cta="Open moderation"
                   />
                 </>
               ) : (

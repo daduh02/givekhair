@@ -90,13 +90,20 @@ model Charity {
   name            String
   slug            String   @unique
   registrationNo  String?
+  charityNumber   String?
   description     String?  @db.Text
+  shortDescription String? @db.Text
+  fullDescription String?  @db.Text
   logoUrl         String?
   bannerUrl       String?
   websiteUrl      String?
+  contactEmail    String?
   countryCode     String   @default("GB")
+  defaultCurrency String   @default("GBP")
   isVerified      Boolean  @default(false)
   isActive        Boolean  @default(true)
+  verificationStatus CharityVerificationStatus @default(PENDING)
+  status          CharityStatus @default(ACTIVE)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -106,6 +113,21 @@ model Charity {
   payoutBatches   PayoutBatch[]
   giftAidClaims   GiftAidClaim[]
   feeSchedules    FeeSchedule[]
+  moderationItems ModerationItem[]
+}
+
+enum CharityVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum CharityStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
 }
 
 model CharityAdmin {
@@ -152,11 +174,13 @@ model Appeal {
   title        String
   slug         String           @unique
   story        String?          @db.Text
+  impact       String?          @db.Text
   goalAmount   Decimal          @db.Decimal(12, 2)
   currency     String           @default("GBP")
   startsAt     DateTime?
   endsAt       DateTime?
   bannerUrl    String?
+  mediaGallery Json?
   visibility   AppealVisibility @default(PUBLIC)
   status       AppealStatus     @default(DRAFT)
   createdAt    DateTime         @default(now())
@@ -167,6 +191,7 @@ model Appeal {
   teams            Team[]
   fundraisingPages FundraisingPage[]
   offlineUploads   OfflineUploadBatch[]
+  moderationItems  ModerationItem[]
 }
 
 // ─────────────────────────────────────────────
@@ -180,14 +205,24 @@ model Team {
   slug        String
   description String?  @db.Text
   goalAmount  Decimal? @db.Decimal(12, 2)
+  visibility  AppealVisibility @default(PUBLIC)
+  status      TeamStatus @default(ACTIVE)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  appeal   Appeal       @relation(fields: [appealId], references: [id])
-  members  TeamMember[]
-  pages    FundraisingPage[]
+  appeal           Appeal           @relation(fields: [appealId], references: [id])
+  members          TeamMember[]
+  pages            FundraisingPage[]
+  moderationItems  ModerationItem[]
 
   @@unique([appealId, slug])
+}
+
+enum TeamStatus {
+  DRAFT
+  ACTIVE
+  HIDDEN
+  BANNED
 }
 
 model TeamMember {
@@ -209,8 +244,11 @@ model TeamMember {
 
 enum PageStatus {
   DRAFT
+  PENDING_APPROVAL
   ACTIVE
+  REJECTED
   SUSPENDED
+  BANNED
   ENDED
 }
 
@@ -244,6 +282,46 @@ model FundraisingPage {
   offlineDonations OfflineDonation[]
   mediaItems       PageMedia[]
   updates          PageUpdate[]
+  moderationItems  ModerationItem[]
+}
+
+enum ModerationEntityType {
+  CHARITY
+  APPEAL
+  TEAM
+  FUNDRAISING_PAGE
+  REPORTED_CONTENT
+}
+
+enum ModerationReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  HIDDEN
+  BANNED
+}
+
+model ModerationItem {
+  id            String                 @id @default(cuid())
+  entityType    ModerationEntityType
+  entityId      String?
+  charityId     String?
+  appealId      String?
+  teamId        String?
+  pageId        String?
+  title         String
+  summary       String?                @db.Text
+  status        ModerationReviewStatus @default(PENDING)
+  submittedById String?
+  reviewedById  String?
+  reviewNotes   String?                @db.Text
+  createdAt     DateTime               @default(now())
+  reviewedAt    DateTime?
+
+  charity     Charity?         @relation(fields: [charityId], references: [id])
+  appeal      Appeal?          @relation(fields: [appealId], references: [id])
+  team        Team?            @relation(fields: [teamId], references: [id])
+  page        FundraisingPage? @relation(fields: [pageId], references: [id])
 }
 
 model PageMedia {

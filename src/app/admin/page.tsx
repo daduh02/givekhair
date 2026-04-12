@@ -69,8 +69,10 @@ export default async function AdminOverviewPage() {
           <p className="text-sm" style={{ color: "#8A9E94" }}>Charity dashboard</p>
         </div>
         <div className="flex gap-2">
+          <Link href="/admin/charities" className="btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}>Charity setup</Link>
           <Link href="/admin/appeals" className="btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}>Manage appeals</Link>
           <Link href="/admin/appeals/new" className="btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}>+ New appeal</Link>
+          <Link href="/admin/moderation" className="btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}>Moderation queue</Link>
           <Link href="/admin/reports" className="btn-primary" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem" }}>Export CSV</Link>
         </div>
       </div>

@@ -5,6 +5,7 @@ type AppealFormValue = {
   slug?: string;
   goalAmount?: string;
   currency?: string;
+  charityId?: string;
   categoryId?: string;
   bannerUrl?: string;
   startsAt?: string;
@@ -12,9 +13,16 @@ type AppealFormValue = {
   status?: "DRAFT" | "ACTIVE" | "PAUSED" | "ENDED";
   visibility?: "PUBLIC" | "UNLISTED" | "HIDDEN";
   story?: string;
+  impact?: string;
+  mediaGallery?: string;
 };
 
 type CategoryOption = {
+  id: string;
+  name: string;
+};
+
+type CharityOption = {
   id: string;
   name: string;
 };
@@ -23,6 +31,8 @@ export function AppealForm({
   action,
   errorMessage,
   categories,
+  charities,
+  showCharitySelect,
   submitLabel,
   cancelHref,
   initialValues,
@@ -30,6 +40,8 @@ export function AppealForm({
   action: (formData: FormData) => void | Promise<void>;
   errorMessage?: string;
   categories: CategoryOption[];
+  charities?: CharityOption[];
+  showCharitySelect?: boolean;
   submitLabel: string;
   cancelHref: string;
   initialValues?: AppealFormValue;
@@ -60,6 +72,19 @@ export function AppealForm({
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
+        {showCharitySelect ? (
+          <Field label="Charity">
+            <select name="charityId" className="input" defaultValue={initialValues?.charityId ?? ""} required>
+              <option value="">Select charity</option>
+              {charities?.map((charity) => (
+                <option key={charity.id} value={charity.id}>
+                  {charity.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        ) : null}
+
         <Field label="Appeal title">
           <input
             name="title"
@@ -156,6 +181,32 @@ export function AppealForm({
             placeholder="Explain the need, the impact, and why supporters should care."
             style={{ resize: "vertical" }}
             defaultValue={initialValues?.story ?? ""}
+          />
+        </Field>
+      </div>
+
+      <div className="mt-4">
+        <Field label="Impact">
+          <textarea
+            name="impact"
+            className="input"
+            rows={4}
+            placeholder="Describe what the appeal will deliver and the outcome supporters help create."
+            style={{ resize: "vertical" }}
+            defaultValue={initialValues?.impact ?? ""}
+          />
+        </Field>
+      </div>
+
+      <div className="mt-4">
+        <Field label="Media gallery URLs">
+          <textarea
+            name="mediaGallery"
+            className="input"
+            rows={4}
+            placeholder={"https://...\nhttps://..."}
+            style={{ resize: "vertical" }}
+            defaultValue={initialValues?.mediaGallery ?? ""}
           />
         </Field>
       </div>

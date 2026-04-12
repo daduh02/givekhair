@@ -53,27 +53,75 @@ async function main() {
   // ── Charities ───────────────────────────────────────────────────────────────
   const islamicRelief = await db.charity.upsert({
     where: { slug: "islamic-relief-uk" },
-    update: {},
-    create: {
-      name: "Islamic Relief UK",
-      slug: "islamic-relief-uk",
+    update: {
+      charityNumber: "328158",
       registrationNo: "328158",
+      verificationStatus: "VERIFIED",
+      status: "ACTIVE",
+      logoUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
+      websiteUrl: "https://www.islamic-relief.org.uk",
+      shortDescription: "Emergency relief, health, and long-term development programmes across the world.",
+      fullDescription: "Islamic Relief UK works with communities affected by conflict, disaster, and poverty. The charity supports emergency response, health services, livelihoods, and resilient local infrastructure.",
+      contactEmail: "hello@islamic-relief.org.uk",
+      defaultCurrency: "GBP",
       description: "Working to save and transform the lives of some of the world's most vulnerable people.",
       countryCode: "GB",
       isVerified: true,
+      isActive: true,
+    },
+    create: {
+      name: "Islamic Relief UK",
+      slug: "islamic-relief-uk",
+      charityNumber: "328158",
+      registrationNo: "328158",
+      description: "Working to save and transform the lives of some of the world's most vulnerable people.",
+      shortDescription: "Emergency relief, health, and long-term development programmes across the world.",
+      fullDescription: "Islamic Relief UK works with communities affected by conflict, disaster, and poverty. The charity supports emergency response, health services, livelihoods, and resilient local infrastructure.",
+      logoUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80",
+      websiteUrl: "https://www.islamic-relief.org.uk",
+      contactEmail: "hello@islamic-relief.org.uk",
+      countryCode: "GB",
+      defaultCurrency: "GBP",
+      isVerified: true,
+      verificationStatus: "VERIFIED",
+      status: "ACTIVE",
     },
   });
 
   const saveChildren = await db.charity.upsert({
     where: { slug: "save-the-children" },
-    update: {},
-    create: {
-      name: "Save the Children UK",
-      slug: "save-the-children",
+    update: {
+      charityNumber: "213890",
       registrationNo: "213890",
+      verificationStatus: "VERIFIED",
+      status: "ACTIVE",
+      logoUrl: "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=400&q=80",
+      websiteUrl: "https://www.savethechildren.org.uk",
+      shortDescription: "Helping children stay safe, healthy, and learning in crises and beyond.",
+      fullDescription: "Save the Children UK supports children through emergencies, education programmes, health access, and advocacy work that protects children's rights and futures.",
+      contactEmail: "support@savethechildren.org.uk",
+      defaultCurrency: "GBP",
       description: "We believe every child deserves a future.",
       countryCode: "GB",
       isVerified: true,
+      isActive: true,
+    },
+    create: {
+      name: "Save the Children UK",
+      slug: "save-the-children",
+      charityNumber: "213890",
+      registrationNo: "213890",
+      description: "We believe every child deserves a future.",
+      shortDescription: "Helping children stay safe, healthy, and learning in crises and beyond.",
+      fullDescription: "Save the Children UK supports children through emergencies, education programmes, health access, and advocacy work that protects children's rights and futures.",
+      logoUrl: "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=400&q=80",
+      websiteUrl: "https://www.savethechildren.org.uk",
+      contactEmail: "support@savethechildren.org.uk",
+      countryCode: "GB",
+      defaultCurrency: "GBP",
+      isVerified: true,
+      verificationStatus: "VERIFIED",
+      status: "ACTIVE",
     },
   });
   console.log("  ✓ Charities");
@@ -157,19 +205,42 @@ async function main() {
   // ── Appeal ──────────────────────────────────────────────────────────────────
   const appeal = await db.appeal.upsert({
     where: { slug: "gaza-emergency-medical-aid" },
-    update: {},
-    create: {
+    update: {
       charityId: islamicRelief.id,
       categoryId: categories[0].id,
       title: "Gaza Emergency Medical Aid",
-      slug: "gaza-emergency-medical-aid",
       story: "Hospitals in Gaza are overwhelmed. Your donation funds emergency surgical kits, medicines, and field medics on the ground.",
+      impact: "Funds emergency surgery packs, fuel for ambulances, frontline medicines, and trauma care for families affected by the crisis.",
       goalAmount: 100000,
       currency: "GBP",
       status: "ACTIVE",
       visibility: "PUBLIC",
       startsAt: new Date("2024-10-01"),
       endsAt: new Date("2025-06-30"),
+      bannerUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1400&q=80",
+      mediaGallery: [
+        "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1400&q=80",
+        "https://images.unsplash.com/photo-1518398046578-8cca57782e17?auto=format&fit=crop&w=1400&q=80",
+      ],
+    },
+    create: {
+      charityId: islamicRelief.id,
+      categoryId: categories[0].id,
+      title: "Gaza Emergency Medical Aid",
+      slug: "gaza-emergency-medical-aid",
+      story: "Hospitals in Gaza are overwhelmed. Your donation funds emergency surgical kits, medicines, and field medics on the ground.",
+      impact: "Funds emergency surgery packs, fuel for ambulances, frontline medicines, and trauma care for families affected by the crisis.",
+      goalAmount: 100000,
+      currency: "GBP",
+      status: "ACTIVE",
+      visibility: "PUBLIC",
+      startsAt: new Date("2024-10-01"),
+      endsAt: new Date("2025-06-30"),
+      bannerUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1400&q=80",
+      mediaGallery: [
+        "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1400&q=80",
+        "https://images.unsplash.com/photo-1518398046578-8cca57782e17?auto=format&fit=crop&w=1400&q=80",
+      ],
     },
   });
   console.log("  ✓ Appeal");
@@ -177,12 +248,21 @@ async function main() {
   // ── Team ────────────────────────────────────────────────────────────────────
   const team = await db.team.upsert({
     where: { appealId_slug: { appealId: appeal.id, slug: "london-masjid-collective" } },
-    update: {},
+    update: {
+      name: "London Masjid Collective",
+      description: "Mosques and community organisers across London fundraising together for urgent medical relief.",
+      goalAmount: 15000,
+      visibility: "PUBLIC",
+      status: "ACTIVE",
+    },
     create: {
       appealId: appeal.id,
       name: "London Masjid Collective",
       slug: "london-masjid-collective",
+      description: "Mosques and community organisers across London fundraising together for urgent medical relief.",
       goalAmount: 15000,
+      visibility: "PUBLIC",
+      status: "ACTIVE",
     },
   });
 
@@ -238,6 +318,44 @@ async function main() {
     },
   });
   console.log("  ✓ Fundraising pages");
+
+  await db.moderationItem.upsert({
+    where: { id: "seed-charity-review" },
+    update: {
+      title: "Charity profile refresh pending review",
+      summary: "Islamic Relief UK updated the organisation profile, descriptions, and contact details.",
+      status: "PENDING",
+    },
+    create: {
+      id: "seed-charity-review",
+      entityType: "CHARITY",
+      entityId: islamicRelief.id,
+      charityId: islamicRelief.id,
+      title: "Charity profile refresh pending review",
+      summary: "Islamic Relief UK updated the organisation profile, descriptions, and contact details.",
+      status: "PENDING",
+      submittedById: charityAdmin.id,
+    },
+  });
+
+  await db.moderationItem.upsert({
+    where: { id: "seed-reported-content" },
+    update: {
+      title: "Reported fundraiser comment awaiting moderation",
+      summary: "A donor reported a comment on a fundraiser page as inappropriate and misleading.",
+      status: "PENDING",
+    },
+    create: {
+      id: "seed-reported-content",
+      entityType: "REPORTED_CONTENT",
+      charityId: islamicRelief.id,
+      title: "Reported fundraiser comment awaiting moderation",
+      summary: "A donor reported a comment on a fundraiser page as inappropriate and misleading.",
+      status: "PENDING",
+      submittedById: adminUser.id,
+    },
+  });
+  console.log("  ✓ Moderation queue seeds");
 
   // ── Donations + FeeSet + Ledger ─────────────────────────────────────────────
   const donationData = [

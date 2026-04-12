@@ -1,44 +1,45 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getAdminContext } from "@/lib/admin";
 import { AppealForm } from "@/components/admin/AppealForm";
+import {
+  parseMediaGallery,
+  parseOptionalString,
+  revalidateAdminSurfaces,
+  slugify,
+  upsertModerationItem,
+} from "@/lib/admin-management";
 
 export const metadata: Metadata = { title: "Admin - New Appeal" };
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
 
 async function createAppeal(formData: FormData) {
   "use server";
 
-  const { managedCharity } = await getAdminContext();
-  if (!managedCharity) {
+  const { managedCharity, role, userId } = await getAdminContext();
+  if (!managedCharity && role !== "PLATFORM_ADMIN") {
     redirect("/admin/appeals");
   }
 
   const title = String(formData.get("title") ?? "").trim();
-  const story = String(formData.get("story") ?? "").trim();
   const goalAmount = Number(formData.get("goalAmount") ?? 0);
   const currency = String(formData.get("currency") ?? "GBP").trim().toUpperCase();
-  const categoryId = String(formData.get("categoryId") ?? "").trim() || null;
+  const charityIdInput = String(formData.get("charityId") ?? "").trim();
+  const categoryId = parseOptionalString(formData.get("categoryId"));
   const startsAtRaw = String(formData.get("startsAt") ?? "").trim();
   const endsAtRaw = String(formData.get("endsAt") ?? "").trim();
   const visibility = String(formData.get("visibility") ?? "PUBLIC").trim() as "PUBLIC" | "UNLISTED" | "HIDDEN";
   const status = String(formData.get("status") ?? "DRAFT").trim() as "DRAFT" | "ACTIVE" | "PAUSED" | "ENDED";
-  const bannerUrl = String(formData.get("bannerUrl") ?? "").trim() || null;
+  const bannerUrl = parseOptionalString(formData.get("bannerUrl"));
+  const story = parseOptionalString(formData.get("story"));
+  const impact = parseOptionalString(formData.get("impact"));
+  const mediaGallery = parseMediaGallery(String(formData.get("mediaGallery") ?? ""));
   const slugInput = String(formData.get("slug") ?? "").trim();
   const slug = slugify(slugInput || title);
+  const charityId = role === "PLATFORM_ADMIN" ? charityIdInput : managedCharity?.id;
 
-  if (!title || !slug || !Number.isFinite(goalAmount) || goalAmount <= 0) {
+  if (!title || !slug || !charityId || !Number.isFinite(goalAmount) || goalAmount <= 0) {
     redirect("/admin/appeals/new?error=invalid");
   }
 
@@ -50,13 +51,14 @@ async function createAppeal(formData: FormData) {
     redirect("/admin/appeals/new?error=slug");
   }
 
-  await db.appeal.create({
+  const created = await db.appeal.create({
     data: {
-      charityId: managedCharity.id,
+      charityId,
       categoryId: categoryId ?? undefined,
       title,
       slug,
-      story: story || undefined,
+      story: story ?? undefined,
+      impact: impact ?? undefined,
       goalAmount,
       currency,
       startsAt: startsAtRaw ? new Date(startsAtRaw) : undefined,
@@ -64,12 +66,22 @@ async function createAppeal(formData: FormData) {
       visibility,
       status,
       bannerUrl: bannerUrl ?? undefined,
+      mediaGallery,
     },
   });
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/appeals");
-  revalidatePath("/");
+  await upsertModerationItem({
+    entityType: "APPEAL",
+    entityId: created.id,
+    charityId: created.charityId,
+    appealId: created.id,
+    title: `Appeal submitted: ${created.title}`,
+    summary: impact ?? story ?? null,
+    status: "PENDING",
+    submittedById: userId,
+  });
+
+  revalidateAdminSurfaces([`/admin/appeals/${created.id}`, `/appeals/${created.slug}`]);
   redirect("/admin/appeals");
 }
 
@@ -78,14 +90,19 @@ export default async function NewAppealPage({
 }: {
   searchParams: { error?: string };
 }) {
-  const { managedCharity } = await getAdminContext();
+  const { managedCharity, role } = await getAdminContext();
 
-  const categories = await db.category.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
+  const [categories, charities] = await Promise.all([
+    db.category.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    role === "PLATFORM_ADMIN"
+      ? db.charity.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+      : Promise.resolve([]),
+  ]);
 
-  if (!managedCharity) {
+  if (!managedCharity && role !== "PLATFORM_ADMIN") {
     return (
       <div>
         <h1 className="text-xl font-bold mb-2" style={{ color: "#233029" }}>New appeal</h1>
@@ -109,7 +126,7 @@ export default async function NewAppealPage({
         <div>
           <h1 className="text-xl font-bold" style={{ color: "#233029" }}>Create new appeal</h1>
           <p className="text-sm" style={{ color: "#8A9E94" }}>
-            Launch a new campaign for {managedCharity.name}.
+            Launch a new campaign for {managedCharity?.name ?? "the selected charity"}.
           </p>
         </div>
         <Link href="/admin/appeals" className="btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}>
@@ -121,9 +138,16 @@ export default async function NewAppealPage({
         action={createAppeal}
         errorMessage={errorMessage}
         categories={categories}
+        charities={charities}
+        showCharitySelect={role === "PLATFORM_ADMIN"}
         submitLabel="Create appeal"
         cancelHref="/admin/appeals"
-        initialValues={{ currency: "GBP", status: "DRAFT", visibility: "PUBLIC" }}
+        initialValues={{
+          charityId: managedCharity?.id ?? "",
+          currency: managedCharity?.defaultCurrency ?? "GBP",
+          status: "DRAFT",
+          visibility: "PUBLIC",
+        }}
       />
     </div>
   );
