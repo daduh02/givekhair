@@ -5,6 +5,7 @@ import { TRPCProvider } from "@/components/providers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
+import { getOrCreateAppealCheckoutPage } from "@/lib/appeal-checkout";
 
 interface Props { params: { slug: string } }
 
@@ -62,8 +63,17 @@ export default async function AppealPage({ params }: Props) {
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat("en-GB", { style: "currency", currency: appeal.currency, maximumFractionDigits: 0 }).format(n);
 
-  // Get a representative page for the checkout (first active page)
-  const firstPage = appeal.fundraisingPages[0] ?? appeal.teams[0]?.pages[0];
+  // Every appeal page needs a donation target, even if no public fundraiser page exists yet.
+  const firstPage =
+    appeal.fundraisingPages[0] ??
+    appeal.teams.flatMap((team) => team.pages)[0] ??
+    await getOrCreateAppealCheckoutPage({
+      appealId: appeal.id,
+      appealTitle: appeal.title,
+      appealSlug: appeal.slug,
+      charityId: appeal.charityId,
+      currency: appeal.currency,
+    });
 
   return (
     <>
