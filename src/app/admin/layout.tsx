@@ -72,17 +72,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
 function AdminNavLink({ href, icon, label }: { href: string; icon: string; label: string }) {
   return (
-    <Link href={href}
+    <Link
+      href={href}
       className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
       style={{ color: "#3A4A42" }}
-      onMouseOver={(e) => {
-        e.currentTarget.style.background = "rgba(30,140,110,0.1)";
-        e.currentTarget.style.color = "#124E40";
-      }}
-      onMouseOut={(e) => {
-        e.currentTarget.style.background = "transparent";
-        e.currentTarget.style.color = "#3A4A42";
-      }}>
+    >
       <span className="text-base w-5 text-center">{icon}</span>
       {label}
     </Link>
