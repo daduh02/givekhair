@@ -24,6 +24,7 @@ Prioritise slices that:
 - Moderation queue
 - Offline donations admin workflow
 - Donations admin workflow and hosted test checkout
+- Appeal pages now guarantee a donation widget even when no public fundraiser page exists yet
 
 ### Remaining in this phase
 

@@ -40,7 +40,7 @@ This file tracks the current delivery state of the product against the working g
 ### Public fundraising experience
 
 - `Done` Homepage with featured appeals and category filtering
-- `Done` Appeal detail page with totals, teams, fundraiser list, and donation widget
+- `Done` Appeal detail page with totals, teams, fundraiser list, and donation widget on every appeal page
 - `Done` Fee preview in donation widget
 - `Done` Donation intent creation flow in tRPC
 - `Done` Gift Aid capture fields in donation intent flow
@@ -144,6 +144,7 @@ This file tracks the current delivery state of the product against the working g
 
 - `Done` donation intent, fee snapshot, and hosted test-checkout completion flow
 - `Done` webhook-driven payment confirmation and failure handling foundation
+- `Done` appeal pages guarantee a donation widget via a hidden fallback checkout page when needed
 - `Partial` robust receipt delivery, provider-specific recurring billing, and refund operations
 
 ### 5.5 Fee & Pricing Model

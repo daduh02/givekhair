@@ -85,6 +85,7 @@ Recent production fixes showed that shared providers in the root layout can crea
 1. Homepage loads active, public appeals from Prisma
 2. Appeals show charity details and aggregated raised amounts
 3. Appeal detail page loads teams, fundraiser pages, and donation widget
+4. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
 
 ### Donation flow
 
