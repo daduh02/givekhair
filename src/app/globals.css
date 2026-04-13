@@ -284,6 +284,88 @@
     box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
   }
 
+  .account-menu-shell {
+    position: relative;
+  }
+
+  .account-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3.1rem;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.82);
+    padding: 0.45rem 0.75rem 0.45rem 0.45rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.18s ease,
+      background-color 0.18s ease;
+  }
+
+  .account-trigger:hover,
+  .account-trigger[aria-expanded="true"] {
+    transform: translateY(-1px);
+    border-color: rgba(15, 118, 110, 0.24);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  }
+
+  .account-avatar {
+    display: grid;
+    height: 2.2rem;
+    width: 2.2rem;
+    place-items: center;
+    border-radius: 999px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .account-avatar-fallback {
+    background: linear-gradient(180deg, var(--color-primary), var(--color-primary-dark));
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+  }
+
+  .account-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.65rem);
+    width: min(19rem, calc(100vw - 2rem));
+    border: 1px solid var(--color-line);
+    border-radius: 1.2rem;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.14);
+    backdrop-filter: blur(12px);
+  }
+
+  .account-menu-item {
+    display: grid;
+    gap: 0.15rem;
+    border-radius: 0.95rem;
+    padding: 0.8rem 0.85rem;
+    color: var(--color-ink);
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
+
+  .account-menu-item:hover,
+  .account-menu-item:focus-visible {
+    background: rgba(204, 251, 241, 0.5);
+  }
+
+  .account-menu-item-danger {
+    color: #991B1B;
+  }
+
+  .account-menu-item-danger .text-xs,
+  .account-menu-item-danger .text-sm {
+    color: inherit;
+  }
+
   .footer-column {
     display: grid;
     gap: 0.85rem;

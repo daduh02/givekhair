@@ -19,35 +19,35 @@ const CATEGORY_PILLS = [
 
 const BENEFITS = [
   {
-    title: "Why donors will trust this",
-    copy: "Verified charities, clear fee breakdowns, Gift Aid prompts, and strong trust signals reduce hesitation before checkout.",
+    title: "Why charities use GiveKhair",
+    copy: "Each appeal can show verified charity context, live progress, online and offline totals, and a donation flow that explains fees before checkout.",
   },
   {
-    title: "Why fundraisers will convert",
-    copy: "Appeal pages are built to explain the cause quickly, show progress clearly, and get donors to a hosted checkout in minutes.",
+    title: "Built for fundraiser support",
+    copy: "Teams, fundraiser pages, moderation, and donation tracking sit behind the same appeal, so charities can grow campaigns without losing oversight.",
   },
   {
-    title: "Why charities will join",
-    copy: "Charities get visibility, fundraiser oversight, donation reporting, and a more credible public presence without building this stack alone.",
+    title: "Ready for finance follow-through",
+    copy: "Gift Aid claims, offline uploads, payout batches, and reporting live in the admin side, so campaign activity does not end at the donate button.",
   },
 ];
 
 const TRUST_BAND = [
   {
     title: "Registered charity details",
-    copy: "Charity profiles can surface verification status, registration references, and governance cues before donors give.",
+    copy: "Public charity pages can show registration details, verification status, and core contact information before a donor gives.",
   },
   {
     title: "Gift Aid information",
-    copy: "UK taxpayers can see Gift Aid eligibility and declaration guidance at the point of intent, not buried after checkout.",
+    copy: "Gift Aid eligibility and declaration language sit close to the donation flow instead of being buried after payment.",
   },
   {
     title: "Payment security",
-    copy: "Hosted checkout keeps payment handling secure while the platform still shows a transparent preview of fees and charity net amount.",
+    copy: "Hosted checkout keeps payment handling separate while GiveKhair still shows what the donor pays and what the charity receives.",
   },
   {
     title: "Accessibility commitment",
-    copy: "GiveKhair is being designed for WCAG-aware giving flows, readable structure, and clearer decision-making on mobile and desktop.",
+    copy: "The public journey is being shaped around readable structure, clear actions, and accessible giving on mobile and desktop.",
   },
 ];
 
@@ -87,10 +87,6 @@ function formatCurrency(amount: number, currency = "GBP") {
 
 export default async function HomePage({ searchParams }: { searchParams: { category?: string; q?: string } }) {
   const session = await auth();
-  const role = (session?.user as { role?: string } | undefined)?.role ?? "DONOR";
-  const isAdmin = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"].includes(role);
-  const signedInHref = isAdmin ? "/admin" : session ? "/dashboard" : "/auth/signin?callbackUrl=%2Fdashboard";
-  const signedInLabel = isAdmin ? "Open admin" : session ? "Open dashboard" : "Donate now";
 
   let loadError = false;
   let featuredAppeal: (AppealCardAppeal & { raisedAmount: number }) | null = null;
@@ -161,11 +157,11 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
             </h1>
 
             <p className="section-copy mt-6">
-              Give to verified charities in minutes, preview exactly where fees go, and support appeals that feel credible from the first scroll to the final checkout step.
+              Support verified charities, see Gift Aid and fees before you pay, and back appeals that include both online progress and offline fundraising already happening on the ground.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href={featured ? `/appeals/${featured.slug}` : signedInHref} className="btn-primary">
+              <Link href={`/appeals/${featured.slug}`} className="btn-primary">
                 Donate now
               </Link>
               <Link href={session ? "/fundraise/new" : "/auth/signin?callbackUrl=%2Ffundraise%2Fnew"} className="btn-secondary">
@@ -174,16 +170,16 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
             </div>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <MiniTrustCard value="100%" label="fee clarity" />
-              <MiniTrustCard value="UK" label="Gift Aid ready" />
-              <MiniTrustCard value="✓" label="verified charities" />
+              <MiniTrustCard value="Fees" label="shown before checkout" />
+              <MiniTrustCard value="Gift Aid" label="built into UK giving" />
+              <MiniTrustCard value="Offline" label="donations count too" />
             </div>
           </div>
 
           {/* The featured card mirrors the donation journey we want users to trust:
               verified charity, visible progress, and one clear CTA. */}
           <aside className="surface-card relative z-10 overflow-hidden p-6 sm:p-8">
-            <div className="section-kicker">Featured Appeal</div>
+            <div className="section-kicker">Featured this week</div>
             <div className="mt-6 rounded-[1.75rem] border border-[color:var(--color-line)] bg-[linear-gradient(180deg,rgba(204,251,241,0.55),rgba(255,255,255,0.95))] p-6">
               <div className="flex items-center justify-between gap-3">
                 <TrustChip tone="gold">{featured.charity.isVerified ? "Verified charity" : "Active appeal"}</TrustChip>
@@ -204,7 +200,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
                     {formatCurrency(featured.raisedAmount, featured.currency)}
                   </p>
                   <p className="mt-1 text-sm text-[color:var(--color-ink-muted)]">
-                    of {formatCurrency(featuredGoal, featured.currency)} goal
+                    raised toward {formatCurrency(featuredGoal, featured.currency)}
                   </p>
                 </div>
                 <p className="text-sm font-semibold text-[color:var(--color-ink-soft)]">{featuredPct}% funded</p>
@@ -224,7 +220,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--color-ink-muted)]">Browse by focus</p>
-                <p className="mt-1 text-sm text-[color:var(--color-ink-soft)]">Quick ways into the causes donors most often start with.</p>
+                <p className="mt-1 text-sm text-[color:var(--color-ink-soft)]">Start with the type of appeal you want to support.</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -246,8 +242,8 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
         <div className="site-shell">
           <SectionIntro
             eyebrow={loadError ? "Curated fallback" : "Trending now"}
-            title={searchParams.q ? `Results for “${searchParams.q}”` : "Appeals people can trust quickly"}
-            description="These appeal cards blend live fundraising data with clear charity context, so a donor can decide whether to give without hunting for the basics."
+            title={searchParams.q ? `Results for “${searchParams.q}”` : "Appeals donors are backing right now"}
+            description="Clear goals, verified charity context, and a direct route to donate."
             actions={
               <Link href="/charities" className="btn-secondary">
                 Explore charities
@@ -275,9 +271,9 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
       <section className="section-shell">
         <div className="site-shell">
           <SectionIntro
-            eyebrow="Platform fit"
-            title="A public experience designed for trust on every side"
-            description="GiveKhair needs to reassure donors, help fundraisers convert, and show charities that the platform respects governance and transparency from day one."
+            eyebrow="Why charities use GiveKhair"
+            title="Charity operations and public giving in one place"
+            description="Appeals, fundraiser pages, offline donations, Gift Aid, and payout reporting all connect back to the same charity setup."
           />
 
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
@@ -295,12 +291,12 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
         <div className="site-shell">
           <div className="section-panel overflow-hidden bg-[linear-gradient(135deg,rgba(15,118,110,0.92),rgba(17,94,89,0.92))] p-8 text-white sm:p-10">
             <div className="max-w-3xl">
-              <TrustChip tone="gold">Conversion with credibility</TrustChip>
+              <TrustChip tone="gold">For charities and fundraisers</TrustChip>
               <h2 className="mt-5 text-3xl font-bold tracking-[-0.04em] sm:text-4xl">
                 Build trust before asking for money.
               </h2>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-teal-50 sm:text-base">
-                GiveKhair is strongest when charities and fundraisers can explain the cause clearly, show verification cues early, and remove uncertainty before the donor reaches payment.
+                Open a verified charity profile, choose an appeal, or launch a fundraiser with a clearer route from first visit to completed donation.
               </p>
             </div>
 

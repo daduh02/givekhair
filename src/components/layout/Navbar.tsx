@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { AccountMenu } from "@/components/layout/AccountMenu";
 
 const NAV_LINKS = [
   { href: "/#appeals", label: "Appeals" },
@@ -16,8 +17,7 @@ export async function Navbar() {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role ?? "DONOR";
   const isAdmin = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"].includes(role);
-  const signedInHref = isAdmin ? "/admin" : "/dashboard";
-  const signedInLabel = isAdmin ? "Admin" : "Dashboard";
+  const currentUser = session?.user as { name?: string | null; email?: string | null; image?: string | null } | undefined;
 
   return (
     <header className="sticky top-0 z-50 border-b border-[color:var(--color-line)] bg-[rgba(248,245,239,0.88)] backdrop-blur-xl">
@@ -48,9 +48,12 @@ export async function Navbar() {
 
         <div className="flex items-center gap-2 sm:gap-3">
           {session ? (
-            <Link href={signedInHref} className="btn-ghost">
-              {signedInLabel}
-            </Link>
+            <AccountMenu
+              name={currentUser?.name}
+              email={currentUser?.email}
+              image={currentUser?.image}
+              isAdmin={isAdmin}
+            />
           ) : (
             <Link href="/auth/signin?callbackUrl=%2Fdashboard" className="btn-ghost">
               Log in
