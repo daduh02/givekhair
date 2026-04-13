@@ -213,6 +213,7 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 4. The page renders summary cards plus lightweight operational previews so admins can sanity-check scope before exporting
 5. A single access-controlled route handler at `/api/admin/reports/export` returns CSV exports for each report type
 6. Export URLs are built from the active UI filters so the preview state and download scope stay aligned
+7. General-ledger export rows are assembled from immutable journal entries plus their ledger lines, with charity scoping inferred through donations, payouts, and Gift Aid claim correlation IDs
 
 ### Fees and contracts flow
 

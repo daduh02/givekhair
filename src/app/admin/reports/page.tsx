@@ -41,7 +41,7 @@ function sumValues(values: Array<string | number | { toString(): string } | null
 }
 
 function buildExportHref(input: {
-  report: "donations" | "offline" | "payouts" | "gift-aid";
+  report: "donations" | "offline" | "payouts" | "gift-aid" | "gl";
   charityId?: string;
   start?: string;
   end?: string;
@@ -160,6 +160,7 @@ export default async function AdminReportsPage({
   const offlineTotal = sumValues(dashboardData.offlineDonations.map((row) => row.amount));
   const payoutTotal = sumValues(dashboardData.payouts.map((row) => row.netAmount));
   const giftAidTotal = sumValues(dashboardData.claims.map((row) => row.reclaimAmount));
+  const ledgerLineCount = dashboardData.ledgerEntries.reduce((count, entry) => count + entry.lines.length, 0);
 
   const donationExportHref = buildExportHref({
     report: "donations",
@@ -185,6 +186,12 @@ export default async function AdminReportsPage({
     start,
     end,
   });
+  const glExportHref = buildExportHref({
+    report: "gl",
+    charityId: effectiveCharityId,
+    start,
+    end,
+  });
 
   return (
     <div className="space-y-8">
@@ -192,12 +199,12 @@ export default async function AdminReportsPage({
         <div>
           <h1 className="text-xl font-bold" style={{ color: "#233029" }}>Reports & exports</h1>
           <p className="text-sm" style={{ color: "#8A9E94" }}>
-            Export donations, offline gifts, payout history, and Gift Aid claims with the same charity scope used across the admin platform.
+            Export operations data and accounting-ready ledger rows with the same charity scope used across the admin platform.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Link href={donationExportHref} className="btn-primary" style={{ padding: "0.6rem 1rem", fontSize: "0.85rem" }}>
-            Export donations
+          <Link href={glExportHref} className="btn-primary" style={{ padding: "0.6rem 1rem", fontSize: "0.85rem" }}>
+            Export GL
           </Link>
           <Link href="/admin" className="btn-outline" style={{ padding: "0.6rem 1rem", fontSize: "0.85rem" }}>
             Back to overview
@@ -237,10 +244,10 @@ export default async function AdminReportsPage({
         <StatCard label="Donation gross" value={fmt(donationGrossTotal)} sub={`${dashboardData.donations.length} donation records in scope`} />
         <StatCard label="Donation net" value={fmt(donationNetTotal)} sub="charity net after charity-paid fee logic" />
         <StatCard label="Offline recorded" value={fmt(offlineTotal)} sub={`${dashboardData.offlineDonations.length} approved or pending offline gifts`} />
-        <StatCard label="Payouts / Gift Aid" value={`${fmt(payoutTotal)} / ${fmt(giftAidTotal)}`} sub={`${dashboardData.payouts.length} payout batches and ${dashboardData.claims.length} claims`} />
+        <StatCard label="Payouts / Gift Aid" value={`${fmt(payoutTotal)} / ${fmt(giftAidTotal)}`} sub={`${dashboardData.payouts.length} payout batches, ${dashboardData.claims.length} claims, ${ledgerLineCount} GL lines`} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
         <ExportCard
           title="Donations export"
           description="Captured and pending donations, pricing snapshots, donor-support amounts, charging mode, and Gift Aid expectations."
@@ -264,6 +271,12 @@ export default async function AdminReportsPage({
           description="Claim periods, statuses, HMRC references, reclaim amounts, and settlement timestamps."
           href={giftAidExportHref}
           meta={`${dashboardData.claims.length} claim rows currently match the selected scope.`}
+        />
+        <ExportCard
+          title="General ledger export"
+          description="Accounting-ready journal rows with entry IDs, account codes, debit and credit minor units, references, and descriptions."
+          href={glExportHref}
+          meta={`${dashboardData.ledgerEntries.length} journal entries and ${ledgerLineCount} ledger lines currently match the selected scope.`}
         />
       </div>
 
@@ -401,6 +414,71 @@ export default async function AdminReportsPage({
           </div>
         </section>
       </div>
+
+      <section style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", overflow: "hidden" }}>
+        <div className="p-6 pb-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold" style={{ color: "#233029" }}>General ledger preview</h2>
+              <p className="text-sm" style={{ color: "#8A9E94" }}>
+                The GL export follows the spec-style journal row format so finance can move from operational exports into accounting workflows.
+              </p>
+            </div>
+            <Link href={glExportHref} className="text-xs font-semibold" style={{ color: "#1E8C6E" }}>
+              Download GL CSV →
+            </Link>
+          </div>
+        </div>
+
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+          <thead>
+            <tr style={{ background: "#F6F1E8" }}>
+              {["Entry", "Charity", "Account", "Debit", "Credit", "Reference"].map((heading) => (
+                <th key={heading} style={{ padding: "0.8rem 1rem", textAlign: "left", fontSize: "0.75rem", color: "#8A9E94" }}>
+                  {heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dashboardData.ledgerEntries.flatMap((entry) =>
+              entry.lines.map((line, index) => (
+                <tr key={`${entry.id}-${line.id}`} style={{ borderTop: "1px solid rgba(18,78,64,0.06)" }}>
+                  <td style={{ padding: "0.9rem 1rem", color: "#233029", fontWeight: index === 0 ? 600 : 500 }}>
+                    {index === 0 ? entry.id : ""}
+                    <div className="text-xs" style={{ color: "#8A9E94" }}>
+                      {index === 0 ? new Date(entry.createdAt).toLocaleDateString("en-GB") : ""}
+                    </div>
+                  </td>
+                  <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>
+                    {entry.donation?.page.appeal.charity.name ?? entry.payoutBatch?.charity.name ?? "Gift Aid / platform ledger"}
+                  </td>
+                  <td style={{ padding: "0.9rem 1rem", color: "#233029" }}>
+                    <div className="font-semibold">{line.accountCode}</div>
+                    <div className="text-xs" style={{ color: "#8A9E94" }}>{line.description ?? entry.description}</div>
+                  </td>
+                  <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>
+                    {parseFloat(line.debit.toString()) > 0 ? fmt(line.debit, line.currency) : "—"}
+                  </td>
+                  <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>
+                    {parseFloat(line.credit.toString()) > 0 ? fmt(line.credit, line.currency) : "—"}
+                  </td>
+                  <td style={{ padding: "0.9rem 1rem", color: "#8A9E94" }}>
+                    {entry.donationId ?? entry.payoutBatchId ?? entry.refundId ?? entry.correlationId}
+                  </td>
+                </tr>
+              ))
+            ).slice(0, 10)}
+            {dashboardData.ledgerEntries.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ padding: "2rem", textAlign: "center", color: "#8A9E94" }}>
+                  No ledger entries match the current filters.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 }

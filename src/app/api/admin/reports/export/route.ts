@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import {
   getDonationsReportRows,
+  getGeneralLedgerReportRows,
   getGiftAidClaimsReportRows,
   getOfflineDonationsReportRows,
   getPayoutsReportRows,
@@ -153,6 +154,39 @@ export async function GET(request: Request) {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": 'attachment; filename="gift-aid-report.csv"',
+      },
+    });
+  }
+
+  if (report === "gl") {
+    const rows = await getGeneralLedgerReportRows({ scopedCharityIds: scope.scopedCharityIds, filters });
+    const csv = stringify(
+      rows.flatMap((entry) =>
+        entry.lines.map((line) => ({
+          entry_id: entry.id,
+          entry_ts: entry.createdAt.toISOString(),
+          correlation_id: entry.correlationId,
+          charity:
+            entry.donation?.page.appeal.charity.name ??
+            entry.payoutBatch?.charity.name ??
+            "",
+          account_code: line.accountCode,
+          debit_minor: Math.round(parseFloat(line.debit.toString()) * 100),
+          credit_minor: Math.round(parseFloat(line.credit.toString()) * 100),
+          currency: line.currency,
+          fx_rate: line.fxRate.toString(),
+          ref_type: entry.donationId ? "Donation" : entry.payoutBatchId ? "PayoutBatch" : entry.refundId ? "Refund" : "JournalEntry",
+          ref_id: entry.donationId ?? entry.payoutBatchId ?? entry.refundId ?? entry.id,
+          description: line.description ?? entry.description,
+        }))
+      ),
+      { header: true }
+    );
+
+    return new NextResponse(csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="general-ledger-export.csv"',
       },
     });
   }

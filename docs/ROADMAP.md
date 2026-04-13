@@ -93,8 +93,7 @@ This is the shortest path to matching the operational needs in the spec for real
 
 ### Ticket 3: Accounting exports and reconciliation
 
-- Add GL export matching spec appendix 16.A
-- Add reconciliation-oriented CSV exports beyond the current admin report set
+- Extend the shipped GL export with reconciliation-oriented CSV exports beyond the current admin report set
 - Add export history or audit trail if finance needs evidence of generated files
 
 ### Ticket 4: Commercial ops hardening

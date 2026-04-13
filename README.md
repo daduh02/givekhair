@@ -78,10 +78,10 @@ npm run dev
 | `/admin/settings` | Contract-led fees, plans, contracts, renewal, and commercial audit |
 | `/admin/payouts` | Payout batch management and contract-aware payout operations |
 | `/admin/gift-aid` | Gift Aid claim queue and settlement workflow |
-| `/admin/reports` | CSV exports and operational previews for donations, offline donations, payouts, and Gift Aid |
+| `/admin/reports` | CSV exports and operational previews for donations, offline donations, payouts, Gift Aid, and GL rows |
 | `/api/trpc/[trpc]` | tRPC endpoint |
 | `/api/webhooks/stripe` | Stripe webhook receiver |
-| `/api/admin/reports/export` | Access-controlled CSV export endpoint for admin reports |
+| `/api/admin/reports/export` | Access-controlled CSV export endpoint for admin and accounting reports |
 | `/api/auth/[...nextauth]` | Auth.js handlers |
 
 ## Production deploy notes
@@ -137,7 +137,7 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 3. **Public charity profiles** — individual charity detail pages using the new public shell
 4. **Fundraiser self-serve tools** — richer updates, media management, and fundraiser-facing status messaging
 5. **Payout batch processor** — async queue worker and reconciliation automation on top of the new manual payout-batch operations
-6. **GL export** — CSV download matching spec appendix 16.A format
+6. **Reconciliation exports** — settlement-oriented downloads and finance exception reporting
 7. **Risk engine** — velocity, device fingerprint, IP reputation signals
 8. **Accessibility audit** — axe-core CI checks + NVDA/VoiceOver passes
 

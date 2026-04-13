@@ -18,7 +18,7 @@ This file tracks the current delivery state of the product against the working g
 - Charity setup, appeal management, moderation, offline donation operations, and donation management now have real admin workflows.
 - Public-facing routes now use a shared shell with a reusable footer, centralized theme tokens, and cleaner reusable components.
 - Commercial pricing is now contract-led for new donation writes, with donor-supported, charity-paid, and hybrid charging modes.
-- Major reconciliation, refund, and dispute workflows are still incomplete.
+- Major reconciliation, refund, and dispute workflows are still incomplete, but finance/accounting exports now have a real starting point.
 
 ## Completed
 
@@ -72,6 +72,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Offline donations admin page
 - `Done` Offline CSV dry-run and commit flow
 - `Done` Reports center with scoped CSV exports for donations, offline donations, payouts, and Gift Aid
+- `Done` General-ledger CSV export in spec-style journal row format
 - `Done` Shared admin context helper for resolving current charity/admin scope
 - `Done` Platform-admin appeal visibility across all charities
 
@@ -133,7 +134,7 @@ This file tracks the current delivery state of the product against the working g
 - `Partial` Donations management and operational visibility
 - `Not started` Refunds, disputes, and chargeback workflows
 - `Not started` Payout batching lifecycle and reconciliation UI
-- `Not started` GL export and finance CSV exports per accounting structure
+- `Partial` GL export and finance CSV exports per accounting structure
 - `Not started` Gift Aid claim queue, submission, and paid-state workflow
 - `Not started` Team leaderboards
 - `Done` Public charity directory now links into rich public charity profile pages
@@ -204,7 +205,8 @@ This file tracks the current delivery state of the product against the working g
 
 - `Done` admin reports center with scoped export cards and operational previews
 - `Done` CSV exports for donations, offline donations, payouts, and Gift Aid claims
-- `Partial` PDF exports and accounting-system-specific formats remain unbuilt
+- `Done` general-ledger export matching the journal-row direction from the spec appendix
+- `Partial` PDF exports, reconciliation-specific downloads, and accounting-system-specific formats remain unbuilt
 
 ### 5.9 Risk, Trust & Moderation
 
@@ -233,5 +235,5 @@ This file tracks the current delivery state of the product against the working g
 1. Build `Richer fundraiser self-serve tools` such as updates, media management, and moderation-state messaging.
 2. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
 3. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.
-4. Build `Accounting-oriented exports` such as GL exports and reconciliation-specific downloads.
+4. Build `Reconciliation-specific exports` and finance exception reporting on top of the new GL export.
 5. Build `Async finance automation` for payout processing and HMRC submission flows.

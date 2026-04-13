@@ -156,15 +156,84 @@ export async function getGiftAidClaimsReportRows(input: {
   });
 }
 
+export async function getGeneralLedgerReportRows(input: {
+  scopedCharityIds: string[];
+  filters: ReportFilters;
+}) {
+  const createdAt = getCreatedAtRange(input.filters);
+  const scopedClaimIds = await db.giftAidClaim.findMany({
+    where: {
+      charityId: { in: input.scopedCharityIds.length ? input.scopedCharityIds : ["__none__"] },
+    },
+    select: { id: true },
+  });
+
+  const scopedCorrelationIds = scopedClaimIds.map((claim) => `gift-aid-claim:${claim.id}`);
+
+  // Ledger exports need to stay charity-aware even though not every ledger
+  // entry has a direct charity foreign key. We scope through donations,
+  // payouts, and Gift Aid claim correlation ids.
+  return db.journalEntry.findMany({
+    where: {
+      ...(Object.keys(createdAt).length ? { createdAt } : {}),
+      OR: [
+        {
+          donation: {
+            page: {
+              appeal: {
+                charityId: { in: input.scopedCharityIds.length ? input.scopedCharityIds : ["__none__"] },
+              },
+            },
+          },
+        },
+        {
+          payoutBatch: {
+            charityId: { in: input.scopedCharityIds.length ? input.scopedCharityIds : ["__none__"] },
+          },
+        },
+        ...(scopedCorrelationIds.length > 0
+          ? [{ correlationId: { in: scopedCorrelationIds } }]
+          : []),
+      ],
+    },
+    include: {
+      lines: true,
+      donation: {
+        select: {
+          id: true,
+          page: {
+            select: {
+              appeal: {
+                select: {
+                  title: true,
+                  charity: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+      payoutBatch: {
+        select: {
+          id: true,
+          charity: { select: { name: true } },
+        },
+      },
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+  });
+}
+
 export async function getReportsDashboardData(input: {
   scopedCharityIds: string[];
   filters: ReportFilters;
 }) {
-  const [donations, offlineDonations, payouts, claims] = await Promise.all([
+  const [donations, offlineDonations, payouts, claims, ledgerEntries] = await Promise.all([
     getDonationsReportRows(input),
     getOfflineDonationsReportRows(input),
     getPayoutsReportRows(input),
     getGiftAidClaimsReportRows(input),
+    getGeneralLedgerReportRows(input),
   ]);
 
   return {
@@ -172,5 +241,6 @@ export async function getReportsDashboardData(input: {
     offlineDonations,
     payouts,
     claims,
+    ledgerEntries,
   };
 }
