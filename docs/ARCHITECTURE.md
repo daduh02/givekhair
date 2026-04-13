@@ -229,6 +229,15 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 6. Manual batch creation links payout batches to concrete donation and Gift Aid allocations through payout-batch items
 7. Paid batches write the payout ledger entry once, when the batch is marked paid
 
+### Gift Aid claim flow
+
+1. Captured online donations create or append to a draft claim queue when Gift Aid is declared
+2. Admins can build draft claims for eligible declarations that are not yet attached to any claim
+3. Draft claims can be submitted with an HMRC reference
+4. Paid claims update linked donations with `giftAidReceivedAmount`
+5. Once updated, those reclaim amounts become eligible for payout batching
+6. Gift Aid paid is recorded in the ledger once per claim settlement
+
 ## Known architectural gaps
 
 ### 1. Fundraiser self-serve tooling is still shallow
@@ -237,7 +246,7 @@ The core create/edit routes now exist, but richer tools such as media management
 
 ### 2. Admin workflows are still uneven
 
-`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, `Fees & contracts`, and manual `Payouts` now have real workflows, but reports, Gift Aid settlement, and async finance operations are still only partially operational.
+`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, `Fees & contracts`, manual `Payouts`, and manual `Gift Aid` claim operations now have real workflows, but reports and async finance operations are still only partially operational.
 
 ### 3. Payments integration is stubbed
 
@@ -249,7 +258,7 @@ Queues exist conceptually, but operational workers and async processing flows ar
 
 ### 5. Finance reconciliation exists more in schema than in workflows
 
-The ledger and payout models are present, and manual payout batching now exists, but reconciliation, provider submission, and finance exception handling still need deeper workflows.
+The ledger, payout, and Gift Aid settlement models are present, and manual finance workflows now exist, but reconciliation, provider submission, and finance exception handling still need deeper workflows.
 
 ### 6. Contract lifecycle is still intentionally light
 

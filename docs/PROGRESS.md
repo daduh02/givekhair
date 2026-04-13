@@ -112,7 +112,9 @@ This file tracks the current delivery state of the product against the working g
 - `Partial` Donation flow captures Gift Aid fields
 - `Partial` Offline donation flow can create Gift Aid declarations
 - `Partial` Online donations are linked into a draft claim queue on capture
-- `Partial` Claim building, submission, and admin operations are not complete
+- `Done` Admin Gift Aid page now supports draft claim building, submission, and paid settlement
+- `Done` Paid Gift Aid claims now update linked donations so payout batches can include reclaim amounts
+- `Partial` HMRC integration and automated claim submission are still not built
 
 ### Offline donations
 
@@ -194,7 +196,8 @@ This file tracks the current delivery state of the product against the working g
 - `Partial` declaration capture
 - `Partial` offline declaration creation
 - `Partial` online capture adds declarations into a draft claim queue
-- `Not started` claims lifecycle
+- `Done` manual claim lifecycle and settlement flow
+- `Partial` HMRC submission and exception handling
 
 ### 5.8 Reporting
 
@@ -225,7 +228,7 @@ This file tracks the current delivery state of the product against the working g
 ## Immediate Next Recommendations
 
 1. Build `Reports and exports` so charity teams can actually extract and use the data they are entering.
-2. Build `Gift Aid settlement workflow` so received reclaim amounts move into payouts from a real HMRC/payment lifecycle.
+2. Build `Reports and exports` so charity teams can actually extract and use the finance and operational data they are entering.
 3. Build `Richer fundraiser self-serve tools` such as updates, media management, and moderation-state messaging.
 4. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
 5. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.

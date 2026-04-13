@@ -3,6 +3,7 @@ import Decimal from "decimal.js";
 import { previewFees } from "../src/server/lib/fee-engine";
 import { resolvePayoutPolicy } from "../src/server/lib/commercials";
 import { createScheduledPayoutBatch, markPayoutBatchPaid } from "../src/server/lib/payouts";
+import { markGiftAidClaimPaid, queueEligibleGiftAidDeclarations, submitGiftAidClaim } from "../src/server/lib/gift-aid";
 
 const db = new PrismaClient();
 
@@ -440,6 +441,59 @@ async function main() {
   });
   assert(paidBatch.status === "PAID", "Payout batch should transition to paid.");
 
+  const giftAidDonation = await db.donation.create({
+    data: {
+      pageId: await (async () => {
+        const page = await db.fundraisingPage.findUniqueOrThrow({ where: { shortName: "pricing-hybrid-page" } });
+        return page.id;
+      })(),
+      contractId: `${hybridFixture.charity.slug}-contract`,
+      amount: "20.00",
+      donationAmount: "20.00",
+      donorSupportAmount: "0.00",
+      grossCheckoutTotal: "20.00",
+      feeChargedToCharity: "0.00",
+      charityNetAmount: "20.00",
+      resolvedChargingMode: "DONOR_SUPPORTED",
+      donationKind: "ONE_OFF",
+      giftAidExpectedAmount: "5.00",
+      giftAidReceivedAmount: "0.00",
+      currency: "GBP",
+      status: "CAPTURED",
+      donorEmail: "pricing-giftaid@example.com",
+      idempotencyKey: `pricing-giftaid-${Date.now()}`,
+    },
+  });
+
+  const declaration = await db.giftAidDeclaration.create({
+    data: {
+      donationId: giftAidDonation.id,
+      donorFullName: "Gift Aid Donor",
+      donorAddressLine1: "1 High Street",
+      donorCity: "London",
+      donorPostcode: "E1 1AA",
+      statementVersion: "v1",
+      statementText: "Gift Aid statement",
+    },
+  });
+
+  const queuedClaims = await queueEligibleGiftAidDeclarations(hybridFixture.charity.id);
+  assert(queuedClaims.createdItems >= 1, "Gift Aid queueing should create claim items for eligible declarations.");
+
+  const claimItem = await db.giftAidClaimItem.findFirstOrThrow({
+    where: { declarationId: declaration.id },
+    include: { claim: true },
+  });
+
+  await submitGiftAidClaim(claimItem.claimId, "HMRC-VERIFY-001");
+  await markGiftAidClaimPaid(claimItem.claimId);
+
+  const settledDonation = await db.donation.findUniqueOrThrow({
+    where: { id: giftAidDonation.id },
+    select: { giftAidReceivedAmount: true },
+  });
+  assert(money(settledDonation.giftAidReceivedAmount!) === "5.00", "Paid Gift Aid claims should update linked donations with received reclaim amounts.");
+
   console.log("Verified contract-led pricing cases:");
   console.log(" - donor-supported with donor support added");
   console.log(" - charity-paid");
@@ -449,6 +503,7 @@ async function main() {
   console.log(" - expired contract blocks payout");
   console.log(" - appeal override disables donor support");
   console.log(" - payout batch creation and paid transition");
+  console.log(" - Gift Aid claim settlement updates linked donations");
 }
 
 main()
