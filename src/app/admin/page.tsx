@@ -20,6 +20,35 @@ function StatCard({ label, value, sub, color }: { label: string; value: string; 
   );
 }
 
+const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  CAPTURED:   { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
+  PENDING:    { bg: "rgba(212,162,76,0.12)", color: "#7A5010" },
+  FAILED:     { bg: "rgba(239,68,68,0.12)",  color: "#7F1D1D" },
+  REFUNDED:   { bg: "rgba(58,74,66,0.12)",   color: "#3A4A42" },
+  PAID:       { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
+  SCHEDULED:  { bg: "rgba(212,162,76,0.12)", color: "#7A5010" },
+  PROCESSING: { bg: "rgba(59,130,246,0.12)", color: "#1E3A5F" },
+  ACTIVE:     { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
+  DRAFT:      { bg: "rgba(58,74,66,0.12)",   color: "#3A4A42" },
+};
+
+function pill(status: string) {
+  return (
+    <span
+      style={{
+        borderRadius: "9999px",
+        padding: "2px 8px",
+        fontSize: "0.7rem",
+        fontWeight: 600,
+        background: STATUS_STYLE[status]?.bg ?? "rgba(58,74,66,0.12)",
+        color: STATUS_STYLE[status]?.color ?? "#3A4A42",
+      }}
+    >
+      {status}
+    </span>
+  );
+}
+
 export default async function AdminOverviewPage() {
   const { role, managedCharity } = await getAdminContext();
   const charityId = managedCharity?.id ?? "";
@@ -151,22 +180,6 @@ export default async function AdminOverviewPage() {
   const coverPct = onlineAgg._count > 0
     ? Math.round((recentDonations.filter(d => d.feeSet?.donorCoversFees).length / onlineAgg._count) * 100)
     : 0;
-
-  const statusStyle: Record<string, { bg: string; color: string }> = {
-    CAPTURED:   { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
-    PENDING:    { bg: "rgba(212,162,76,0.12)", color: "#7A5010" },
-    FAILED:     { bg: "rgba(239,68,68,0.12)",  color: "#7F1D1D" },
-    REFUNDED:   { bg: "rgba(58,74,66,0.12)",   color: "#3A4A42" },
-    PAID:       { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
-    SCHEDULED:  { bg: "rgba(212,162,76,0.12)", color: "#7A5010" },
-    PROCESSING: { bg: "rgba(59,130,246,0.12)", color: "#1E3A5F" },
-    ACTIVE:     { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
-    DRAFT:      { bg: "rgba(58,74,66,0.12)",   color: "#3A4A42" },
-  };
-
-  const pill = (s: string) => (
-    <span style={{ borderRadius: "9999px", padding: "2px 8px", fontSize: "0.7rem", fontWeight: 600, background: statusStyle[s]?.bg ?? "rgba(58,74,66,0.12)", color: statusStyle[s]?.color ?? "#3A4A42" }}>{s}</span>
-  );
 
   return (
     <div>
