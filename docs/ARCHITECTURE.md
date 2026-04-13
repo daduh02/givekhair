@@ -93,9 +93,10 @@ The public site now has a dedicated token layer and reusable component classes i
 2. Shared navbar and shared footer are applied automatically to all public pages in that route group
 3. The navbar resolves the server session and shows either signed-out auth actions or a signed-in account menu with role-aware destinations
 4. Homepage loads active, public appeals from Prisma
-5. Homepage maps live appeal data into a featured appeal and trending appeal cards, with curated fallback content if the live query fails
-6. Appeal detail page loads teams, fundraiser pages, and donation widget
-7. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
+5. The homepage first attempts to use an explicitly featured appeal selected by platform admin, falling back to the best available active/public appeal if none is set
+6. Trending appeals are loaded in a larger set, then paged client-side in grouped views while preserving the shared appeal card design
+7. Appeal detail page loads teams, fundraiser pages, and donation widget
+8. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
 
 ### Public fundraiser page flow
 
@@ -138,8 +139,9 @@ The public site now has a dedicated token layer and reusable component classes i
 
 1. Admin context resolves current user and managed charity
 2. Platform admins can query across all charities, while charity admins stay scoped to their managed charity
-3. Appeals list and edit routes expose teams, fundraiser pages, visibility, and moderation controls
-4. Appeal create/update actions revalidate admin and public paths
+3. Appeals list and edit routes expose teams, fundraiser pages, visibility, moderation controls, and homepage-feature state
+4. Platform admins can feature exactly one active/public appeal for the homepage at a time
+5. Appeal create/update actions revalidate admin and public paths
 
 ### Admin charity and moderation flow
 

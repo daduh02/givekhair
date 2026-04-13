@@ -68,7 +68,7 @@ npm run dev
 
 | Route | Description |
 |---|---|
-| `/` | Public homepage — shared shell, featured appeal, trust sections |
+| `/` | Public homepage — shared shell, admin-controlled featured appeal, and paged trending appeals |
 | `/appeals/[slug]` | Appeal detail + donation widget |
 | `/charities` | Public charity directory |
 | `/charities/[slug]` | Public charity profile page |
@@ -135,10 +135,10 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 
 1. **Wire Stripe** — add `STRIPE_SECRET_KEY`, implement `createCheckout` in donations router
 2. **Fundraiser self-serve tools** — richer updates, media management, and fundraiser-facing status messaging
-3. **Payout batch processor** — async queue worker and reconciliation automation on top of the new manual payout-batch operations
-4. **Reconciliation exports** — settlement-oriented downloads and finance exception reporting
-5. **Refunds and disputes** — operational handling on top of the donation and ledger foundations
-6. **Contract approval and signature workflow** — stronger commercial lifecycle handling beyond the current renewal/edit surface
+3. **Appeal and team analytics** — leaderboards and clearer combined fundraising views
+4. **Payout batch processor** — async queue worker and reconciliation automation on top of the new manual payout-batch operations
+5. **Reconciliation exports** — settlement-oriented downloads and finance exception reporting
+6. **Refunds and disputes** — operational handling on top of the donation and ledger foundations
 7. **Risk engine** — velocity, device fingerprint, IP reputation signals
 8. **Accessibility audit** — axe-core CI checks + NVDA/VoiceOver passes
 

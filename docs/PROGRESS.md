@@ -43,6 +43,8 @@ This file tracks the current delivery state of the product against the working g
 ### Public fundraising experience
 
 - `Done` Homepage rewritten around a premium public shell, featured appeal, trust messaging, category pills, and reusable cards
+- `Done` Homepage featured appeal is now admin-controlled rather than inferred from latest data
+- `Done` Trending appeal section now pages horizontally in grouped sets instead of a fixed small grid
 - `Done` Global public footer applied through shared layout rather than copied into individual pages
 - `Done` Public information architecture for charities, how-it-works, Zakat/Gift Aid, and policy/support placeholder pages
 - `Done` Centralized public theme tokens, button styles, chips, cards, and progress bar patterns
@@ -68,6 +70,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Admin appeals list page
 - `Done` Admin appeal creation page
 - `Done` Admin appeal edit page
+- `Done` Platform-admin homepage featured appeal control inside appeal management
 - `Done` Team creation and membership management within appeal admin
 - `Done` Moderation queue page
 - `Done` Donations admin page

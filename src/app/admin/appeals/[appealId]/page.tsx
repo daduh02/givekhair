@@ -12,6 +12,7 @@ import {
   toDateInput,
   upsertModerationItem,
 } from "@/lib/admin-management";
+import { clearHomepageFeaturedAppeal, setHomepageFeaturedAppeal } from "@/lib/homepage-management";
 
 export const metadata: Metadata = { title: "Admin - Edit Appeal" };
 
@@ -80,7 +81,7 @@ export default async function EditAppealPage({
         id: params.appealId,
         ...(currentRole === "PLATFORM_ADMIN" ? {} : { charityId: currentManagedCharity?.id }),
       },
-      select: { id: true, slug: true, charityId: true, title: true },
+      select: { id: true, slug: true, charityId: true, title: true, isFeaturedHomepage: true },
     });
 
     if (!editableAppeal) {
@@ -107,6 +108,7 @@ export default async function EditAppealPage({
         : donorSupportOverrideInput === "disabled"
           ? false
           : null;
+    const featureOnHomepage = currentRole === "PLATFORM_ADMIN" && String(formData.get("featureOnHomepage") ?? "") === "on";
     const mediaGallery = parseMediaGallery(String(formData.get("mediaGallery") ?? ""));
     const status = String(formData.get("status") ?? "DRAFT").trim() as "DRAFT" | "ACTIVE" | "PAUSED" | "ENDED";
     const visibility = String(formData.get("visibility") ?? "PUBLIC").trim() as "PUBLIC" | "UNLISTED" | "HIDDEN";
@@ -148,6 +150,19 @@ export default async function EditAppealPage({
       },
     });
 
+    if (currentRole === "PLATFORM_ADMIN") {
+      try {
+        if (featureOnHomepage) {
+          await setHomepageFeaturedAppeal({ appealId: updated.id });
+        } else if (editableAppeal.isFeaturedHomepage) {
+          await clearHomepageFeaturedAppeal({ appealId: updated.id });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to update homepage feature.";
+        redirect(`/admin/appeals/${params.appealId}?error=${encodeURIComponent(message)}`);
+      }
+    }
+
     await upsertModerationItem({
       entityType: "APPEAL",
       entityId: updated.id,
@@ -161,6 +176,7 @@ export default async function EditAppealPage({
 
     revalidateAdminSurfaces([
       `/admin/appeals/${updated.id}`,
+      "/",
       `/appeals/${editableAppeal.slug}`,
       `/appeals/${updated.slug}`,
     ]);
@@ -385,9 +401,11 @@ export default async function EditAppealPage({
           ? "Team name is required."
           : searchParams.error === "team-slug"
             ? "That team slug is already in use for this appeal."
-            : searchParams.error === "invite"
-              ? "Please provide a valid team member email."
-              : "";
+      : searchParams.error === "invite"
+        ? "Please provide a valid team member email."
+        : searchParams.error
+          ? decodeURIComponent(searchParams.error)
+          : "";
 
   return (
     <div className="space-y-8">
@@ -399,6 +417,11 @@ export default async function EditAppealPage({
           <p className="text-sm" style={{ color: "#8A9E94" }}>
             Update campaign details, teams, and fundraiser page moderation for {appeal.title}.
           </p>
+          {appeal.isFeaturedHomepage ? (
+            <div className="mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "rgba(212,160,23,0.16)", color: "#8A5B00" }}>
+              Homepage featured appeal
+            </div>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <Link href={`/appeals/${appeal.slug}`} className="btn-outline" style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}>
@@ -439,7 +462,9 @@ export default async function EditAppealPage({
           story: appeal.story ?? "",
           impact: appeal.impact ?? "",
           mediaGallery: Array.isArray(appeal.mediaGallery) ? appeal.mediaGallery.join("\n") : "",
+          featureOnHomepage: appeal.isFeaturedHomepage,
         }}
+        showHomepageFeatureControl={role === "PLATFORM_ADMIN"}
       />
 
       <section style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", padding: "1.5rem" }}>

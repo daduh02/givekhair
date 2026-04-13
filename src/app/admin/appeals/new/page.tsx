@@ -11,6 +11,7 @@ import {
   slugify,
   upsertModerationItem,
 } from "@/lib/admin-management";
+import { setHomepageFeaturedAppeal } from "@/lib/homepage-management";
 
 export const metadata: Metadata = { title: "Admin - New Appeal" };
 
@@ -45,6 +46,7 @@ async function createAppeal(formData: FormData) {
   const slugInput = String(formData.get("slug") ?? "").trim();
   const slug = slugify(slugInput || title);
   const charityId = role === "PLATFORM_ADMIN" ? charityIdInput : managedCharity?.id;
+  const featureOnHomepage = role === "PLATFORM_ADMIN" && String(formData.get("featureOnHomepage") ?? "") === "on";
 
   if (!title || !slug || !charityId || !Number.isFinite(goalAmount) || goalAmount <= 0) {
     redirect("/admin/appeals/new?error=invalid");
@@ -78,6 +80,15 @@ async function createAppeal(formData: FormData) {
     },
   });
 
+  if (featureOnHomepage) {
+    try {
+      await setHomepageFeaturedAppeal({ appealId: created.id });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to feature appeal.";
+      redirect(`/admin/appeals/new?error=${encodeURIComponent(message)}`);
+    }
+  }
+
   await upsertModerationItem({
     entityType: "APPEAL",
     entityId: created.id,
@@ -89,7 +100,7 @@ async function createAppeal(formData: FormData) {
     submittedById: userId,
   });
 
-  revalidateAdminSurfaces([`/admin/appeals/${created.id}`, `/appeals/${created.slug}`]);
+  revalidateAdminSurfaces(["/", `/admin/appeals/${created.id}`, `/appeals/${created.slug}`]);
   redirect("/admin/appeals");
 }
 
@@ -126,7 +137,9 @@ export default async function NewAppealPage({
       ? "That slug is already in use. Try a different one."
       : searchParams.error === "invalid"
         ? "Please fill in a title and a valid goal amount."
-        : "";
+        : searchParams.error
+          ? decodeURIComponent(searchParams.error)
+          : "";
 
   return (
     <div>
@@ -157,6 +170,7 @@ export default async function NewAppealPage({
           visibility: "PUBLIC",
           donorSupportOverride: "inherit",
         }}
+        showHomepageFeatureControl={role === "PLATFORM_ADMIN"}
       />
     </div>
   );

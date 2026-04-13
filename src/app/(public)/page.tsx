@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AppealCard, type AppealCardAppeal } from "@/components/appeal/AppealCard";
+import { TrendingAppealsPager } from "@/components/appeal/TrendingAppealsPager";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { SectionIntro } from "@/components/ui/SectionIntro";
 import { TrustChip } from "@/components/ui/TrustChip";
@@ -79,10 +80,71 @@ const FALLBACK_APPEALS = [
     charity: { name: "GiveKhair Foundation", isVerified: true },
     raisedAmount: 12700,
   },
+  {
+    id: "mock-school",
+    slug: "rebuild-a-school-library",
+    title: "Rebuild a School Library",
+    goalAmount: "18000",
+    currency: "GBP",
+    charity: { name: "AWET", isVerified: true },
+    raisedAmount: 9640,
+  },
+  {
+    id: "mock-support",
+    slug: "winter-support-for-elderly-households",
+    title: "Winter Support for Elderly Households",
+    goalAmount: "15000",
+    currency: "GBP",
+    charity: { name: "GiveKhair Foundation", isVerified: true },
+    raisedAmount: 6880,
+  },
+  {
+    id: "mock-community",
+    slug: "community-health-clinic-supplies",
+    title: "Community Health Clinic Supplies",
+    goalAmount: "30000",
+    currency: "GBP",
+    charity: { name: "Islamic Relief UK", isVerified: true },
+    raisedAmount: 14120,
+  },
 ] satisfies Array<AppealCardAppeal & { raisedAmount: number }>;
 
 function formatCurrency(amount: number, currency = "GBP") {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
+}
+
+async function mapAppealWithRaised(appeal: {
+  id: string;
+  slug: string;
+  title: string;
+  goalAmount: { toString(): string };
+  currency: string;
+  bannerUrl?: string | null;
+  charity: {
+    name: string;
+    logoUrl?: string | null;
+    isVerified: boolean;
+  };
+  _count: { fundraisingPages: number };
+}) {
+  const [online, offline] = await Promise.all([
+    db.donation.aggregate({
+      where: { page: { appealId: appeal.id }, status: "CAPTURED" },
+      _sum: { amount: true },
+    }),
+    db.offlineDonation.aggregate({
+      where: { page: { appealId: appeal.id }, status: "APPROVED" },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  return {
+    ...appeal,
+    goalAmount: appeal.goalAmount.toString(),
+    raisedAmount:
+      parseFloat(online._sum.amount?.toString() ?? "0") +
+      parseFloat(offline._sum.amount?.toString() ?? "0"),
+  };
 }
 
 export default async function HomePage({ searchParams }: { searchParams: { category?: string; q?: string } }) {
@@ -91,50 +153,57 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
   let loadError = false;
   let featuredAppeal: (AppealCardAppeal & { raisedAmount: number }) | null = null;
   let trendingAppeals: Array<AppealCardAppeal & { raisedAmount: number }> = [];
+  let usingExplicitFeaturedAppeal = false;
 
   try {
-    const liveAppeals = await db.appeal.findMany({
-      where: {
-        status: "ACTIVE",
-        visibility: "PUBLIC",
-        ...(searchParams.category ? { category: { slug: searchParams.category } } : {}),
-        ...(searchParams.q ? { title: { contains: searchParams.q, mode: "insensitive" } } : {}),
-      },
-      include: {
-        charity: { select: { name: true, logoUrl: true, isVerified: true } },
-        _count: { select: { fundraisingPages: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 6,
+    const baseWhere = {
+      status: "ACTIVE" as const,
+      visibility: "PUBLIC" as const,
+      ...(searchParams.category ? { category: { slug: searchParams.category } } : {}),
+      ...(searchParams.q ? { title: { contains: searchParams.q, mode: "insensitive" as const } } : {}),
+    };
+
+    const [explicitFeaturedAppeal, liveAppeals] = await Promise.all([
+      db.appeal.findFirst({
+        where: {
+          ...baseWhere,
+          isFeaturedHomepage: true,
+        },
+        include: {
+          charity: { select: { name: true, logoUrl: true, isVerified: true } },
+          _count: { select: { fundraisingPages: true } },
+        },
+      }),
+      db.appeal.findMany({
+        where: baseWhere,
+        include: {
+          charity: { select: { name: true, logoUrl: true, isVerified: true } },
+          _count: { select: { fundraisingPages: true } },
+        },
+        orderBy: [{ createdAt: "desc" }],
+        take: 18,
+      }),
+    ]);
+
+    const appealsWithRaised = await Promise.all(liveAppeals.map((appeal) => mapAppealWithRaised(appeal)));
+    const sortedTrending = [...appealsWithRaised].sort((left, right) => {
+      if (right.raisedAmount !== left.raisedAmount) {
+        return right.raisedAmount - left.raisedAmount;
+      }
+
+      return left.title.localeCompare(right.title);
     });
 
-    // Keeping the total mapping explicit makes it easier for another developer to
-    // swap this with a dedicated reporting query later without changing the UI map.
-    const appealsWithRaised = await Promise.all(
-      liveAppeals.map(async (appeal) => {
-        const [online, offline] = await Promise.all([
-          db.donation.aggregate({
-            where: { page: { appealId: appeal.id }, status: "CAPTURED" },
-            _sum: { amount: true },
-          }),
-          db.offlineDonation.aggregate({
-            where: { page: { appealId: appeal.id }, status: "APPROVED" },
-            _sum: { amount: true },
-          }),
-        ]);
+    featuredAppeal = explicitFeaturedAppeal
+      ? await mapAppealWithRaised(explicitFeaturedAppeal)
+      : appealsWithRaised[0] ?? null;
+    usingExplicitFeaturedAppeal = Boolean(explicitFeaturedAppeal);
 
-        return {
-          ...appeal,
-          goalAmount: appeal.goalAmount.toString(),
-          raisedAmount:
-            parseFloat(online._sum.amount?.toString() ?? "0") +
-            parseFloat(offline._sum.amount?.toString() ?? "0"),
-        };
-      })
-    );
+    trendingAppeals = sortedTrending.filter((appeal) => appeal.id !== featuredAppeal?.id);
 
-    featuredAppeal = appealsWithRaised[0] ?? null;
-    trendingAppeals = appealsWithRaised.slice(0, 3);
+    if (trendingAppeals.length === 0 && featuredAppeal) {
+      trendingAppeals = [featuredAppeal];
+    }
   } catch (error) {
     loadError = true;
     console.error("Failed to load homepage appeals", error);
@@ -157,7 +226,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
             </h1>
 
             <p className="section-copy mt-6">
-              Support verified charities, see Gift Aid and fees before you pay, and back appeals that include both online progress and offline fundraising already happening on the ground.
+              Give to verified charities, understand Gift Aid and fees before checkout, and follow appeals where online giving and offline fundraising are counted together.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -179,7 +248,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
           {/* The featured card mirrors the donation journey we want users to trust:
               verified charity, visible progress, and one clear CTA. */}
           <aside className="surface-card relative z-10 overflow-hidden p-6 sm:p-8">
-            <div className="section-kicker">Featured this week</div>
+            <div className="section-kicker">{usingExplicitFeaturedAppeal ? "Featured by the team" : "Featured this week"}</div>
             <div className="mt-6 rounded-[1.75rem] border border-[color:var(--color-line)] bg-[linear-gradient(180deg,rgba(204,251,241,0.55),rgba(255,255,255,0.95))] p-6">
               <div className="flex items-center justify-between gap-3">
                 <TrustChip tone="gold">{featured.charity.isVerified ? "Verified charity" : "Active appeal"}</TrustChip>
@@ -189,6 +258,9 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
               <h2 className="mt-5 text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">
                 {featured.title}
               </h2>
+              <p className="mt-2 text-sm leading-6 text-[color:var(--color-ink-soft)]">
+                A public appeal with verified charity context, visible progress, and a direct path into the donation flow.
+              </p>
 
               <div className="mt-6">
                 <ProgressBar value={featuredPct} label="Raised so far" />
@@ -242,8 +314,8 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
         <div className="site-shell">
           <SectionIntro
             eyebrow={loadError ? "Curated fallback" : "Trending now"}
-            title={searchParams.q ? `Results for “${searchParams.q}”` : "Appeals donors are backing right now"}
-            description="Clear goals, verified charity context, and a direct route to donate."
+            title={searchParams.q ? `Results for “${searchParams.q}”` : "Appeals people are giving to now"}
+            description="Browse the appeals currently drawing support, six at a time."
             actions={
               <Link href="/charities" className="btn-secondary">
                 Explore charities
@@ -260,11 +332,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
             </div>
           ) : null}
 
-          <div className="mt-10 grid gap-6 lg:grid-cols-3">
-            {trending.map((appeal) => (
-              <AppealCard key={appeal.id} appeal={appeal} raisedAmount={appeal.raisedAmount} />
-            ))}
-          </div>
+          <TrendingAppealsPager appeals={trending} />
         </div>
       </section>
 
@@ -273,7 +341,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
           <SectionIntro
             eyebrow="Why charities use GiveKhair"
             title="Charity operations and public giving in one place"
-            description="Appeals, fundraiser pages, offline donations, Gift Aid, and payout reporting all connect back to the same charity setup."
+            description="Appeals, fundraiser pages, offline donations, Gift Aid, and reporting all connect back to one charity profile."
           />
 
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
@@ -293,10 +361,10 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
             <div className="max-w-3xl">
               <TrustChip tone="gold">For charities and fundraisers</TrustChip>
               <h2 className="mt-5 text-3xl font-bold tracking-[-0.04em] sm:text-4xl">
-                Build trust before asking for money.
+                Start with a clear appeal, then let the fundraising follow.
               </h2>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-teal-50 sm:text-base">
-                Open a verified charity profile, choose an appeal, or launch a fundraiser with a clearer route from first visit to completed donation.
+                Open a charity profile, support an appeal, or create a fundraiser without sending donors through a confusing journey.
               </p>
             </div>
 

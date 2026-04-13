@@ -185,6 +185,7 @@ model Appeal {
   bannerUrl    String?
   mediaGallery Json?
   donorSupportOverride Boolean?
+  isFeaturedHomepage Boolean @default(false)
   visibility   AppealVisibility @default(PUBLIC)
   status       AppealStatus     @default(DRAFT)
   createdAt    DateTime         @default(now())

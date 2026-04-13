@@ -196,9 +196,9 @@ These routes are intentionally lightweight and should be replaced with richer co
 ## Homepage structure
 
 - sticky shared header
-- hero with trust pill, more product-specific headline/subcopy, CTA pair, mini proof cards, and featured appeal
+- hero with trust pill, more product-specific headline/subcopy, CTA pair, mini proof cards, and an admin-controlled featured appeal
 - category pill band
-- trending appeals section
+- paged trending appeals section
 - charity-operations value section
 - secondary CTA band
 - trust/compliance band
@@ -216,8 +216,9 @@ Current behavior:
 
 - query active public appeals from Prisma
 - aggregate online and offline raised totals per appeal
-- map the first result to the featured appeal
-- map the next three into trending cards
+- use the explicit admin-selected featured appeal first when one is configured and valid
+- fall back to the best available active/public appeal if no featured appeal is configured
+- load a larger trending set and page it client-side in grouped views
 - fall back to curated mock content if the live query fails or returns too little
 
 Copy direction now intentionally avoids generic startup language. The page keeps the same visual architecture, but the wording is more specific about:

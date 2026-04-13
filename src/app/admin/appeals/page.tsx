@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getAdminContext } from "@/lib/admin";
+import { revalidateAdminSurfaces } from "@/lib/admin-management";
+import { setHomepageFeaturedAppeal } from "@/lib/homepage-management";
 
 export const metadata: Metadata = { title: "Admin - Appeals" };
 
@@ -41,7 +44,7 @@ function statusPill(status: string) {
 export default async function AdminAppealsPage({
   searchParams,
 }: {
-  searchParams: { charityId?: string };
+  searchParams: { charityId?: string; error?: string };
 }) {
   const { managedCharity, role } = await getAdminContext();
   const selectedCharityId = searchParams.charityId?.trim() || "";
@@ -79,6 +82,30 @@ export default async function AdminAppealsPage({
         })
       : Promise.resolve([]),
   ]);
+
+  async function featureAppealAction(formData: FormData) {
+    "use server";
+
+    const { role: currentRole } = await getAdminContext();
+    if (currentRole !== "PLATFORM_ADMIN") {
+      redirect("/admin/appeals");
+    }
+
+    const appealId = String(formData.get("appealId") ?? "").trim();
+    if (!appealId) {
+      redirect("/admin/appeals");
+    }
+
+    try {
+      await setHomepageFeaturedAppeal({ appealId });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to feature appeal.";
+      redirect(`/admin/appeals?error=${encodeURIComponent(message)}`);
+    }
+
+    revalidateAdminSurfaces(["/", "/admin/appeals"]);
+    redirect("/admin/appeals");
+  }
 
   const summary = appeals.reduce(
     (acc, appeal) => {
@@ -149,6 +176,12 @@ export default async function AdminAppealsPage({
         <SummaryCard label="Combined goals" value={formatCurrency(summary.totalGoal)} sub="Across all appeals" />
       </div>
 
+      {"error" in searchParams && searchParams.error ? (
+        <div className="mb-5 rounded-[1rem] border px-4 py-3 text-sm" style={{ borderColor: "rgba(185, 28, 28, 0.14)", background: "#FEF2F2", color: "#991B1B" }}>
+          {decodeURIComponent(searchParams.error)}
+        </div>
+      ) : null}
+
       <div style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
           <thead>
@@ -161,6 +194,7 @@ export default async function AdminAppealsPage({
                 "Pages",
                 "Teams",
                 "Status",
+                "Homepage",
                 "Visibility",
                 "Actions",
               ].map((heading) => (
@@ -187,9 +221,34 @@ export default async function AdminAppealsPage({
                 <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>{appeal._count.fundraisingPages}</td>
                 <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>{appeal._count.teams}</td>
                 <td style={{ padding: "0.9rem 1rem" }}>{statusPill(appeal.status)}</td>
+                <td style={{ padding: "0.9rem 1rem" }}>
+                  {appeal.isFeaturedHomepage ? (
+                    <span className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" style={{ background: "rgba(212,160,23,0.16)", color: "#8A5B00" }}>
+                      Featured
+                    </span>
+                  ) : role === "PLATFORM_ADMIN" ? (
+                    <span className="text-xs" style={{ color: "#8A9E94" }}>
+                      {appeal.status === "ACTIVE" && appeal.visibility === "PUBLIC" ? "Eligible" : "Not eligible"}
+                    </span>
+                  ) : (
+                    <span className="text-xs" style={{ color: "#8A9E94" }}>—</span>
+                  )}
+                </td>
                 <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>{appeal.visibility}</td>
                 <td style={{ padding: "0.9rem 1rem" }}>
                   <div className="flex flex-wrap gap-2">
+                    {role === "PLATFORM_ADMIN" && !appeal.isFeaturedHomepage && appeal.status === "ACTIVE" && appeal.visibility === "PUBLIC" ? (
+                      <form action={featureAppealAction}>
+                        <input type="hidden" name="appealId" value={appeal.id} />
+                        <button
+                          type="submit"
+                          className="btn-outline"
+                          style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}
+                        >
+                          Feature
+                        </button>
+                      </form>
+                    ) : null}
                     <Link
                       href={`/admin/appeals/${appeal.id}`}
                       className="btn-outline"
@@ -210,7 +269,7 @@ export default async function AdminAppealsPage({
             ))}
             {appeals.length === 0 && (
               <tr>
-                <td colSpan={role === "PLATFORM_ADMIN" ? 9 : 8} style={{ padding: "2rem", textAlign: "center", color: "#8A9E94" }}>
+                <td colSpan={role === "PLATFORM_ADMIN" ? 10 : 9} style={{ padding: "2rem", textAlign: "center", color: "#8A9E94" }}>
                   No appeals yet. Create the first one to start accepting fundraising pages.
                 </td>
               </tr>

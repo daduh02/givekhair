@@ -22,6 +22,7 @@ Prioritise slices that:
 - Role-aware homepage and admin entrypoints
 - Public route-group layout with shared footer and shared header
 - Homepage redesign with centralized theme tokens and reusable public UI primitives
+- Homepage refinement with admin-controlled featured appeal and paged trending carousel
 - Public support/information routes for charities, how-it-works, Zakat/Gift Aid, and policy placeholders
 - Platform overview and charity-overview split in admin
 - Charity setup and appeal management

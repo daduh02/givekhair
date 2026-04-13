@@ -16,6 +16,7 @@ type AppealFormValue = {
   story?: string;
   impact?: string;
   mediaGallery?: string;
+  featureOnHomepage?: boolean;
 };
 
 type CategoryOption = {
@@ -37,6 +38,7 @@ export function AppealForm({
   submitLabel,
   cancelHref,
   initialValues,
+  showHomepageFeatureControl,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   errorMessage?: string;
@@ -46,6 +48,7 @@ export function AppealForm({
   submitLabel: string;
   cancelHref: string;
   initialValues?: AppealFormValue;
+  showHomepageFeatureControl?: boolean;
 }) {
   return (
     <form
@@ -219,6 +222,30 @@ export function AppealForm({
           />
         </Field>
       </div>
+
+      {showHomepageFeatureControl ? (
+        <div className="mt-4">
+          <label
+            className="flex items-start gap-3 rounded-[1rem] border p-4"
+            style={{ borderColor: "rgba(15, 118, 110, 0.16)", background: "rgba(204, 251, 241, 0.22)" }}
+          >
+            <input
+              type="checkbox"
+              name="featureOnHomepage"
+              defaultChecked={initialValues?.featureOnHomepage ?? false}
+              className="mt-1 h-4 w-4"
+            />
+            <span>
+              <span className="block text-sm font-semibold" style={{ color: "#233029" }}>
+                Feature on homepage
+              </span>
+              <span className="mt-1 block text-sm" style={{ color: "#5F766C" }}>
+                Only active public appeals can be featured. If selected, any previously featured appeal is automatically replaced.
+              </span>
+            </span>
+          </label>
+        </div>
+      ) : null}
 
       <div className="mt-6 flex gap-3">
         <button type="submit" className="btn-primary" style={{ padding: "0.7rem 1.25rem" }}>
