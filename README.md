@@ -78,8 +78,10 @@ npm run dev
 | `/admin/settings` | Contract-led fees, plans, contracts, renewal, and commercial audit |
 | `/admin/payouts` | Payout batch management and contract-aware payout operations |
 | `/admin/gift-aid` | Gift Aid claim queue and settlement workflow |
+| `/admin/reports` | CSV exports and operational previews for donations, offline donations, payouts, and Gift Aid |
 | `/api/trpc/[trpc]` | tRPC endpoint |
 | `/api/webhooks/stripe` | Stripe webhook receiver |
+| `/api/admin/reports/export` | Access-controlled CSV export endpoint for admin reports |
 | `/api/auth/[...nextauth]` | Auth.js handlers |
 
 ## Production deploy notes
@@ -133,7 +135,7 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 1. **Wire Stripe** — add `STRIPE_SECRET_KEY`, implement `createCheckout` in donations router
 2. **Fundraising page UI** — `/fundraise/[shortName]` page component
 3. **Public charity profiles** — individual charity detail pages using the new public shell
-4. **Gift Aid claim builder** — async queue automation and HMRC integration on top of the new manual claim queue and settlement workflow
+4. **Fundraiser self-serve tools** — richer updates, media management, and fundraiser-facing status messaging
 5. **Payout batch processor** — async queue worker and reconciliation automation on top of the new manual payout-batch operations
 6. **GL export** — CSV download matching spec appendix 16.A format
 7. **Risk engine** — velocity, device fingerprint, IP reputation signals

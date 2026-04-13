@@ -44,10 +44,10 @@ Prioritise slices that:
 ### Recommended next
 
 1. Public charity profile pages
-2. Reports and exports
-3. Reporting and exports
-4. Appeal/team analytics and leaderboards
-5. Richer fundraiser self-serve tools
+2. Appeal/team analytics and leaderboards
+3. Richer fundraiser self-serve tools
+4. Accounting-oriented exports
+5. Refunds and disputes
 
 ### Why this phase matters
 
@@ -71,17 +71,18 @@ This is the shortest path to matching the operational needs in the spec for real
 ## Phase 5: Scale and quality
 
 - Accessibility audit automation
-- Reporting center and exports
+- Advanced reporting center and PDF/accounting exports
 - Observability dashboards and alerting
 - Feature flags and rollout controls
 
 ## Candidate next tickets
 
-### Ticket 1: Reports and exports
+### Ticket 1: Richer fundraiser self-serve tools
 
-- Replace `/admin/reports` placeholder
-- Add donations, offline, Gift Aid, and payout export actions
-- Add charity-scoped filters and export history
+- Add media management
+- Add fundraiser-authored updates publishing
+- Add status messaging for pending/rejected pages
+- Add lightweight fundraiser analytics
 
 ### Ticket 2: Finance workflows
 
@@ -90,18 +91,17 @@ This is the shortest path to matching the operational needs in the spec for real
 - Add finance summaries and reconciliation hooks
 - Add provider submission and failure handling for payout batches
 
-### Ticket 3: Commercial ops hardening
+### Ticket 3: Accounting exports and reconciliation
+
+- Add GL export matching spec appendix 16.A
+- Add reconciliation-oriented CSV exports beyond the current admin report set
+- Add export history or audit trail if finance needs evidence of generated files
+
+### Ticket 4: Commercial ops hardening
 
 - Add approval/signature workflow for contracts
 - Add explicit contract renewal history/timeline
 - Add safer document storage and download handling
-
-### Ticket 4: Richer fundraiser self-serve tools
-
-- Add media management
-- Add fundraiser-authored updates publishing
-- Add status messaging for pending/rejected pages
-- Add lightweight fundraiser analytics
 
 ### Ticket 5: Refunds and disputes
 

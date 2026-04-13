@@ -205,6 +205,15 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 3. The screen exposes donation status, fee coverage, Gift Aid state, recurring flag, provider refs, and receipt state
 4. Pending donations can be opened in the hosted test checkout route to complete or fail the payment loop manually
 
+### Reports and exports flow
+
+1. Admin visits `/admin/reports`
+2. The page resolves the same charity scope rules used elsewhere in admin, including platform-wide access and charity-admin restrictions
+3. Shared report helpers load donations, offline donations, payout batches, and Gift Aid claims for the selected date range and charity filter
+4. The page renders summary cards plus lightweight operational previews so admins can sanity-check scope before exporting
+5. A single access-controlled route handler at `/api/admin/reports/export` returns CSV exports for each report type
+6. Export URLs are built from the active UI filters so the preview state and download scope stay aligned
+
 ### Fees and contracts flow
 
 1. `/admin/settings` now acts as the starter commercial control surface
@@ -246,7 +255,7 @@ The core create/edit routes now exist, but richer tools such as media management
 
 ### 2. Admin workflows are still uneven
 
-`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, `Fees & contracts`, manual `Payouts`, and manual `Gift Aid` claim operations now have real workflows, but reports and async finance operations are still only partially operational.
+`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, `Reports`, `Fees & contracts`, manual `Payouts`, and manual `Gift Aid` claim operations now have real workflows, but async finance operations are still only partially operational.
 
 ### 3. Payments integration is stubbed
 

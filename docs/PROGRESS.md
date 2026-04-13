@@ -18,7 +18,7 @@ This file tracks the current delivery state of the product against the working g
 - Charity setup, appeal management, moderation, offline donation operations, and donation management now have real admin workflows.
 - Public-facing routes now use a shared shell with a reusable footer, centralized theme tokens, and cleaner reusable components.
 - Commercial pricing is now contract-led for new donation writes, with donor-supported, charity-paid, and hybrid charging modes.
-- Major finance, payout, reporting, reconciliation, refund, and dispute workflows are still incomplete.
+- Major reconciliation, refund, and dispute workflows are still incomplete.
 
 ## Completed
 
@@ -71,6 +71,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Donations admin page
 - `Done` Offline donations admin page
 - `Done` Offline CSV dry-run and commit flow
+- `Done` Reports center with scoped CSV exports for donations, offline donations, payouts, and Gift Aid
 - `Done` Shared admin context helper for resolving current charity/admin scope
 - `Done` Platform-admin appeal visibility across all charities
 
@@ -136,7 +137,7 @@ This file tracks the current delivery state of the product against the working g
 - `Not started` Gift Aid claim queue, submission, and paid-state workflow
 - `Not started` Team leaderboards
 - `Done` Public charity directory now links into rich public charity profile pages
-- `Not started` Reporting center with downloadable exports
+- `Done` Reporting center with downloadable exports
 - `Not started` Risk scoring, hold states, and moderation logs
 - `Not started` DSAR/governance workflows
 - `Not started` Accessibility audit automation and CI gates
@@ -201,7 +202,9 @@ This file tracks the current delivery state of the product against the working g
 
 ### 5.8 Reporting
 
-- `Not started` usable exports center
+- `Done` admin reports center with scoped export cards and operational previews
+- `Done` CSV exports for donations, offline donations, payouts, and Gift Aid claims
+- `Partial` PDF exports and accounting-system-specific formats remain unbuilt
 
 ### 5.9 Risk, Trust & Moderation
 
@@ -227,8 +230,8 @@ This file tracks the current delivery state of the product against the working g
 
 ## Immediate Next Recommendations
 
-1. Build `Reports and exports` so charity teams can actually extract and use the data they are entering.
-2. Build `Reports and exports` so charity teams can actually extract and use the finance and operational data they are entering.
-3. Build `Richer fundraiser self-serve tools` such as updates, media management, and moderation-state messaging.
-4. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
-5. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.
+1. Build `Richer fundraiser self-serve tools` such as updates, media management, and moderation-state messaging.
+2. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
+3. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.
+4. Build `Accounting-oriented exports` such as GL exports and reconciliation-specific downloads.
+5. Build `Async finance automation` for payout processing and HMRC submission flows.
