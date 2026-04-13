@@ -96,6 +96,14 @@ The public site now has a dedicated token layer and reusable component classes i
 5. Appeal detail page loads teams, fundraiser pages, and donation widget
 6. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
 
+### Public fundraiser page flow
+
+1. Public fundraiser pages now live at `/fundraise/[shortName]`
+2. Middleware protects only `/fundraise/new`, allowing fundraiser detail pages to stay publicly accessible
+3. The page loads fundraiser owner, team, appeal, donations, offline donations, updates, and media from Prisma
+4. Visibility and moderation states are enforced server-side before rendering
+5. The page reuses the shared donation widget and public design system
+
 ### Donation flow
 
 1. User opens donation widget on an appeal page
@@ -179,9 +187,9 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 
 ## Known architectural gaps
 
-### 1. Public fundraiser page route is still missing
+### 1. Public fundraiser management UI is still missing
 
-The schema and router support fundraiser pages, but the dedicated public route and management UX are still absent.
+The public fundraiser page route now exists, but create/edit/manage flows for fundraisers are still missing.
 
 ### 2. Public charity profiles are still shallow
 

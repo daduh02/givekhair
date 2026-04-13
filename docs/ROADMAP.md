@@ -32,7 +32,6 @@ Prioritise slices that:
 
 ### Remaining in this phase
 
-- Fundraising page public route `/fundraise/[shortName]`
 - Fundraising page creation and edit UI
 - Rich public charity profile pages
 - Live payment-provider checkout beyond the hosted test flow
@@ -42,7 +41,7 @@ Prioritise slices that:
 
 ### Recommended next
 
-1. Fundraising page public route and page management UI
+1. Fundraising page creation and page management UI
 2. Public charity profile pages
 3. Reports and exports
 4. Payouts and Gift Aid workflows
@@ -76,11 +75,11 @@ This is the shortest path to matching the operational needs in the spec for real
 
 ## Candidate next tickets
 
-### Ticket 1: Fundraising page public experience
+### Ticket 1: Fundraising page creation and management
 
-- Add `/fundraise/[shortName]`
-- Show totals, story, updates, media, donation feed
-- Reuse donation widget where appropriate
+- Add `fundraise/new`
+- Add fundraiser-owned edit/manage flow
+- Let fundraisers publish, update, and maintain their page content over time
 
 ### Ticket 2: Public charity profiles
 

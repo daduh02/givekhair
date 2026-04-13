@@ -46,6 +46,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Public information architecture for charities, how-it-works, Zakat/Gift Aid, and policy/support placeholder pages
 - `Done` Centralized public theme tokens, button styles, chips, cards, and progress bar patterns
 - `Done` Appeal detail page with totals, teams, fundraiser list, and donation widget on every appeal page
+- `Done` Dedicated public fundraiser page route at `/fundraise/[shortName]` with story, progress, updates, donor feed, and donation widget
 - `Done` Fee preview in donation widget
 - `Done` Donation intent creation flow in tRPC
 - `Done` Gift Aid capture fields in donation intent flow
@@ -75,7 +76,8 @@ This file tracks the current delivery state of the product against the working g
 
 - `Partial` Page data model exists
 - `Partial` Page create and update tRPC mutations exist
-- `Partial` Public page detail rendering exists for appeals, but the dedicated `/fundraise/[shortName]` fundraiser experience is still missing
+- `Done` Public fundraiser page detail route exists
+- `Partial` Dedicated fundraiser page creation/edit UI is still missing
 
 ### Donations
 
@@ -149,7 +151,6 @@ This file tracks the current delivery state of the product against the working g
 - `Partial` schema and mutations
 - `Partial` moderation controls exist in admin appeal flows
 - `Not started` dedicated fundraiser page management UI
-- `Not started` dedicated public fundraiser page route and public fundraising story/update experience
 
 ### 5.4 Donations
 

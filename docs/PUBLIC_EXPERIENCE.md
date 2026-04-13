@@ -158,6 +158,7 @@ The donation widget was restyled to match the premium public shell while preserv
 
 - `/`
 - `/appeals/[slug]`
+- `/fundraise/[shortName]`
 - `/charities`
 - `/how-it-works`
 - `/zakat-gift-aid`
@@ -219,6 +220,29 @@ Current behavior:
 
 This preserves real data wiring without making the homepage feel empty during transient data issues.
 
+## Public fundraiser page
+
+Implementation:
+
+- `src/app/(public)/fundraise/[shortName]/page.tsx`
+
+Current sections:
+
+- fundraiser hero
+- owner/team/charity context
+- progress and supporter stats
+- fundraiser story
+- optional media gallery
+- updates
+- donor feed combining online and offline support
+- shared donation widget
+
+Access rules:
+
+- public for allowed fundraiser pages
+- hidden, banned, rejected, suspended, draft, and pending-approval pages do not render publicly
+- middleware now reserves `/fundraise/new` for future authenticated creation, while `/fundraise/[shortName]` stays public
+
 ## Extension guidance
 
 When adding new public-facing pages:
@@ -231,7 +255,7 @@ When adding new public-facing pages:
 
 ## Recommended next public-facing work
 
-- build the missing `/fundraise/[shortName]` public route using the same shell and card system
+- build fundraiser creation/edit management on top of the new public fundraiser route
 - replace placeholder policy/info pages with approved content
 - create richer public charity profile pages
 - add a shared content-page template component if static informational pages keep growing
