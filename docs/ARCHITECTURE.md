@@ -51,7 +51,7 @@ One important structural change is now in place: public pages are no longer a lo
 ### Server domain logic
 
 - `src/server/lib/`
-- Fee engine, ledger helpers, queue setup, donations API stub, donation processing helpers
+- Fee engine, commercial helpers, payout policy helpers, ledger helpers, queue setup, donations API stub, donation processing helpers
 
 - `src/server/routers/`
 - tRPC procedures for appeals, pages, donations, fees, and admin-adjacent operations
@@ -68,7 +68,7 @@ The schema already models much more of the target product than the UI currently 
 
 ### 3. Keep financial logic centralized
 
-Fees, payout preparation, Gift Aid, and ledger logic should continue to live in explicit server modules rather than being spread across page components.
+Fees, contracts, payout preparation, Gift Aid, and ledger logic should continue to live in explicit server modules rather than being spread across page components.
 
 ### 4. Prefer route-safe server rendering
 
@@ -119,10 +119,13 @@ The public site now has a dedicated token layer and reusable component classes i
 1. User opens donation widget on an appeal page
 2. Frontend previews fees through tRPC
 3. Frontend creates donation intent through tRPC
-4. Server resolves fee schedule, persists the donation intent, fee snapshot, and optional Gift Aid declaration
-5. Hosted test checkout route simulates provider completion for development and staging-like testing
-6. Shared donation-processing helpers capture or fail the donation, create payment records, update receipt state, write ledger entries, and attach Gift Aid declarations to a draft claim queue
-7. Stripe webhook route reuses the same donation-processing helpers for provider-driven confirmation
+4. Server resolves the active charity contract, then the applicable fee schedule and fee rules
+5. Donation pricing is calculated under the resolved charging mode (`CHARITY_PAID`, `DONOR_SUPPORTED`, or `HYBRID`)
+6. Server persists the donation intent, contract linkage, pricing snapshot, and optional Gift Aid declaration
+7. `Donation.amount` is still populated for compatibility, while richer pricing fields are stored separately for all new writes
+8. Hosted test checkout route simulates provider completion for development and staging-like testing
+9. Shared donation-processing helpers capture or fail the donation, create payment records, update receipt state, write ledger entries, and attach Gift Aid declarations to a draft claim queue
+10. Stripe webhook route reuses the same donation-processing helpers for provider-driven confirmation
 
 ### Public content and support flow
 
@@ -206,9 +209,23 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 
 1. `/admin/settings` now acts as the starter commercial control surface
 2. Commercial plans classify the package a charity is on
-3. Fee schedules remain the pricing input used by the fee engine, but can now optionally link to a commercial plan
-4. Charity contracts link charities to plans and optional schedules, while preserving term dates and operational notes
-5. Terms acceptances are stored separately so legal version history can grow without mutating the contract record
+3. Charity contracts are now the first-class pricing entry point
+4. Active contracts resolve by charity, date, region, and optional product scope
+5. Contracts store charging mode, donor-support defaults, payout settings, settlement delay, reserve rules, and expiry behavior
+6. Appeal-level donor-support override can force donor-support on or off without replacing the rest of the contract
+7. Fee schedules remain the detailed pricing input used by the fee engine, but they are now resolved through the active contract
+8. Fee rules can now vary by donation kind, charging mode, active state, and effective dates
+9. Contract documents and commercial audit logs are stored alongside the commercial records
+10. Dedicated edit and renewal routes now sit on top of the settings overview so contract updates and new versions do not overload the list page
+11. Terms acceptances are stored separately so legal version history can grow without mutating the contract record
+
+### Payout policy flow
+
+1. Payout readiness resolves the charity’s commercial contract first
+2. Suspended contracts block payouts immediately
+3. Expired contracts block payouts only when the contract says to
+4. Donor-support revenue is excluded from charity payout totals
+5. Gift Aid actually received is added to the payout pool in full
 
 ## Known architectural gaps
 
@@ -218,7 +235,7 @@ The core create/edit routes now exist, but richer tools such as media management
 
 ### 2. Admin workflows are still uneven
 
-`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, and starter `Fees & contracts` now have real workflows, but payouts, reports, and Gift Aid operations are still mostly placeholders.
+`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, and `Fees & contracts` now have real workflows, but payouts, reports, and Gift Aid operations are still only partially operational.
 
 ### 3. Payments integration is stubbed
 
@@ -232,7 +249,11 @@ Queues exist conceptually, but operational workers and async processing flows ar
 
 The ledger and payout models are present, but finance operations still need real end-user surfaces and automated processing.
 
-### 6. Offline ingestion is functional but not yet complete
+### 6. Contract lifecycle is still intentionally light
+
+The commercial admin surface can now create, edit, renew, attach documents, and log key commercial events, but richer approval/signature flows and automated renewal mechanics still need to be built.
+
+### 7. Offline ingestion is functional but not yet complete
 
 The platform can now validate and import offline donations, but downloadable batch reports, richer audit tooling, and broader totals/reconciliation visibility still need to be added.
 
@@ -253,7 +274,7 @@ The following docs would be useful as the product grows:
 - document current tRPC procedures and route handlers
 
 - `docs/FINANCE.md`
-- explain fees, payouts, Gift Aid, ledger semantics, and reconciliation assumptions
+- explain contract-led pricing, charging modes, payouts, Gift Aid, ledger semantics, and reconciliation assumptions
 
 - `docs/DECISIONS.md`
 - lightweight architecture decision log for major tradeoffs

@@ -12,6 +12,7 @@ type AppealFormValue = {
   endsAt?: string;
   status?: "DRAFT" | "ACTIVE" | "PAUSED" | "ENDED";
   visibility?: "PUBLIC" | "UNLISTED" | "HIDDEN";
+  donorSupportOverride?: "inherit" | "enabled" | "disabled";
   story?: string;
   impact?: string;
   mediaGallery?: string;
@@ -168,6 +169,14 @@ export function AppealForm({
             <option value="PUBLIC">Public</option>
             <option value="UNLISTED">Unlisted</option>
             <option value="HIDDEN">Hidden</option>
+          </select>
+        </Field>
+
+        <Field label="Donor-support override">
+          <select name="donorSupportOverride" className="input" defaultValue={initialValues?.donorSupportOverride ?? "inherit"}>
+            <option value="inherit">Inherit contract default</option>
+            <option value="enabled">Force donor support on</option>
+            <option value="disabled">Force donor support off</option>
           </select>
         </Field>
       </div>

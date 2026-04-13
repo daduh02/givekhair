@@ -29,12 +29,13 @@ Prioritise slices that:
 - Offline donations admin workflow
 - Donations admin workflow and hosted test checkout
 - Appeal pages now guarantee a donation widget even when no public fundraiser page exists yet
+- Contract-led pricing foundation with donor-supported, charity-paid, and hybrid charging modes
 
 ### Remaining in this phase
 
 - Live payment-provider checkout beyond the hosted test flow
 - Better admin charity resolution and switching for platform admins
-- Richer fee-rule builder and contract requirements once the commercial model is finalized
+- Richer fee-rule builder and final contract approval/signature workflows
 
 ## Phase 2: Charity Operations
 
@@ -85,21 +86,28 @@ This is the shortest path to matching the operational needs in the spec for real
 - Build payout batches and history
 - Build Gift Aid claim queue
 - Add finance summaries and reconciliation hooks
+- Add contract-state-aware payout actions beyond the current readiness/gating view
 
-### Ticket 3: Richer fundraiser self-serve tools
+### Ticket 3: Commercial ops hardening
+
+- Add approval/signature workflow for contracts
+- Add explicit contract renewal history/timeline
+- Add safer document storage and download handling
+
+### Ticket 4: Richer fundraiser self-serve tools
 
 - Add media management
 - Add fundraiser-authored updates publishing
 - Add status messaging for pending/rejected pages
 - Add lightweight fundraiser analytics
 
-### Ticket 4: Refunds and disputes
+### Ticket 5: Refunds and disputes
 
 - Add refund records and admin actions from the donations workflow
 - Add dispute ingestion and case visibility
 - Show reversal/recovery state alongside donation status
 
-### Ticket 5: Team analytics and leaderboards
+### Ticket 6: Team analytics and leaderboards
 
 - Build team-level public and admin summaries
 - Add ranking/leaderboard views for appeals and teams

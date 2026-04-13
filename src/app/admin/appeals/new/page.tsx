@@ -34,6 +34,13 @@ async function createAppeal(formData: FormData) {
   const bannerUrl = parseOptionalString(formData.get("bannerUrl"));
   const story = parseOptionalString(formData.get("story"));
   const impact = parseOptionalString(formData.get("impact"));
+  const donorSupportOverrideInput = String(formData.get("donorSupportOverride") ?? "inherit").trim();
+  const donorSupportOverride =
+    donorSupportOverrideInput === "enabled"
+      ? true
+      : donorSupportOverrideInput === "disabled"
+        ? false
+        : null;
   const mediaGallery = parseMediaGallery(String(formData.get("mediaGallery") ?? ""));
   const slugInput = String(formData.get("slug") ?? "").trim();
   const slug = slugify(slugInput || title);
@@ -65,6 +72,7 @@ async function createAppeal(formData: FormData) {
       endsAt: endsAtRaw ? new Date(endsAtRaw) : undefined,
       visibility,
       status,
+      donorSupportOverride,
       bannerUrl: bannerUrl ?? undefined,
       mediaGallery,
     },
@@ -147,6 +155,7 @@ export default async function NewAppealPage({
           currency: managedCharity?.defaultCurrency ?? "GBP",
           status: "DRAFT",
           visibility: "PUBLIC",
+          donorSupportOverride: "inherit",
         }}
       />
     </div>

@@ -26,29 +26,39 @@ export const feesRouter = createTRPCRouter({
       z.object({
         amount: z.number().positive(),
         charityId: z.string(),
+        appealId: z.string().optional(),
         countryCode: z.string().default("GB"),
         paymentMethod: z.string().optional(),
-        donorCoversFees: z.boolean().default(false),
+        donationKind: z.enum(["ONE_OFF", "RECURRING"]).default("ONE_OFF"),
+        donorSupportAmount: z.number().min(0).default(0),
       })
     )
     .query(async ({ input }) => {
       const result = await previewFees(input.amount, {
         charityId: input.charityId,
+        appealId: input.appealId,
         countryCode: input.countryCode,
         paymentMethod: input.paymentMethod,
-        donorCoversFees: input.donorCoversFees,
+        donationKind: input.donationKind,
+        donorSupportAmount: input.donorSupportAmount,
       });
       // Serialize Decimals to strings for transport
       return {
         donationAmount: result.donationAmount.toFixed(2),
+        donorSupportAmount: result.donorSupportAmount.toFixed(2),
+        grossCheckoutTotal: result.grossCheckoutTotal.toFixed(2),
         platformFeeAmount: result.platformFeeAmount.toFixed(2),
         processingFeeAmount: result.processingFeeAmount.toFixed(2),
         giftAidFeeAmount: result.giftAidFeeAmount.toFixed(2),
         totalFees: result.totalFees.toFixed(2),
-        netToCharity: result.netToCharity.toFixed(2),
-        donorPays: result.donorPays.toFixed(2),
-        donorCoversFees: result.donorCoversFees,
+        feeChargedToCharity: result.feeChargedToCharity.toFixed(2),
+        charityNetAmount: result.charityNetAmount.toFixed(2),
+        chargingMode: result.chargingMode,
+        donorSupportEnabled: result.donorSupportEnabled,
+        donorSupportSuggestedPresets: result.donorSupportSuggestedPresets,
+        feeBreakdown: result.feeBreakdown,
         scheduleId: result.scheduleId,
+        contractId: result.contractId,
       };
     }),
 });
@@ -225,7 +235,7 @@ export const donationsRouter = createTRPCRouter({
         pageId: z.string(),
         amount: z.number().positive(),
         currency: z.string().default("GBP"),
-        donorCoversFees: z.boolean().default(false),
+        donorSupportAmount: z.number().min(0).default(0),
         isAnonymous: z.boolean().default(false),
         isRecurring: z.boolean().default(false),
         donorName: z.string().max(120).optional(),
@@ -249,7 +259,7 @@ export const donationsRouter = createTRPCRouter({
           pageId: input.pageId,
           amount: input.amount,
           currency: input.currency,
-          donorCoversFees: input.donorCoversFees,
+          donorSupportAmount: input.donorSupportAmount,
           isAnonymous: input.isAnonymous,
           isRecurring: input.isRecurring,
           donorName: input.donorName,

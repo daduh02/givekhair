@@ -17,6 +17,7 @@ This file tracks the current delivery state of the product against the working g
 - Admin and homepage role-aware navigation are working.
 - Charity setup, appeal management, moderation, offline donation operations, and donation management now have real admin workflows.
 - Public-facing routes now use a shared shell with a reusable footer, centralized theme tokens, and cleaner reusable components.
+- Commercial pricing is now contract-led for new donation writes, with donor-supported, charity-paid, and hybrid charging modes.
 - Major finance, payout, reporting, reconciliation, refund, and dispute workflows are still incomplete.
 
 ## Completed
@@ -94,10 +95,15 @@ This file tracks the current delivery state of the product against the working g
 
 ### Fees and finance
 
-- `Partial` Fee engine exists with schedule/rule resolution
-- `Done` Starter admin settings area now stores commercial plans, fee schedules, charity contracts, and terms acceptances
+- `Done` Contract-led fee engine now resolves active charity contracts before fee schedules
+- `Done` Charging modes now support `DONOR_SUPPORTED`, `CHARITY_PAID`, and `HYBRID`
+- `Done` Donation pricing now persists contract linkage, donation amount, donor-support amount, gross checkout total, charity fee, charity net, charging mode, Gift Aid expectations, and pricing snapshots
+- `Done` Starter admin settings area now stores commercial plans, fee schedules, charity contracts, contract documents, and commercial audit entries
+- `Done` Contract edit and renewal/versioning routes now exist on top of the admin settings surface
+- `Done` Fee rules can now vary by donation kind, charging mode, active state, and effective dates
+- `Done` Appeal-level donor-support override exists and only overrides donor-support behavior
 - `Partial` Ledger helper code exists
-- `Partial` Finance UI is still incomplete, but fees/contracts now have a real foundation
+- `Partial` Finance UI is still incomplete, but fees/contracts now have a working contract-led foundation
 
 ### Gift Aid
 
@@ -167,12 +173,18 @@ This file tracks the current delivery state of the product against the working g
 
 ### 5.5 Fee & Pricing Model
 
-- `Partial` fee schedule + runtime preview
+- `Done` contract-led runtime pricing preview
+- `Done` donor-supported, charity-paid, and hybrid charging behavior
+- `Done` recurring vs one-off fee rule selection
+- `Done` pricing snapshot persistence on both `Donation` and `FeeSet`
+- `Done` contract renewal/versioning flow for creating a fresh commercial period without mutating historic records
 - `Partial` starter admin fee configuration UX now exists in `/admin/settings`
+- `Partial` richer rule editing and final legal/commercial workflows still need expansion
 
 ### 5.6 Bank Accounts & Payouts
 
 - `Partial` schema and overview aggregates
+- `Done` payout readiness now respects contract expiry/suspension policy and excludes donor-support revenue from charity payout totals
 - `Not started` working payout operations
 
 ### 5.7 Gift Aid
@@ -211,7 +223,7 @@ This file tracks the current delivery state of the product against the working g
 ## Immediate Next Recommendations
 
 1. Build `Reports and exports` so charity teams can actually extract and use the data they are entering.
-2. Build `Payouts + Gift Aid workflows` after the public fundraising surface is now in place.
+2. Build `Payout batch operations + Gift Aid settlement workflow` on top of the new contract-led pricing and payout gating.
 3. Build `Richer fundraiser self-serve tools` such as updates, media management, and moderation-state messaging.
 4. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
 5. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.

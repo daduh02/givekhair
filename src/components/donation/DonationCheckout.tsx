@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 
 interface Props {
   pageId: string;
+  appealId: string;
   charityId: string;
   charityName: string;
   pageName: string;
@@ -15,12 +16,13 @@ const PRESET_AMOUNTS = [5, 10, 25, 50, 100];
 const STEPS = ["amount", "details", "giftaid"] as const;
 const GIFT_AID_MULTIPLIER = 0.25;
 
-export function DonationCheckout({ pageId, charityId, charityName, pageName }: Props) {
+export function DonationCheckout({ pageId, appealId, charityId, charityName, pageName }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<(typeof STEPS)[number]>("amount");
   const [amount, setAmount] = useState<number>(10);
   const [customAmount, setCustomAmount] = useState("");
-  const [donorCoversFees, setDonorCoversFees] = useState(true);
+  const [donorSupportEnabled, setDonorSupportEnabled] = useState(false);
+  const [donorSupportAmount, setDonorSupportAmount] = useState<number>(0);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [donorName, setDonorName] = useState("");
@@ -35,11 +37,41 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
   });
 
   const effectiveAmount = customAmount ? parseFloat(customAmount) || 0 : amount;
+  const donationKind = isRecurring ? "RECURRING" : "ONE_OFF";
 
   const { data: fees, isLoading: feesLoading } = trpc.fees.preview.useQuery(
-    { amount: effectiveAmount, charityId, donorCoversFees },
+    {
+      amount: effectiveAmount,
+      charityId,
+      appealId,
+      donationKind,
+      donorSupportAmount: donorSupportEnabled ? donorSupportAmount : 0,
+    },
     { enabled: effectiveAmount > 0 }
   );
+
+  // The widget keeps a simple toggle-first mental model for donors, while the
+  // underlying data model now stores a real donor-support amount separately.
+  useEffect(() => {
+    if (!fees?.donorSupportEnabled) {
+      setDonorSupportEnabled(false);
+      setDonorSupportAmount(0);
+      return;
+    }
+
+    if (!donorSupportEnabled) {
+      setDonorSupportAmount(0);
+      return;
+    }
+
+    if (donorSupportAmount <= 0) {
+      const preferredPreset = fees.donorSupportSuggestedPresets?.[0];
+      const nextAmount = typeof preferredPreset === "number" && preferredPreset > 0
+        ? preferredPreset
+        : parseFloat(fees.totalFees);
+      setDonorSupportAmount(nextAmount);
+    }
+  }, [fees, donorSupportAmount, donorSupportEnabled]);
 
   const createIntent = trpc.donations.createIntent.useMutation({
     onSuccess: (data) => {
@@ -60,7 +92,7 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
     await createIntent.mutateAsync({
       pageId,
       amount: effectiveAmount,
-      donorCoversFees,
+      donorSupportAmount: donorSupportEnabled ? donorSupportAmount : 0,
       isAnonymous,
       isRecurring,
       donorName: donorName || undefined,
@@ -78,6 +110,8 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
   }
 
   const giftAidBoost = claimGiftAid ? (effectiveAmount * GIFT_AID_MULTIPLIER).toFixed(2) : null;
+  const grossCheckoutTotal = fees?.grossCheckoutTotal ?? effectiveAmount.toFixed(2);
+  const charityNetAmount = fees?.charityNetAmount ?? effectiveAmount.toFixed(2);
 
   return (
     <div className="surface-card mx-auto w-full max-w-md overflow-hidden p-6 sm:p-7">
@@ -142,37 +176,67 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
             aria-label="Enter a custom donation amount"
           />
 
-          {feesLoading && effectiveAmount > 0 ? (
-            <div className="mt-5 h-28 animate-pulse rounded-[1.25rem] bg-[rgba(15,23,42,0.05)]" />
-          ) : null}
+          {feesLoading && effectiveAmount > 0 ? <div className="mt-5 h-28 animate-pulse rounded-[1.25rem] bg-[rgba(15,23,42,0.05)]" /> : null}
 
           {fees && effectiveAmount > 0 ? (
             <div className="surface-muted mt-5 p-4">
-              <FeeRow label="Platform fee (1.5%)" value={`£${fees.platformFeeAmount}`} />
-              <FeeRow label="Processing fee (1.4% + 20p)" value={`£${fees.processingFeeAmount}`} />
-              <FeeRow label="Charity receives" value={`£${fees.netToCharity}`} emphasis />
+              <FeeRow label="Charging mode" value={fees.chargingMode.replaceAll("_", " ")} />
+              <FeeRow label="Platform fee" value={`£${fees.platformFeeAmount}`} />
+              <FeeRow label="Processing fee" value={`£${fees.processingFeeAmount}`} />
+              <FeeRow label="Fee charged to charity" value={`£${fees.feeChargedToCharity}`} />
+              <FeeRow label="Charity receives" value={`£${fees.charityNetAmount}`} emphasis />
 
-              {/* The fee toggle stays inside the breakdown because it changes every
-                  number around it. Grouping the logic here keeps the mental model obvious. */}
-              <div className="mt-4 grid grid-cols-[auto_1fr] items-start gap-4 rounded-[1.2rem] border border-[rgba(15,118,110,0.16)] bg-[rgba(204,251,241,0.45)] p-4">
-                <button
-                  type="button"
-                  onClick={() => setDonorCoversFees(!donorCoversFees)}
-                  aria-pressed={donorCoversFees}
-                  aria-label={donorCoversFees ? "Turn off cover fees" : "Turn on cover fees"}
-                  className="relative mt-1 h-6 w-11 flex-shrink-0 rounded-full"
-                  style={{ background: donorCoversFees ? "var(--color-primary)" : "rgba(15, 23, 42, 0.18)" }}
-                >
-                  <span
-                    className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow"
-                    style={{ left: donorCoversFees ? "1.35rem" : "0.15rem", transition: "left 0.2s ease" }}
-                  />
-                </button>
-                <p className="min-w-0 text-sm leading-7 text-[color:var(--color-primary-dark)]">
-                  Cover the fees so <strong>{charityName}</strong> receives the full £{effectiveAmount.toFixed(2)}{" "}
-                  {donorCoversFees ? <span className="text-[color:var(--color-ink-muted)]">(you pay £{fees.donorPays})</span> : null}
-                </p>
-              </div>
+              {fees.donorSupportEnabled ? (
+                <div className="mt-4 rounded-[1.2rem] border border-[rgba(15,118,110,0.16)] bg-[rgba(204,251,241,0.45)] p-4">
+                  <div className="grid grid-cols-[auto_1fr] items-start gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setDonorSupportEnabled(!donorSupportEnabled)}
+                      aria-pressed={donorSupportEnabled}
+                      aria-label={donorSupportEnabled ? "Turn off donor support" : "Turn on donor support"}
+                      className="relative mt-1 h-6 w-11 flex-shrink-0 rounded-full"
+                      style={{ background: donorSupportEnabled ? "var(--color-primary)" : "rgba(15, 23, 42, 0.18)" }}
+                    >
+                      <span
+                        className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow"
+                        style={{ left: donorSupportEnabled ? "1.35rem" : "0.15rem", transition: "left 0.2s ease" }}
+                      />
+                    </button>
+                    <div className="min-w-0">
+                      <p className="text-sm leading-7 text-[color:var(--color-primary-dark)]">
+                        Add donor support so <strong>{charityName}</strong> keeps the full donation amount.
+                      </p>
+                      {donorSupportEnabled ? (
+                        <div className="mt-3 space-y-3">
+                          <div className="flex flex-wrap gap-2">
+                            {(fees.donorSupportSuggestedPresets?.length ? fees.donorSupportSuggestedPresets : [parseFloat(fees.totalFees)])
+                              .slice(0, 4)
+                              .map((preset) => (
+                                <button
+                                  key={preset}
+                                  type="button"
+                                  className="trust-chip bg-white text-[color:var(--color-primary-dark)]"
+                                  onClick={() => setDonorSupportAmount(preset)}
+                                >
+                                  +£{preset.toFixed(2)}
+                                </button>
+                              ))}
+                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="input"
+                            value={donorSupportAmount || ""}
+                            onChange={(event) => setDonorSupportAmount(parseFloat(event.target.value) || 0)}
+                            placeholder="Donor support amount"
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -200,10 +264,8 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
           </div>
 
           <div className="surface-muted mt-5 flex items-center justify-between p-4 text-sm">
-            <span className="text-[color:var(--color-ink-muted)]">Donating</span>
-            <span className="font-bold text-[color:var(--color-ink)]">
-              £{fees?.donorPays ?? effectiveAmount.toFixed(2)} {donorCoversFees ? <span className="text-xs text-[color:var(--color-ink-muted)]">(incl. fees)</span> : null}
-            </span>
+            <span className="text-[color:var(--color-ink-muted)]">Checkout total</span>
+            <span className="font-bold text-[color:var(--color-ink)]">£{grossCheckoutTotal}</span>
           </div>
 
           <label className="mt-5 flex items-start gap-3 text-sm text-[color:var(--color-ink-soft)]">
@@ -273,7 +335,7 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
           <div className="surface-muted mt-5 p-4 text-sm">
             <div className="flex justify-between text-[color:var(--color-ink-muted)]">
               <span>You pay</span>
-              <span className="font-bold text-[color:var(--color-ink)]">£{fees?.donorPays ?? effectiveAmount.toFixed(2)}</span>
+              <span className="font-bold text-[color:var(--color-ink)]">£{grossCheckoutTotal}</span>
             </div>
             {claimGiftAid ? (
               <div className="mt-2 flex justify-between text-[color:var(--color-primary-dark)]">
@@ -285,8 +347,8 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
               <span>Total charity receives</span>
               <span>
                 £{claimGiftAid
-                  ? (parseFloat(fees?.netToCharity ?? "0") + parseFloat(giftAidBoost ?? "0")).toFixed(2)
-                  : fees?.netToCharity ?? effectiveAmount.toFixed(2)}
+                  ? (parseFloat(charityNetAmount) + parseFloat(giftAidBoost ?? "0")).toFixed(2)
+                  : charityNetAmount}
               </span>
             </div>
           </div>
@@ -294,7 +356,7 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
           <div className="mt-6 flex gap-3">
             <button className="btn-ghost flex-1" onClick={() => setStep("details")}>← Back</button>
             <button className="btn-primary flex-1" onClick={handleSubmit} disabled={createIntent.isPending} aria-busy={createIntent.isPending}>
-              {createIntent.isPending ? "Processing…" : `Donate £${fees?.donorPays ?? effectiveAmount.toFixed(2)}`}
+              {createIntent.isPending ? "Processing…" : `Donate £${grossCheckoutTotal}`}
             </button>
           </div>
 
@@ -310,12 +372,8 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
 function FeeRow({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
   return (
     <div className="flex items-center justify-between py-1.5 text-sm">
-      <span className={emphasis ? "font-semibold text-[color:var(--color-primary-dark)]" : "text-[color:var(--color-ink-muted)]"}>
-        {label}
-      </span>
-      <span className={emphasis ? "font-bold text-[color:var(--color-primary-dark)]" : "font-semibold text-[color:var(--color-ink)]"}>
-        {value}
-      </span>
+      <span className={emphasis ? "font-semibold text-[color:var(--color-primary-dark)]" : "text-[color:var(--color-ink-muted)]"}>{label}</span>
+      <span className={emphasis ? "font-bold text-[color:var(--color-primary-dark)]" : "font-semibold text-[color:var(--color-ink)]"}>{value}</span>
     </div>
   );
 }

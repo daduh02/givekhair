@@ -73,9 +73,9 @@ npm run dev
 | `/charities` | Public charity directory |
 | `/how-it-works` | Public explainer page |
 | `/zakat-gift-aid` | Public giving guidance page |
-| `/fundraise/[shortName]` | Planned fundraising page route |
+| `/fundraise/[shortName]` | Public fundraising page route |
 | `/admin` | Charity admin dashboard |
-| `/admin/settings` | Fees, plans, and contracts foundation |
+| `/admin/settings` | Contract-led fees, plans, contracts, renewal, and commercial audit |
 | `/admin/payouts` | Payout management |
 | `/admin/gift-aid` | Gift Aid claims |
 | `/api/trpc/[trpc]` | tRPC endpoint |
@@ -98,10 +98,17 @@ distinct modules with clear boundaries. Extract to microservices later when traf
 data shows where the seams should be.
 
 ### Fee Engine (`src/server/lib/fee-engine.ts`)
-- Resolves active `FeeSchedule` for a charity (falls back to platform default)
-- Matches `FeeRule`s by country, payment method, subscription tier
-- All arithmetic via `Decimal.js` — no floating-point drift
-- `snapshotJson` on `FeeSet` preserves the exact schedule used at donation time
+- Resolves the active `CharityContract` first, then the applicable `FeeSchedule`
+- Supports `CHARITY_PAID`, `DONOR_SUPPORTED`, and `HYBRID` charging modes
+- Matches `FeeRule`s by country, payment method, subscription tier, donation kind, charging mode, and effective dates
+- All arithmetic via `Decimal.js` to avoid floating-point drift
+- Persists pricing snapshots across both `Donation` and `FeeSet` so legacy reads keep working while new writes use the richer contract-led fields
+
+### Commercial layer (`src/server/lib/commercials.ts`)
+- Resolves active contracts by charity, region, product scope, and date
+- Applies appeal-level donor-support overrides without bypassing the rest of the contract
+- Validates overlapping contracts in application logic
+- Stores contract documents and commercial audit events for pricing and status changes
 
 ### Double-entry ledger (`src/server/lib/ledger.ts`)
 Immutable journal entries per spec §7.1:
@@ -131,6 +138,11 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 6. **GL export** — CSV download matching spec appendix 16.A format
 7. **Risk engine** — velocity, device fingerprint, IP reputation signals
 8. **Accessibility audit** — axe-core CI checks + NVDA/VoiceOver passes
+
+## Verification helpers
+
+- `npm run verify:contract-pricing`
+- Verifies donor-supported, charity-paid, hybrid, recurring, payout-blocking, and appeal-override pricing cases against the current database
 
 ## Data retention (spec §10.1)
 

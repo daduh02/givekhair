@@ -3,7 +3,7 @@
  * Creates realistic dev data: charities, appeals, teams, pages, donations, ledger entries
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type ChargingMode, type DonationKind } from "@prisma/client";
 import Decimal from "decimal.js";
 import { randomUUID } from "crypto";
 import { hashPassword } from "../src/lib/password";
@@ -29,10 +29,46 @@ async function main() {
           {
             countryCode: "GB",
             ruleType: "PERCENTAGE",
+            donationKind: "ONE_OFF",
+            chargingMode: "CHARITY_PAID",
+            isActive: true,
             platformFeePct: 0.015,
             processingFeePct: 0.014,
             processingFeeFixed: 0.2,
             sortOrder: 1,
+          },
+          {
+            countryCode: "GB",
+            ruleType: "PERCENTAGE",
+            donationKind: "RECURRING",
+            chargingMode: "CHARITY_PAID",
+            isActive: true,
+            platformFeePct: 0.0125,
+            processingFeePct: 0.012,
+            processingFeeFixed: 0.2,
+            sortOrder: 2,
+          },
+          {
+            countryCode: "GB",
+            ruleType: "PERCENTAGE",
+            donationKind: "ONE_OFF",
+            chargingMode: "DONOR_SUPPORTED",
+            isActive: true,
+            platformFeePct: 0.015,
+            processingFeePct: 0.014,
+            processingFeeFixed: 0.2,
+            sortOrder: 3,
+          },
+          {
+            countryCode: "GB",
+            ruleType: "PERCENTAGE",
+            donationKind: "RECURRING",
+            chargingMode: "DONOR_SUPPORTED",
+            isActive: true,
+            platformFeePct: 0.0125,
+            processingFeePct: 0.012,
+            processingFeeFixed: 0.2,
+            sortOrder: 4,
           },
         ],
       },
@@ -260,6 +296,18 @@ async function main() {
       commercialPlanId: growthPlan.id,
       feeScheduleId: schedule.id,
       status: "ACTIVE",
+      chargingMode: "HYBRID",
+      region: "GB",
+      productType: "general-fundraising",
+      donorSupportEnabled: true,
+      donorSupportPromptStyle: "TOGGLE",
+      donorSupportSuggestedPresets: [1, 2, 5],
+      payoutFrequency: "MONTHLY",
+      payoutMethod: "BACS",
+      settlementDelayDays: 7,
+      reserveRule: "none",
+      autoPauseAppealsOnExpiry: false,
+      blockPayoutsOnExpiry: true,
       effectiveFrom: new Date("2026-01-01"),
       effectiveTo: new Date("2026-12-31"),
       signedAt: new Date("2026-01-03"),
@@ -270,6 +318,7 @@ async function main() {
       reservePolicy: "No rolling reserve in the starter contract baseline unless risk review changes the account state.",
       autoRenew: true,
       notes: "Seeded commercial contract for admin/testing flows.",
+      internalNotes: "Hybrid donor-support enabled contract used for platform verification flows.",
     },
     create: {
       id: "contract-islamic-relief-2026",
@@ -277,6 +326,18 @@ async function main() {
       commercialPlanId: growthPlan.id,
       feeScheduleId: schedule.id,
       status: "ACTIVE",
+      chargingMode: "HYBRID",
+      region: "GB",
+      productType: "general-fundraising",
+      donorSupportEnabled: true,
+      donorSupportPromptStyle: "TOGGLE",
+      donorSupportSuggestedPresets: [1, 2, 5],
+      payoutFrequency: "MONTHLY",
+      payoutMethod: "BACS",
+      settlementDelayDays: 7,
+      reserveRule: "none",
+      autoPauseAppealsOnExpiry: false,
+      blockPayoutsOnExpiry: true,
       effectiveFrom: new Date("2026-01-01"),
       effectiveTo: new Date("2026-12-31"),
       signedAt: new Date("2026-01-03"),
@@ -287,6 +348,7 @@ async function main() {
       reservePolicy: "No rolling reserve in the starter contract baseline unless risk review changes the account state.",
       autoRenew: true,
       notes: "Seeded commercial contract for admin/testing flows.",
+      internalNotes: "Hybrid donor-support enabled contract used for platform verification flows.",
     },
   });
 
@@ -312,6 +374,64 @@ async function main() {
       acceptedByEmail: "admin@givekhair.dev",
       acceptedAt: new Date("2026-01-03"),
       notes: "Seeded acceptance for baseline contract setup.",
+    },
+  });
+
+  await db.contractDocument.upsert({
+    where: { id: "contract-document-islamic-relief-msa" },
+    update: {
+      contractId: islamicReliefContract.id,
+      name: "MSA 2026.1",
+      fileUrl: "https://example.com/contracts/islamic-relief-msa-2026-1.pdf",
+      mimeType: "application/pdf",
+      documentType: "MASTER_SERVICE_AGREEMENT",
+      uploadedByName: "Platform Admin",
+      uploadedByEmail: "admin@givekhair.dev",
+    },
+    create: {
+      id: "contract-document-islamic-relief-msa",
+      contractId: islamicReliefContract.id,
+      name: "MSA 2026.1",
+      fileUrl: "https://example.com/contracts/islamic-relief-msa-2026-1.pdf",
+      mimeType: "application/pdf",
+      documentType: "MASTER_SERVICE_AGREEMENT",
+      uploadedByName: "Platform Admin",
+      uploadedByEmail: "admin@givekhair.dev",
+    },
+  });
+
+  await db.commercialAuditLog.upsert({
+    where: { id: "audit-contract-islamic-relief-created" },
+    update: {
+      contractId: islamicReliefContract.id,
+      charityId: islamicRelief.id,
+      action: "CREATE",
+      entityType: "CHARITY_CONTRACT",
+      summary: "Seeded baseline hybrid contract for Islamic Relief UK",
+      metadata: {
+        chargingMode: "HYBRID",
+        donorSupportEnabled: true,
+        payoutFrequency: "MONTHLY",
+        payoutMethod: "BACS",
+      },
+      changedByName: "Platform Admin",
+      changedByEmail: "admin@givekhair.dev",
+    },
+    create: {
+      id: "audit-contract-islamic-relief-created",
+      contractId: islamicReliefContract.id,
+      charityId: islamicRelief.id,
+      action: "CREATE",
+      entityType: "CHARITY_CONTRACT",
+      summary: "Seeded baseline hybrid contract for Islamic Relief UK",
+      metadata: {
+        chargingMode: "HYBRID",
+        donorSupportEnabled: true,
+        payoutFrequency: "MONTHLY",
+        payoutMethod: "BACS",
+      },
+      changedByName: "Platform Admin",
+      changedByEmail: "admin@givekhair.dev",
     },
   });
   console.log("  ✓ Contracts foundation");
@@ -490,30 +610,58 @@ async function main() {
   console.log("  ✓ Moderation queue seeds");
 
   // ── Donations + FeeSet + Ledger ─────────────────────────────────────────────
-  const donationData = [
-    { pageId: aminaPage.id, userId: amina.id, amount: "50.00", donorName: "Khalid M.", donorEmail: "khalid@example.com", giftAid: true, coversFees: true },
-    { pageId: aminaPage.id, userId: null, amount: "25.00", donorName: null, donorEmail: "anonymous@example.com", giftAid: false, coversFees: false },
-    { pageId: aminaPage.id, userId: fatima.id, amount: "100.00", donorName: "Sarah T.", donorEmail: "sarah@example.com", giftAid: true, coversFees: false },
-    { pageId: yusufPage.id, userId: null, amount: "10.00", donorName: "Anonymous", donorEmail: "anon2@example.com", giftAid: false, coversFees: true },
-    { pageId: yusufPage.id, userId: yusuf.id, amount: "75.00", donorName: "Mohammed R.", donorEmail: "mohammed@example.com", giftAid: true, coversFees: false },
+  const donationData: Array<{
+    pageId: string;
+    userId: string | null;
+    amount: string;
+    donorName: string | null;
+    donorEmail: string;
+    giftAid: boolean;
+    donorSupportAmount: string;
+    chargingMode: ChargingMode;
+    donationKind: DonationKind;
+  }> = [
+    { pageId: aminaPage.id, userId: amina.id, amount: "50.00", donorName: "Khalid M.", donorEmail: "khalid@example.com", giftAid: true, donorSupportAmount: "0.95", chargingMode: "DONOR_SUPPORTED", donationKind: "ONE_OFF" },
+    { pageId: aminaPage.id, userId: null, amount: "25.00", donorName: null, donorEmail: "anonymous@example.com", giftAid: false, donorSupportAmount: "0.00", chargingMode: "CHARITY_PAID", donationKind: "ONE_OFF" },
+    { pageId: aminaPage.id, userId: fatima.id, amount: "100.00", donorName: "Sarah T.", donorEmail: "sarah@example.com", giftAid: true, donorSupportAmount: "0.00", chargingMode: "CHARITY_PAID", donationKind: "RECURRING" },
+    { pageId: yusufPage.id, userId: null, amount: "10.00", donorName: "Anonymous", donorEmail: "anon2@example.com", giftAid: false, donorSupportAmount: "0.34", chargingMode: "DONOR_SUPPORTED", donationKind: "ONE_OFF" },
+    { pageId: yusufPage.id, userId: yusuf.id, amount: "75.00", donorName: "Mohammed R.", donorEmail: "mohammed@example.com", giftAid: true, donorSupportAmount: "0.00", chargingMode: "CHARITY_PAID", donationKind: "ONE_OFF" },
   ];
 
   for (const d of donationData) {
     const amount = new Decimal(d.amount);
+    const donorSupportAmount = new Decimal(d.donorSupportAmount);
     const platformFee = amount.times(0.015).toDecimalPlaces(2);
     const processingFee = amount.times(0.014).plus(0.2).toDecimalPlaces(2);
     const totalFees = platformFee.plus(processingFee);
-    const netToCharity = d.coversFees ? amount : amount.minus(totalFees);
-    const donorPays = d.coversFees ? amount.plus(totalFees) : amount;
+    const netToCharity = d.chargingMode === "DONOR_SUPPORTED" ? amount : amount.minus(totalFees);
+    const donorPays = d.chargingMode === "DONOR_SUPPORTED" ? amount.plus(donorSupportAmount) : amount;
+    const giftAidExpectedAmount = d.giftAid ? amount.times(0.25).toDecimalPlaces(2) : new Decimal(0);
 
     const donation = await db.donation.create({
       data: {
         pageId: d.pageId,
         userId: d.userId ?? undefined,
         amount: d.amount,
+        contractId: islamicReliefContract.id,
+        donationAmount: d.amount,
+        donorSupportAmount: donorSupportAmount.toFixed(2),
+        grossCheckoutTotal: donorPays.toFixed(2),
+        feeChargedToCharity: d.chargingMode === "DONOR_SUPPORTED" ? "0.00" : totalFees.toFixed(2),
+        charityNetAmount: netToCharity.toFixed(2),
+        resolvedChargingMode: d.chargingMode,
+        feeBreakdownSnapshot: {
+          platformFeeAmount: platformFee.toFixed(2),
+          processingFeeAmount: processingFee.toFixed(2),
+          totalFees: totalFees.toFixed(2),
+        },
+        donationKind: d.donationKind,
+        giftAidExpectedAmount: giftAidExpectedAmount.toFixed(2),
+        giftAidReceivedAmount: "0.00",
         currency: "GBP",
         status: "CAPTURED",
         isAnonymous: !d.donorName,
+        isRecurring: d.donationKind === "RECURRING",
         donorName: d.donorName ?? undefined,
         donorEmail: d.donorEmail,
         receiptIssuedAt: new Date(),
@@ -530,9 +678,9 @@ async function main() {
         processingFeeAmount: processingFee.toFixed(2),
         giftAidFeeAmount: "0.00",
         totalFees: totalFees.toFixed(2),
-        donorCoversFees: d.coversFees,
+        donorCoversFees: d.chargingMode === "DONOR_SUPPORTED",
         netToCharity: netToCharity.toFixed(2),
-        snapshotJson: { scheduleId: schedule.id, version: 1 },
+        snapshotJson: { scheduleId: schedule.id, version: 1, chargingMode: d.chargingMode, donorSupportAmount: donorSupportAmount.toFixed(2) },
       },
     });
 

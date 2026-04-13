@@ -100,6 +100,13 @@ export default async function EditAppealPage({
     const bannerUrl = parseOptionalString(formData.get("bannerUrl"));
     const story = parseOptionalString(formData.get("story"));
     const impact = parseOptionalString(formData.get("impact"));
+    const donorSupportOverrideInput = String(formData.get("donorSupportOverride") ?? "inherit").trim();
+    const donorSupportOverride =
+      donorSupportOverrideInput === "enabled"
+        ? true
+        : donorSupportOverrideInput === "disabled"
+          ? false
+          : null;
     const mediaGallery = parseMediaGallery(String(formData.get("mediaGallery") ?? ""));
     const status = String(formData.get("status") ?? "DRAFT").trim() as "DRAFT" | "ACTIVE" | "PAUSED" | "ENDED";
     const visibility = String(formData.get("visibility") ?? "PUBLIC").trim() as "PUBLIC" | "UNLISTED" | "HIDDEN";
@@ -134,6 +141,7 @@ export default async function EditAppealPage({
         bannerUrl: bannerUrl ?? null,
         story: story ?? null,
         impact: impact ?? null,
+        donorSupportOverride,
         mediaGallery,
         status,
         visibility,
@@ -422,6 +430,12 @@ export default async function EditAppealPage({
           endsAt: toDateInput(appeal.endsAt),
           status: appeal.status,
           visibility: appeal.visibility,
+          donorSupportOverride:
+            appeal.donorSupportOverride === true
+              ? "enabled"
+              : appeal.donorSupportOverride === false
+                ? "disabled"
+                : "inherit",
           story: appeal.story ?? "",
           impact: appeal.impact ?? "",
           mediaGallery: Array.isArray(appeal.mediaGallery) ? appeal.mediaGallery.join("\n") : "",

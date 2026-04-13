@@ -178,7 +178,7 @@ export default async function AdminOverviewPage() {
   const onlineTotal = parseFloat(onlineAgg._sum.amount?.toString() ?? "0");
   const offlineTotal = parseFloat(offlineAgg._sum.amount?.toString() ?? "0");
   const coverPct = onlineAgg._count > 0
-    ? Math.round((recentDonations.filter(d => d.feeSet?.donorCoversFees).length / onlineAgg._count) * 100)
+    ? Math.round((recentDonations.filter(d => (d.resolvedChargingMode ?? (d.feeSet?.donorCoversFees ? "DONOR_SUPPORTED" : "CHARITY_PAID")) === "DONOR_SUPPORTED").length / onlineAgg._count) * 100)
     : 0;
 
   return (
@@ -227,7 +227,9 @@ export default async function AdminOverviewPage() {
                     <td style={{ padding: "0.75rem 1rem", color: "#233029" }}>{d.isAnonymous ? "Anonymous" : (d.donorName ?? "—")}</td>
                     <td style={{ padding: "0.75rem 1rem", fontWeight: 600, color: "#233029" }}>
                       £{parseFloat(d.amount.toString()).toFixed(2)}
-                      {d.feeSet?.donorCoversFees && <span style={{ fontSize: "0.65rem", color: "#1E8C6E", marginLeft: "4px" }}>+fees</span>}
+                      {(d.resolvedChargingMode ?? (d.feeSet?.donorCoversFees ? "DONOR_SUPPORTED" : "CHARITY_PAID")) === "DONOR_SUPPORTED" && (
+                        <span style={{ fontSize: "0.65rem", color: "#1E8C6E", marginLeft: "4px" }}>+support</span>
+                      )}
                     </td>
                     <td style={{ padding: "0.75rem 1rem" }}>{pill(d.giftAidDeclaration ? "CAPTURED" : "DRAFT")}</td>
                     <td style={{ padding: "0.75rem 1rem", color: "#8A9E94", fontSize: "0.75rem" }}>{d.page.title}</td>

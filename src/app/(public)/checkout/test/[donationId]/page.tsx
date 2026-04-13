@@ -52,9 +52,15 @@ export default async function TestCheckoutPage({ params }: { params: { donationI
     redirect(`/appeals/${donationRecord.page.appeal.slug}?checkout=failed`);
   }
 
-  const donorPays = donationRecord.feeSet?.donorCoversFees
-    ? parseFloat(donationRecord.amount.toString()) + parseFloat(donationRecord.feeSet.totalFees.toString())
-    : parseFloat(donationRecord.amount.toString());
+  const donorPays = parseFloat(
+    donationRecord.grossCheckoutTotal?.toString() ??
+    (donationRecord.feeSet?.donorCoversFees
+      ? (parseFloat(donationRecord.amount.toString()) + parseFloat(donationRecord.feeSet.totalFees.toString())).toFixed(2)
+      : donationRecord.amount.toString())
+  );
+  const charityNet = donationRecord.charityNetAmount?.toString() ?? donationRecord.feeSet?.netToCharity.toString() ?? donationRecord.amount.toString();
+  const donationAmount = donationRecord.donationAmount?.toString() ?? donationRecord.amount.toString();
+  const donorSupportAmount = donationRecord.donorSupportAmount?.toString() ?? "0";
 
   return (
     <main className="section-shell">
@@ -71,10 +77,11 @@ export default async function TestCheckoutPage({ params }: { params: { donationI
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <SummaryCard label="Fundraiser page" value={donationRecord.page.title} />
             <SummaryCard label="Appeal" value={donationRecord.page.appeal.title} />
-            <SummaryCard label="Donation amount" value={fmt(donationRecord.amount.toString(), donationRecord.currency)} />
+            <SummaryCard label="Donation amount" value={fmt(donationAmount, donationRecord.currency)} />
             <SummaryCard label="Donor pays" value={fmt(donorPays, donationRecord.currency)} />
-            <SummaryCard label="Fees snapshot" value={fmt(donationRecord.feeSet?.totalFees.toString() ?? "0", donationRecord.currency)} />
-            <SummaryCard label="Charity receives" value={fmt(donationRecord.feeSet?.netToCharity.toString() ?? donationRecord.amount.toString(), donationRecord.currency)} />
+            <SummaryCard label="Donor support" value={fmt(donorSupportAmount, donationRecord.currency)} />
+            <SummaryCard label="Fees snapshot" value={fmt(donationRecord.feeSet?.totalFees.toString() ?? donationRecord.feeChargedToCharity?.toString() ?? "0", donationRecord.currency)} />
+            <SummaryCard label="Charity receives" value={fmt(charityNet, donationRecord.currency)} />
           </div>
 
           <div className="surface-muted mt-6 p-5">
@@ -83,7 +90,7 @@ export default async function TestCheckoutPage({ params }: { params: { donationI
               <p><strong>Email:</strong> {donationRecord.donorEmail ?? "No receipt email"}</p>
               <p><strong>Recurring:</strong> {donationRecord.isRecurring ? "Yes" : "No"}</p>
               <p><strong>Gift Aid:</strong> {donationRecord.giftAidDeclaration ? "Declared" : "Not declared"}</p>
-              <p><strong>Cover fees:</strong> {donationRecord.feeSet?.donorCoversFees ? "Yes" : "No"}</p>
+              <p><strong>Charging mode:</strong> {donationRecord.resolvedChargingMode ?? (donationRecord.feeSet?.donorCoversFees ? "DONOR_SUPPORTED" : "CHARITY_PAID")}</p>
               <p><strong>Status:</strong> {donationRecord.status}</p>
             </div>
           </div>

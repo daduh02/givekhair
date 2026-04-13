@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import Decimal from "decimal.js";
+import type { DonationKind } from "@prisma/client";
 import { db } from "@/lib/db";
 import { previewFees } from "@/server/lib/fee-engine";
 import { recordDonationAuthorised, recordFeesRecognised } from "@/server/lib/ledger";
@@ -12,6 +13,7 @@ type CreateDonationIntentInput = {
   pageId: string;
   amount: number;
   currency?: string;
+  donorSupportAmount?: number;
   donorCoversFees?: boolean;
   isAnonymous?: boolean;
   isRecurring?: boolean;
@@ -31,17 +33,25 @@ type CreateDonationIntentInput = {
 };
 
 function getAppUrl() {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ??
-    process.env.NEXTAUTH_URL ??
-    "http://localhost:3000"
-  );
+  return process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 }
 
 function getClaimPeriod(date: Date) {
   const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
   const end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 23, 59, 59, 999));
   return { start, end };
+}
+
+function getDonationKind(isRecurring?: boolean): DonationKind {
+  return isRecurring ? "RECURRING" : "ONE_OFF";
+}
+
+function computeGiftAidExpectedAmount(amount: number, hasGiftAid?: boolean) {
+  if (!hasGiftAid) {
+    return new Decimal(0);
+  }
+
+  return new Decimal(amount).times(0.25).toDecimalPlaces(2);
 }
 
 async function addGiftAidDeclarationToDraftClaim(donationId: string) {
@@ -58,7 +68,6 @@ async function addGiftAidDeclarationToDraftClaim(donationId: string) {
   }
 
   const declaration = donation.giftAidDeclaration;
-
   const existingItem = await db.giftAidClaimItem.findFirst({
     where: { declarationId: declaration.id },
     select: { id: true },
@@ -68,7 +77,7 @@ async function addGiftAidDeclarationToDraftClaim(donationId: string) {
     return;
   }
 
-  const donationAmount = new Decimal(donation.amount.toString());
+  const donationAmount = new Decimal(donation.donationAmount?.toString() ?? donation.amount.toString());
   const reclaimAmount = donationAmount.times(0.25).toDecimalPlaces(2);
   const { start, end } = getClaimPeriod(donation.createdAt);
 
@@ -95,15 +104,6 @@ async function addGiftAidDeclarationToDraftClaim(donationId: string) {
       });
     }
 
-    const duplicate = await tx.giftAidClaimItem.findFirst({
-      where: { declarationId: declaration.id },
-      select: { id: true },
-    });
-
-    if (duplicate) {
-      return;
-    }
-
     await tx.giftAidClaimItem.create({
       data: {
         claimId: claim.id,
@@ -123,6 +123,43 @@ async function addGiftAidDeclarationToDraftClaim(donationId: string) {
   });
 }
 
+async function resolvePreviewForIntent(input: {
+  amount: number;
+  charityId: string;
+  appealId: string;
+  isRecurring?: boolean;
+  donorSupportAmount?: number;
+  donorCoversFees?: boolean;
+}) {
+  const donationKind = getDonationKind(input.isRecurring);
+  const paymentMethod = input.isRecurring ? "card_recurring" : "card";
+  let donorSupportAmount = new Decimal(input.donorSupportAmount ?? 0).toDecimalPlaces(2);
+
+  let preview = await previewFees(input.amount, {
+    charityId: input.charityId,
+    appealId: input.appealId,
+    donationKind,
+    paymentMethod,
+    donorSupportAmount: donorSupportAmount.toNumber(),
+  });
+
+  // This preserves older callers while routing them through the new pricing
+  // model: "cover fees" now becomes a donor-support contribution equal to the
+  // currently previewed fee total.
+  if (input.donorCoversFees && donorSupportAmount.equals(0)) {
+    donorSupportAmount = preview.totalFees;
+    preview = await previewFees(input.amount, {
+      charityId: input.charityId,
+      appealId: input.appealId,
+      donationKind,
+      paymentMethod,
+      donorSupportAmount: donorSupportAmount.toNumber(),
+    });
+  }
+
+  return preview;
+}
+
 export async function createDonationIntent(input: CreateDonationIntentInput) {
   const page = await db.fundraisingPage.findUnique({
     where: { id: input.pageId },
@@ -133,20 +170,37 @@ export async function createDonationIntent(input: CreateDonationIntentInput) {
     throw new Error("Fundraiser page not found.");
   }
 
-  const feePreview = await previewFees(input.amount, {
+  const feePreview = await resolvePreviewForIntent({
+    amount: input.amount,
     charityId: page.appeal.charityId,
-    donorCoversFees: input.donorCoversFees ?? false,
-    paymentMethod: input.isRecurring ? "card_recurring" : "card",
+    appealId: page.appeal.id,
+    isRecurring: input.isRecurring,
+    donorSupportAmount: input.donorSupportAmount,
+    donorCoversFees: input.donorCoversFees,
   });
 
   const idempotencyKey = randomUUID();
+  const donationAmount = new Decimal(input.amount).toDecimalPlaces(2);
+  const giftAidExpectedAmount = computeGiftAidExpectedAmount(input.amount, Boolean(input.giftAid));
+  const donorSupportLegacy = feePreview.chargingMode === "DONOR_SUPPORTED" && feePreview.donorSupportAmount.greaterThan(0);
 
   const donation = await db.$transaction(async (tx) => {
     const created = await tx.donation.create({
       data: {
         pageId: input.pageId,
         userId: input.userId ?? undefined,
-        amount: new Decimal(input.amount).toFixed(2),
+        contractId: feePreview.contractId,
+        amount: donationAmount.toFixed(2),
+        donationAmount: donationAmount.toFixed(2),
+        donorSupportAmount: feePreview.donorSupportAmount.toFixed(2),
+        grossCheckoutTotal: feePreview.grossCheckoutTotal.toFixed(2),
+        feeChargedToCharity: feePreview.feeChargedToCharity.toFixed(2),
+        charityNetAmount: feePreview.charityNetAmount.toFixed(2),
+        resolvedChargingMode: feePreview.chargingMode,
+        feeBreakdownSnapshot: feePreview.snapshotJson,
+        donationKind: getDonationKind(input.isRecurring),
+        giftAidExpectedAmount: giftAidExpectedAmount.toFixed(2),
+        giftAidReceivedAmount: "0.00",
         currency: input.currency ?? "GBP",
         status: "PENDING",
         isAnonymous: input.isAnonymous ?? false,
@@ -160,15 +214,20 @@ export async function createDonationIntent(input: CreateDonationIntentInput) {
 
     await tx.feeSet.create({
       data: {
-        scheduleId: feePreview.scheduleId === "none" ? await getOrCreateDefaultScheduleId(tx) : feePreview.scheduleId,
+        scheduleId: feePreview.scheduleId,
         donationId: created.id,
         platformFeeAmount: feePreview.platformFeeAmount.toFixed(2),
         processingFeeAmount: feePreview.processingFeeAmount.toFixed(2),
         giftAidFeeAmount: feePreview.giftAidFeeAmount.toFixed(2),
         totalFees: feePreview.totalFees.toFixed(2),
-        donorCoversFees: input.donorCoversFees ?? false,
-        netToCharity: feePreview.netToCharity.toFixed(2),
-        snapshotJson: feePreview.snapshotJson,
+        donorCoversFees: donorSupportLegacy,
+        netToCharity: feePreview.charityNetAmount.toFixed(2),
+        snapshotJson: {
+          ...feePreview.snapshotJson,
+          grossCheckoutTotal: feePreview.grossCheckoutTotal.toFixed(2),
+          feeChargedToCharity: feePreview.feeChargedToCharity.toFixed(2),
+          donorSupportAmount: feePreview.donorSupportAmount.toFixed(2),
+        },
       },
     });
 
@@ -198,7 +257,7 @@ export async function createDonationIntent(input: CreateDonationIntentInput) {
   const checkout = await donationsApi.createCheckout({
     donationId: donation.id,
     pageExternalId: page.externalPageId ?? page.id,
-    amount: parseFloat(feePreview.donorPays.toFixed(2)),
+    amount: parseFloat(feePreview.grossCheckoutTotal.toFixed(2)),
     currency: input.currency ?? "GBP",
     returnUrl: `${getAppUrl()}/donations/thank-you/${donation.id}`,
     cancelUrl: `${getAppUrl()}/appeals/${page.appeal.slug}?checkout=cancelled`,
@@ -208,10 +267,28 @@ export async function createDonationIntent(input: CreateDonationIntentInput) {
   return {
     donationId: donation.id,
     idempotencyKey,
-    donorPays: feePreview.donorPays.toFixed(2),
-    netToCharity: feePreview.netToCharity.toFixed(2),
+    donationAmount: feePreview.donationAmount.toFixed(2),
+    donorSupportAmount: feePreview.donorSupportAmount.toFixed(2),
+    grossCheckoutTotal: feePreview.grossCheckoutTotal.toFixed(2),
+    feeChargedToCharity: feePreview.feeChargedToCharity.toFixed(2),
+    charityNetAmount: feePreview.charityNetAmount.toFixed(2),
+    chargingMode: feePreview.chargingMode,
     checkoutUrl: checkout.checkoutUrl,
   };
+}
+
+function getStoredGrossCheckoutTotal(donation: {
+  amount: { toString(): string };
+  grossCheckoutTotal?: { toString(): string } | null;
+  feeSet?: { donorCoversFees: boolean; totalFees: { toString(): string } } | null;
+}) {
+  if (donation.grossCheckoutTotal) {
+    return new Decimal(donation.grossCheckoutTotal.toString());
+  }
+
+  return donation.feeSet?.donorCoversFees
+    ? new Decimal(donation.amount.toString()).plus(new Decimal(donation.feeSet.totalFees.toString()))
+    : new Decimal(donation.amount.toString());
 }
 
 export async function markDonationCaptured(input: {
@@ -237,9 +314,8 @@ export async function markDonationCaptured(input: {
     return donation;
   }
 
-  const donorPays = donation.feeSet?.donorCoversFees
-    ? new Decimal(donation.amount.toString()).plus(new Decimal(donation.feeSet.totalFees.toString()))
-    : new Decimal(donation.amount.toString());
+  const grossCheckoutTotal = getStoredGrossCheckoutTotal(donation);
+  const donationAmount = new Decimal(donation.donationAmount?.toString() ?? donation.amount.toString());
 
   await db.$transaction(async (tx) => {
     await tx.donation.update({
@@ -257,7 +333,7 @@ export async function markDonationCaptured(input: {
         data: {
           provider: input.provider,
           providerRef: input.providerRef,
-          amount: donorPays.toFixed(2),
+          amount: grossCheckoutTotal.toFixed(2),
           currency: donation.currency,
           settledAt: new Date(),
           failureReason: null,
@@ -269,7 +345,7 @@ export async function markDonationCaptured(input: {
           donationId: input.donationId,
           provider: input.provider,
           providerRef: input.providerRef,
-          amount: donorPays.toFixed(2),
+          amount: grossCheckoutTotal.toFixed(2),
           currency: donation.currency,
           settledAt: new Date(),
         },
@@ -280,11 +356,12 @@ export async function markDonationCaptured(input: {
   if (donation.journalEntries.length === 0) {
     await recordDonationAuthorised({
       donationId: donation.id,
-      amount: new Decimal(donation.amount.toString()),
+      amount: donationAmount,
       currency: donation.currency,
     });
 
-    if (donation.feeSet) {
+    const feeChargedToCharity = new Decimal(donation.feeChargedToCharity?.toString() ?? donation.feeSet?.totalFees?.toString() ?? "0");
+    if (donation.feeSet && feeChargedToCharity.greaterThan(0)) {
       await recordFeesRecognised({
         donationId: donation.id,
         platformFee: new Decimal(donation.feeSet.platformFeeAmount.toString()),
@@ -336,30 +413,4 @@ export async function markDonationFailed(input: {
       });
     }
   });
-}
-
-async function getOrCreateDefaultScheduleId(tx: {
-  feeSchedule: {
-    findFirst: typeof db.feeSchedule.findFirst;
-    create: typeof db.feeSchedule.create;
-  };
-}) {
-  const existing = await tx.feeSchedule.findFirst({
-    where: { charityId: null, isActive: true },
-  });
-
-  if (existing) {
-    return existing.id;
-  }
-
-  const created = await tx.feeSchedule.create({
-    data: {
-      version: 1,
-      name: "Default platform schedule",
-      isActive: true,
-      validFrom: new Date(),
-    },
-  });
-
-  return created.id;
 }

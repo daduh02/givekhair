@@ -3,9 +3,13 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import type {
   BillingInterval,
-  CommercialPlanStatus,
+  ChargingMode,
+  DonationKind,
   ContractStatus,
+  DonorSupportPromptStyle,
   FundrasingModel,
+  PayoutFrequency,
+  PayoutMethod,
   TermsDocumentType,
 } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -14,6 +18,39 @@ import { parseOptionalString, revalidateAdminSurfaces, slugify } from "@/lib/adm
 import { CommercialPlanForm } from "@/components/admin/CommercialPlanForm";
 import { FeeScheduleForm } from "@/components/admin/FeeScheduleForm";
 import { CharityContractForm } from "@/components/admin/CharityContractForm";
+import { logCommercialAudit, payoutTermsSummary, validateNoOverlappingContracts } from "@/server/lib/commercials";
+
+function parseNumberList(value: string) {
+  return value
+    .split(",")
+    .map((entry) => Number(entry.trim()))
+    .filter((entry) => Number.isFinite(entry) && entry >= 0);
+}
+
+async function resolveContractDocumentInput(fileValue: FormDataEntryValue | null, fileUrlValue: FormDataEntryValue | null) {
+  const fileUrl = String(fileUrlValue ?? "").trim();
+
+  if (fileUrl) {
+    return {
+      fileUrl,
+      mimeType: null as string | null,
+    };
+  }
+
+  if (fileValue instanceof File && fileValue.size > 0) {
+    // For now we support a simple inline upload path that keeps contract
+    // documents attached without introducing a new storage subsystem. A more
+    // durable object-store-backed uploader can replace this later without
+    // changing the contract-document model.
+    const buffer = Buffer.from(await fileValue.arrayBuffer());
+    return {
+      fileUrl: `data:${fileValue.type || "application/octet-stream"};base64,${buffer.toString("base64")}`,
+      mimeType: fileValue.type || null,
+    };
+  }
+
+  return null;
+}
 
 function formatDate(value: Date | null | undefined) {
   return value ? value.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
@@ -101,7 +138,7 @@ function StatCard({
 }
 
 export default async function SettingsPage() {
-  const { role, userId, managedCharity } = await getAdminContext();
+  const { role, managedCharity } = await getAdminContext();
   const canManageCommercials = role === "PLATFORM_ADMIN" || role === "FINANCE";
 
   async function createCommercialPlan(formData: FormData) {
@@ -165,15 +202,18 @@ export default async function SettingsPage() {
     const capAmount = parseOptionalString(formData.get("capAmount"));
     const paymentMethod = parseOptionalString(formData.get("paymentMethod"));
     const fundraisingModel = parseOptionalString(formData.get("fundraisingModel")) as FundrasingModel | null;
+    const donationKind = parseOptionalString(formData.get("donationKind")) as DonationKind | null;
+    const chargingMode = parseOptionalString(formData.get("chargingMode")) as ChargingMode | null;
     const isActive = formData.get("isActive") === "on";
+    const ruleIsActive = formData.get("ruleIsActive") === "on";
+    const ruleEffectiveFrom = parseOptionalString(formData.get("ruleEffectiveFrom"));
+    const ruleEffectiveTo = parseOptionalString(formData.get("ruleEffectiveTo"));
 
     if (name.length < 3 || !validFromRaw || !Number.isFinite(version) || version < 1) {
       redirect("/admin/settings?error=schedule");
     }
 
-    // For now, each admin-created schedule starts with one baseline rule.
-    // This keeps the model operational without shipping the full rule-builder UI yet.
-    await db.feeSchedule.create({
+    const createdSchedule = await db.feeSchedule.create({
       data: {
         charityId: charityId ?? undefined,
         commercialPlanId: commercialPlanId ?? undefined,
@@ -188,15 +228,38 @@ export default async function SettingsPage() {
             fundraisingModel: fundraisingModel ?? undefined,
             paymentMethod: paymentMethod || undefined,
             subscriptionTier: subscriptionTier ?? undefined,
+            donationKind: donationKind ?? undefined,
+            chargingMode: chargingMode ?? undefined,
             ruleType: "PERCENTAGE",
             platformFeePct: platformFeePct ?? undefined,
             processingFeePct: processingFeePct ?? undefined,
             processingFeeFixed: processingFeeFixed ?? undefined,
             giftAidFeePct: giftAidFeePct ?? undefined,
             capAmount: capAmount ?? undefined,
+            isActive: ruleIsActive,
+            effectiveFrom: ruleEffectiveFrom ? new Date(ruleEffectiveFrom) : undefined,
+            effectiveTo: ruleEffectiveTo ? new Date(ruleEffectiveTo) : undefined,
             sortOrder: 1,
           },
         },
+      },
+      include: {
+        rules: { take: 1 },
+      },
+    });
+
+    await logCommercialAudit({
+      action: "CREATE",
+      entityType: "FEE_SCHEDULE",
+      feeScheduleId: createdSchedule.id,
+      feeRuleId: createdSchedule.rules[0]?.id,
+      charityId: charityId ?? undefined,
+      summary: `Created fee schedule ${createdSchedule.name}`,
+      metadata: {
+        chargingMode,
+        donationKind,
+        paymentMethod,
+        subscriptionTier,
       },
     });
 
@@ -221,12 +284,33 @@ export default async function SettingsPage() {
     const signedByEmail = parseOptionalString(formData.get("signedByEmail"));
     const payoutTerms = parseOptionalString(formData.get("payoutTerms"));
     const reservePolicy = parseOptionalString(formData.get("reservePolicy"));
+    const chargingMode = String(formData.get("chargingMode") ?? "CHARITY_PAID") as ChargingMode;
+    const region = parseOptionalString(formData.get("region")) ?? "GB";
+    const productType = parseOptionalString(formData.get("productType"));
+    const donorSupportEnabled = formData.get("donorSupportEnabled") === "on";
+    const donorSupportPromptStyle = String(formData.get("donorSupportPromptStyle") ?? "TOGGLE") as DonorSupportPromptStyle;
+    const donorSupportSuggestedPresets = parseNumberList(String(formData.get("donorSupportSuggestedPresets") ?? ""));
+    const payoutFrequency = String(formData.get("payoutFrequency") ?? "MONTHLY") as PayoutFrequency;
+    const payoutMethod = String(formData.get("payoutMethod") ?? "BACS") as PayoutMethod;
+    const settlementDelayDays = Number(formData.get("settlementDelayDays") ?? 0);
+    const reserveRule = parseOptionalString(formData.get("reserveRule"));
+    const autoPauseAppealsOnExpiry = formData.get("autoPauseAppealsOnExpiry") === "on";
+    const blockPayoutsOnExpiry = formData.get("blockPayoutsOnExpiry") === "on";
     const notes = parseOptionalString(formData.get("notes"));
+    const internalNotes = parseOptionalString(formData.get("internalNotes"));
     const autoRenew = formData.get("autoRenew") === "on";
 
     if (!charityId || !commercialPlanId || !termsVersion || !effectiveFromRaw) {
       redirect("/admin/settings?error=contract");
     }
+
+    await validateNoOverlappingContracts({
+      charityId,
+      effectiveFrom: new Date(effectiveFromRaw),
+      effectiveTo: effectiveToRaw ? new Date(effectiveToRaw) : null,
+      region,
+      productType,
+    });
 
     const contract = await db.charityContract.create({
       data: {
@@ -234,6 +318,18 @@ export default async function SettingsPage() {
         commercialPlanId,
         feeScheduleId: feeScheduleId ?? undefined,
         status,
+        chargingMode: chargingMode as ChargingMode,
+        region,
+        productType: productType ?? undefined,
+        donorSupportEnabled,
+        donorSupportPromptStyle,
+        donorSupportSuggestedPresets,
+        payoutFrequency,
+        payoutMethod,
+        settlementDelayDays: Number.isFinite(settlementDelayDays) ? settlementDelayDays : 0,
+        reserveRule: reserveRule ?? undefined,
+        autoPauseAppealsOnExpiry,
+        blockPayoutsOnExpiry,
         effectiveFrom: new Date(effectiveFromRaw),
         effectiveTo: effectiveToRaw ? new Date(effectiveToRaw) : undefined,
         signedAt: signedByName || signedByEmail ? new Date() : undefined,
@@ -244,6 +340,7 @@ export default async function SettingsPage() {
         reservePolicy: reservePolicy ?? undefined,
         autoRenew,
         notes: notes ?? undefined,
+        internalNotes: internalNotes ?? undefined,
       },
     });
 
@@ -261,12 +358,137 @@ export default async function SettingsPage() {
       });
     }
 
+    await logCommercialAudit({
+      action: "CREATE",
+      entityType: "CHARITY_CONTRACT",
+      contractId: contract.id,
+      charityId,
+      summary: `Created contract ${termsVersion}`,
+      metadata: {
+        chargingMode,
+        donorSupportEnabled,
+        donorSupportPromptStyle,
+        payoutFrequency,
+        payoutMethod,
+        settlementDelayDays,
+        reserveRule,
+      },
+    });
+
     revalidateAdminSurfaces(["/admin/settings"]);
     redirect("/admin/settings?saved=contract");
   }
 
+  async function updateContractStatus(formData: FormData) {
+    "use server";
+
+    const { role: currentRole } = await getAdminContext();
+    if (!["PLATFORM_ADMIN", "FINANCE"].includes(currentRole)) {
+      redirect("/403");
+    }
+
+    const contractId = String(formData.get("contractId") ?? "");
+    const status = String(formData.get("status") ?? "DRAFT") as ContractStatus;
+    const contract = await db.charityContract.update({
+      where: { id: contractId },
+      data: { status },
+      select: { id: true, charityId: true, termsVersion: true },
+    });
+
+    await logCommercialAudit({
+      action: "STATUS_CHANGE",
+      entityType: "CHARITY_CONTRACT",
+      contractId: contract.id,
+      charityId: contract.charityId,
+      summary: `Contract ${contract.termsVersion} moved to ${status}`,
+      metadata: { status },
+    });
+
+    revalidateAdminSurfaces(["/admin/settings"]);
+    redirect("/admin/settings?saved=contract-status");
+  }
+
+  async function toggleScheduleActive(formData: FormData) {
+    "use server";
+
+    const { role: currentRole } = await getAdminContext();
+    if (!["PLATFORM_ADMIN", "FINANCE"].includes(currentRole)) {
+      redirect("/403");
+    }
+
+    const feeScheduleId = String(formData.get("feeScheduleId") ?? "");
+    const nextActive = String(formData.get("nextActive") ?? "") === "true";
+    const schedule = await db.feeSchedule.update({
+      where: { id: feeScheduleId },
+      data: { isActive: nextActive },
+      select: { id: true, charityId: true, name: true },
+    });
+
+    await logCommercialAudit({
+      action: nextActive ? "ACTIVATE" : "DEACTIVATE",
+      entityType: "FEE_SCHEDULE",
+      feeScheduleId: schedule.id,
+      charityId: schedule.charityId ?? undefined,
+      summary: `${nextActive ? "Activated" : "Deactivated"} fee schedule ${schedule.name}`,
+      metadata: { isActive: nextActive },
+    });
+
+    revalidateAdminSurfaces(["/admin/settings"]);
+    redirect("/admin/settings?saved=schedule-status");
+  }
+
+  async function attachContractDocument(formData: FormData) {
+    "use server";
+
+    const { role: currentRole } = await getAdminContext();
+    if (!["PLATFORM_ADMIN", "FINANCE"].includes(currentRole)) {
+      redirect("/403");
+    }
+
+    const contractId = String(formData.get("contractId") ?? "").trim();
+    const name = String(formData.get("name") ?? "").trim();
+    const upload = await resolveContractDocumentInput(formData.get("file"), formData.get("fileUrl"));
+    const documentType = String(formData.get("documentType") ?? "PLATFORM_TERMS") as TermsDocumentType;
+    const mimeType = parseOptionalString(formData.get("mimeType")) ?? upload?.mimeType ?? null;
+
+    if (!contractId || !name || !upload?.fileUrl) {
+      redirect("/admin/settings?error=document");
+    }
+
+    const contract = await db.charityContract.findUnique({
+      where: { id: contractId },
+      select: { id: true, charityId: true, termsVersion: true },
+    });
+
+    if (!contract) {
+      redirect("/admin/settings?error=document");
+    }
+
+    await db.contractDocument.create({
+      data: {
+        contractId,
+        name,
+        fileUrl: upload.fileUrl,
+        mimeType: mimeType ?? undefined,
+        documentType,
+      },
+    });
+
+    await logCommercialAudit({
+      action: "ATTACH_DOCUMENT",
+      entityType: "CHARITY_CONTRACT",
+      contractId: contract.id,
+      charityId: contract.charityId,
+      summary: `Attached ${documentType} document to contract ${contract.termsVersion}`,
+      metadata: { name, fileUrl: upload.fileUrl, documentType },
+    });
+
+    revalidateAdminSurfaces(["/admin/settings"]);
+    redirect("/admin/settings?saved=document");
+  }
+
   const charityScope = canManageCommercials ? {} : { id: managedCharity?.id ?? "__none__" };
-  const [charities, plans, feeSchedules, contracts, acceptances] = await Promise.all([
+  const [charities, plans, feeSchedules, contracts, acceptances, auditLogs] = await Promise.all([
     db.charity.findMany({
       where: charityScope,
       orderBy: { name: "asc" },
@@ -297,6 +519,7 @@ export default async function SettingsPage() {
         charity: { select: { name: true } },
         commercialPlan: { select: { name: true } },
         feeSchedule: { select: { name: true } },
+        documents: { orderBy: { createdAt: "desc" }, take: 5 },
         _count: { select: { acceptances: true } },
       },
       take: 12,
@@ -309,6 +532,14 @@ export default async function SettingsPage() {
         contract: { select: { termsVersion: true } },
       },
       take: 12,
+    }),
+    db.commercialAuditLog.findMany({
+      where: canManageCommercials ? {} : { charityId: managedCharity?.id ?? "__none__" },
+      orderBy: { createdAt: "desc" },
+      include: {
+        charity: { select: { name: true } },
+      },
+      take: 20,
     }),
   ]);
 
@@ -447,6 +678,18 @@ export default async function SettingsPage() {
                     <span>Processing: {rule?.processingFeePct ? `${(Number(rule.processingFeePct) * 100).toFixed(2)}%` : "—"}{rule?.processingFeeFixed ? ` + ${formatMoney(rule.processingFeeFixed)}` : ""}</span>
                     <span>Gift Aid fee: {rule?.giftAidFeePct ? `${(Number(rule.giftAidFeePct) * 100).toFixed(2)}%` : "—"}</span>
                   </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {rule?.chargingMode ? pill(rule.chargingMode) : null}
+                    {rule?.donationKind ? pill(rule.donationKind, "gold") : null}
+                    {rule?.paymentMethod ? pill(rule.paymentMethod) : null}
+                  </div>
+                  <form action={toggleScheduleActive} className="mt-4">
+                    <input type="hidden" name="feeScheduleId" value={schedule.id} />
+                    <input type="hidden" name="nextActive" value={String(!schedule.isActive)} />
+                    <button type="submit" className="btn-outline" style={{ padding: "0.45rem 0.85rem", fontSize: "0.8rem" }}>
+                      {schedule.isActive ? "Deactivate schedule" : "Activate schedule"}
+                    </button>
+                  </form>
                 </article>
               );
             })}
@@ -491,6 +734,7 @@ export default async function SettingsPage() {
                   {pill(contract.status, contract.status === "ACTIVE" ? "green" : "sand")}
                   {pill(contract.charity.name, "gold")}
                   {pill(contract.commercialPlan.name)}
+                  {pill(contract.chargingMode)}
                 </div>
                 <div className="mt-4 flex items-start justify-between gap-4">
                   <div>
@@ -514,6 +758,63 @@ export default async function SettingsPage() {
                     {contract.notes ? <p><strong>Notes:</strong> {contract.notes}</p> : null}
                   </div>
                 ) : null}
+                <div className="mt-4 grid gap-3 md:grid-cols-2 text-sm" style={{ color: "#355247" }}>
+                  <p><strong>Donor support:</strong> {contract.donorSupportEnabled ? "Enabled" : "Disabled"} · {contract.donorSupportPromptStyle.toLowerCase()}</p>
+                  <p><strong>Payout ops:</strong> {payoutTermsSummary(contract)}</p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link href={`/admin/settings/contracts/${contract.id}`} className="btn-outline" style={{ padding: "0.45rem 0.85rem", fontSize: "0.8rem" }}>
+                    Edit contract
+                  </Link>
+                  <Link href={`/admin/settings/contracts/${contract.id}/renew`} className="btn-outline" style={{ padding: "0.45rem 0.85rem", fontSize: "0.8rem" }}>
+                    Renew version
+                  </Link>
+                  <form action={updateContractStatus}>
+                    <input type="hidden" name="contractId" value={contract.id} />
+                    <input type="hidden" name="status" value={contract.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE"} />
+                    <button type="submit" className="btn-outline" style={{ padding: "0.45rem 0.85rem", fontSize: "0.8rem" }}>
+                      {contract.status === "ACTIVE" ? "Suspend contract" : "Activate contract"}
+                    </button>
+                  </form>
+                  <form action={updateContractStatus}>
+                    <input type="hidden" name="contractId" value={contract.id} />
+                    <input type="hidden" name="status" value="EXPIRED" />
+                    <button type="submit" className="btn-outline" style={{ padding: "0.45rem 0.85rem", fontSize: "0.8rem" }}>
+                      Mark expired
+                    </button>
+                  </form>
+                </div>
+                <div className="mt-5 rounded-[1.2rem] border p-4" style={{ borderColor: "rgba(18,78,64,0.08)", background: "rgba(255,255,255,0.8)" }}>
+                  <p className="text-sm font-semibold" style={{ color: "#233029" }}>Contract documents</p>
+                  <div className="mt-3 space-y-2">
+                    {contract.documents.map((document) => (
+                      <a key={document.id} href={document.fileUrl} target="_blank" rel="noreferrer" className="block text-sm" style={{ color: "#124E40" }}>
+                        {document.name} · {document.documentType.replaceAll("_", " ")}
+                      </a>
+                    ))}
+                    {contract.documents.length === 0 ? <p className="text-sm" style={{ color: "#8A9E94" }}>No contract documents yet.</p> : null}
+                  </div>
+                  {canManageCommercials ? (
+                    <form action={attachContractDocument} className="mt-4 grid gap-3 md:grid-cols-2">
+                      <input type="hidden" name="contractId" value={contract.id} />
+                      <input name="name" placeholder="Document name" className="input" />
+                      <input name="fileUrl" placeholder="https://... (optional if uploading a file)" className="input" />
+                      <select name="documentType" className="input">
+                        <option value="PLATFORM_TERMS">Platform terms</option>
+                        <option value="MASTER_SERVICE_AGREEMENT">MSA</option>
+                        <option value="FEE_SCHEDULE">Fee schedule</option>
+                        <option value="DATA_PROCESSING">Data processing</option>
+                        <option value="FUNDRAISING_RULES">Fundraising rules</option>
+                        <option value="GIFT_AID_TERMS">Gift Aid terms</option>
+                      </select>
+                      <input name="file" type="file" className="input" />
+                      <input name="mimeType" placeholder="application/pdf" className="input" />
+                      <button type="submit" className="btn-primary md:col-span-2">
+                        Attach document
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
               </article>
             ))}
           </div>
@@ -541,6 +842,36 @@ export default async function SettingsPage() {
               </div>
             </div>
           ) : null}
+        </div>
+      </Panel>
+
+      <Panel
+        title="Commercial audit log"
+        description="Commercial changes are logged separately from the core entity records so finance and ops can see how pricing and contract states changed over time."
+      >
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr style={{ color: "#7A8D84" }}>
+                {["When", "Entity", "Action", "Summary", "Charity"].map((heading) => (
+                  <th key={heading} className="text-left font-semibold" style={{ padding: "0 0 0.85rem 0" }}>
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {auditLogs.map((entry) => (
+                <tr key={entry.id} style={{ borderTop: "1px solid rgba(18,78,64,0.08)" }}>
+                  <td style={{ padding: "0.95rem 0", color: "#355247" }}>{formatDate(entry.createdAt)}</td>
+                  <td style={{ padding: "0.95rem 0", color: "#233029", fontWeight: 600 }}>{entry.entityType}</td>
+                  <td style={{ padding: "0.95rem 0", color: "#355247" }}>{entry.action}</td>
+                  <td style={{ padding: "0.95rem 0", color: "#355247" }}>{entry.summary}</td>
+                  <td style={{ padding: "0.95rem 0", color: "#355247" }}>{entry.charity?.name ?? "Platform"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </Panel>
 

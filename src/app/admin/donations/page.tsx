@@ -227,9 +227,15 @@ export default async function AdminDonationsPage({
           </thead>
           <tbody>
             {donations.map((donation, index) => {
-              const donorPays = donation.feeSet?.donorCoversFees
-                ? parseFloat(donation.amount.toString()) + parseFloat(donation.feeSet.totalFees.toString())
-                : parseFloat(donation.amount.toString());
+              const donorPays = parseFloat(
+                donation.grossCheckoutTotal?.toString() ??
+                (donation.feeSet?.donorCoversFees
+                  ? (parseFloat(donation.amount.toString()) + parseFloat(donation.feeSet.totalFees.toString())).toFixed(2)
+                  : donation.amount.toString())
+              );
+              const donationAmount = donation.donationAmount?.toString() ?? donation.amount.toString();
+              const feeChargedToCharity = donation.feeChargedToCharity?.toString() ?? donation.feeSet?.totalFees.toString() ?? "0";
+              const chargingMode = donation.resolvedChargingMode ?? (donation.feeSet?.donorCoversFees ? "DONOR_SUPPORTED" : "CHARITY_PAID");
 
               return (
                 <tr key={donation.id} style={{ borderTop: index > 0 ? "1px solid rgba(18,78,64,0.06)" : "none", verticalAlign: "top" }}>
@@ -255,15 +261,15 @@ export default async function AdminDonationsPage({
                   <td style={{ padding: "0.9rem 1rem" }}>
                     <div className="font-semibold" style={{ color: "#233029" }}>{fmt(donorPays, donation.currency)}</div>
                     <div className="text-xs" style={{ color: "#8A9E94" }}>
-                      donation {fmt(donation.amount.toString(), donation.currency)}
+                      donation {fmt(donationAmount, donation.currency)}
                     </div>
                   </td>
                   <td style={{ padding: "0.9rem 1rem" }}>
                     <div style={{ color: "#233029" }}>
-                      {fmt(donation.feeSet?.totalFees.toString() ?? "0", donation.currency)}
+                      {fmt(feeChargedToCharity, donation.currency)}
                     </div>
                     <div className="text-xs" style={{ color: "#8A9E94" }}>
-                      {donation.feeSet?.donorCoversFees ? "Donor covers" : "Charity absorbs"}
+                      {chargingMode.replaceAll("_", " ")}
                     </div>
                   </td>
                   <td style={{ padding: "0.9rem 1rem" }}>

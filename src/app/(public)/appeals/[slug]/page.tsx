@@ -165,6 +165,7 @@ export default async function AppealPage({ params }: Props) {
           <TRPCProvider>
             <DonationCheckout
               pageId={checkoutPage.id}
+              appealId={appeal.id}
               charityId={appeal.charityId}
               charityName={appeal.charity.name}
               pageName={appeal.title}

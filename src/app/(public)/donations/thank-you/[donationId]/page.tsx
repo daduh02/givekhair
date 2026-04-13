@@ -28,9 +28,13 @@ export default async function DonationThankYouPage({ params }: { params: { donat
     notFound();
   }
 
-  const donorPays = donation.feeSet?.donorCoversFees
-    ? parseFloat(donation.amount.toString()) + parseFloat(donation.feeSet.totalFees.toString())
-    : parseFloat(donation.amount.toString());
+  const donorPays = parseFloat(
+    donation.grossCheckoutTotal?.toString() ??
+    (donation.feeSet?.donorCoversFees
+      ? (parseFloat(donation.amount.toString()) + parseFloat(donation.feeSet.totalFees.toString())).toFixed(2)
+      : donation.amount.toString())
+  );
+  const donationAmount = donation.donationAmount?.toString() ?? donation.amount.toString();
 
   return (
     <main className="section-shell">
@@ -47,8 +51,9 @@ export default async function DonationThankYouPage({ params }: { params: { donat
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <SummaryCard label="Appeal" value={donation.page.appeal.title} />
             <SummaryCard label="Fundraiser page" value={donation.page.title} />
-            <SummaryCard label="Donation amount" value={fmt(donation.amount.toString(), donation.currency)} />
+            <SummaryCard label="Donation amount" value={fmt(donationAmount, donation.currency)} />
             <SummaryCard label="Total paid" value={fmt(donorPays, donation.currency)} />
+            <SummaryCard label="Charging mode" value={donation.resolvedChargingMode ?? (donation.feeSet?.donorCoversFees ? "DONOR_SUPPORTED" : "CHARITY_PAID")} />
             <SummaryCard label="Gift Aid" value={donation.giftAidDeclaration ? "Declared" : "Not declared"} />
             <SummaryCard label="Status" value={donation.status} />
           </div>

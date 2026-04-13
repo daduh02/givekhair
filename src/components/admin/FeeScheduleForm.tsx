@@ -124,20 +124,49 @@ export function FeeScheduleForm({
             <option value="">Any method</option>
           </select>
         </Field>
+        <Field label="Donation kind">
+          <select name="donationKind" defaultValue="ONE_OFF" style={inputStyle}>
+            <option value="ONE_OFF">One off</option>
+            <option value="RECURRING">Recurring</option>
+            <option value="">Any kind</option>
+          </select>
+        </Field>
         <Field label="Fundraising model">
           <select name="fundraisingModel" defaultValue="CHARITY" style={inputStyle}>
             <option value="CHARITY">Charity</option>
             <option value="CROWDFUNDING">Crowdfunding</option>
           </select>
         </Field>
+        <Field label="Charging mode">
+          <select name="chargingMode" defaultValue="CHARITY_PAID" style={inputStyle}>
+            <option value="CHARITY_PAID">Charity paid</option>
+            <option value="DONOR_SUPPORTED">Donor supported</option>
+            <option value="HYBRID">Hybrid</option>
+            <option value="">Any mode</option>
+          </select>
+        </Field>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
         <Field label="Cap amount">
           <input name="capAmount" type="number" min="0" step="0.01" placeholder="15.00" style={inputStyle} />
+        </Field>
+        <Field label="Rule effective from">
+          <input name="ruleEffectiveFrom" type="date" style={inputStyle} />
+        </Field>
+        <Field label="Rule effective to">
+          <input name="ruleEffectiveTo" type="date" style={inputStyle} />
         </Field>
       </div>
 
       <label className="flex items-center gap-3 text-sm font-medium" style={{ color: "#233029" }}>
         <input type="checkbox" name="isActive" defaultChecked />
         Mark this schedule active immediately
+      </label>
+
+      <label className="flex items-center gap-3 text-sm font-medium" style={{ color: "#233029" }}>
+        <input type="checkbox" name="ruleIsActive" defaultChecked />
+        Mark the starter fee rule active
       </label>
 
       <button type="submit" className="btn-primary">

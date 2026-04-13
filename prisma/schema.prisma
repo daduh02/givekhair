@@ -115,6 +115,7 @@ model Charity {
   feeSchedules    FeeSchedule[]
   contracts       CharityContract[]
   termsAcceptances TermsAcceptance[]
+  commercialAuditLogs CommercialAuditLog[]
   moderationItems ModerationItem[]
 }
 
@@ -183,6 +184,7 @@ model Appeal {
   endsAt       DateTime?
   bannerUrl    String?
   mediaGallery Json?
+  donorSupportOverride Boolean?
   visibility   AppealVisibility @default(PUBLIC)
   status       AppealStatus     @default(DRAFT)
   createdAt    DateTime         @default(now())
@@ -361,6 +363,17 @@ enum FeeRuleType {
   TIERED
 }
 
+enum ChargingMode {
+  CHARITY_PAID
+  DONOR_SUPPORTED
+  HYBRID
+}
+
+enum DonationKind {
+  ONE_OFF
+  RECURRING
+}
+
 model FeeSchedule {
   id          String   @id @default(cuid())
   charityId   String?  // null = platform default
@@ -377,6 +390,7 @@ model FeeSchedule {
   rules           FeeRule[]
   feeSets         FeeSet[]
   contracts       CharityContract[]
+  auditLogs       CommercialAuditLog[]
 }
 
 model FeeRule {
@@ -386,6 +400,8 @@ model FeeRule {
   fundraisingModel FundrasingModel?
   paymentMethod   String?
   subscriptionTier String?
+  donationKind    DonationKind?
+  chargingMode    ChargingMode?
   ruleType        FeeRuleType
   platformFeePct  Decimal?        @db.Decimal(6, 4)
   platformFeeFixed Decimal?       @db.Decimal(10, 2)
@@ -394,10 +410,14 @@ model FeeRule {
   giftAidFeePct   Decimal?        @db.Decimal(6, 4)
   capAmount       Decimal?        @db.Decimal(10, 2)
   promoCode       String?
+  isActive        Boolean         @default(true)
+  effectiveFrom   DateTime?
+  effectiveTo     DateTime?
   sortOrder       Int             @default(0)
   createdAt       DateTime        @default(now())
 
   schedule FeeSchedule @relation(fields: [scheduleId], references: [id])
+  auditLogs CommercialAuditLog[]
 }
 
 model FeeSet {
@@ -438,6 +458,26 @@ enum ContractStatus {
   TERMINATED
 }
 
+enum DonorSupportPromptStyle {
+  TOGGLE
+  CHECKBOX
+  PRESET
+}
+
+enum PayoutFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  MANUAL
+}
+
+enum PayoutMethod {
+  STRIPE_CONNECT
+  GOCARDLESS
+  BACS
+  MANUAL
+}
+
 enum TermsDocumentType {
   MASTER_SERVICE_AGREEMENT
   FEE_SCHEDULE
@@ -471,6 +511,18 @@ model CharityContract {
   commercialPlanId String
   feeScheduleId    String?
   status           ContractStatus @default(DRAFT)
+  chargingMode     ChargingMode   @default(CHARITY_PAID)
+  region           String?        @default("GB")
+  productType      String?
+  donorSupportEnabled Boolean     @default(false)
+  donorSupportPromptStyle DonorSupportPromptStyle @default(TOGGLE)
+  donorSupportSuggestedPresets Json?
+  payoutFrequency  PayoutFrequency @default(MONTHLY)
+  payoutMethod     PayoutMethod    @default(BACS)
+  settlementDelayDays Int          @default(0)
+  reserveRule      String?
+  autoPauseAppealsOnExpiry Boolean @default(false)
+  blockPayoutsOnExpiry Boolean     @default(true)
   effectiveFrom    DateTime
   effectiveTo      DateTime?
   signedAt         DateTime?
@@ -481,6 +533,7 @@ model CharityContract {
   reservePolicy    String?        @db.Text
   autoRenew        Boolean        @default(false)
   notes            String?        @db.Text
+  internalNotes    String?        @db.Text
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -488,6 +541,9 @@ model CharityContract {
   commercialPlan   CommercialPlan @relation(fields: [commercialPlanId], references: [id])
   feeSchedule      FeeSchedule?   @relation(fields: [feeScheduleId], references: [id])
   acceptances      TermsAcceptance[]
+  documents        ContractDocument[]
+  donations        Donation[]
+  auditLogs        CommercialAuditLog[]
 }
 
 model TermsAcceptance {
@@ -503,6 +559,40 @@ model TermsAcceptance {
 
   contract         CharityContract?  @relation(fields: [contractId], references: [id])
   charity          Charity           @relation(fields: [charityId], references: [id])
+}
+
+model ContractDocument {
+  id               String          @id @default(cuid())
+  contractId       String
+  name             String
+  fileUrl          String
+  mimeType         String?
+  documentType     TermsDocumentType @default(PLATFORM_TERMS)
+  uploadedByName   String?
+  uploadedByEmail  String?
+  createdAt        DateTime        @default(now())
+
+  contract         CharityContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+model CommercialAuditLog {
+  id               String          @id @default(cuid())
+  contractId       String?
+  feeScheduleId    String?
+  feeRuleId        String?
+  charityId        String?
+  action           String
+  entityType       String
+  summary          String
+  metadata         Json?
+  changedByName    String?
+  changedByEmail   String?
+  createdAt        DateTime        @default(now())
+
+  contract         CharityContract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  feeSchedule      FeeSchedule?     @relation(fields: [feeScheduleId], references: [id], onDelete: SetNull)
+  feeRule          FeeRule?         @relation(fields: [feeRuleId], references: [id], onDelete: SetNull)
+  charity          Charity?         @relation(fields: [charityId], references: [id], onDelete: SetNull)
 }
 
 // ─────────────────────────────────────────────
@@ -530,7 +620,18 @@ model Donation {
   id              String         @id @default(cuid())
   pageId          String
   userId          String?
+  contractId      String?
   amount          Decimal        @db.Decimal(10, 2)
+  donationAmount  Decimal?       @db.Decimal(10, 2)
+  donorSupportAmount Decimal?    @db.Decimal(10, 2)
+  grossCheckoutTotal Decimal?    @db.Decimal(10, 2)
+  feeChargedToCharity Decimal?   @db.Decimal(10, 2)
+  charityNetAmount Decimal?      @db.Decimal(10, 2)
+  resolvedChargingMode ChargingMode?
+  feeBreakdownSnapshot Json?
+  donationKind    DonationKind   @default(ONE_OFF)
+  giftAidExpectedAmount Decimal? @db.Decimal(10, 2)
+  giftAidReceivedAmount Decimal? @db.Decimal(10, 2)
   currency        String         @default("GBP")
   status          DonationStatus @default(PENDING)
   isAnonymous     Boolean        @default(false)
@@ -549,6 +650,7 @@ model Donation {
 
   page              FundraisingPage     @relation(fields: [pageId], references: [id])
   user              User?               @relation(fields: [userId], references: [id])
+  contract          CharityContract?    @relation(fields: [contractId], references: [id])
   feeSet            FeeSet?
   payment           Payment?
   giftAidDeclaration GiftAidDeclaration?
