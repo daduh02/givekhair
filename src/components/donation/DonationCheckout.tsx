@@ -154,12 +154,13 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
 
               {/* The fee toggle stays inside the breakdown because it changes every
                   number around it. Grouping the logic here keeps the mental model obvious. */}
-              <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-[1.2rem] border border-[rgba(15,118,110,0.16)] bg-[rgba(204,251,241,0.45)] p-4">
+              <div className="mt-4 grid grid-cols-[auto_1fr] items-start gap-4 rounded-[1.2rem] border border-[rgba(15,118,110,0.16)] bg-[rgba(204,251,241,0.45)] p-4">
                 <button
                   type="button"
                   onClick={() => setDonorCoversFees(!donorCoversFees)}
                   aria-pressed={donorCoversFees}
-                  className="relative mt-1 h-6 w-11 rounded-full"
+                  aria-label={donorCoversFees ? "Turn off cover fees" : "Turn on cover fees"}
+                  className="relative mt-1 h-6 w-11 flex-shrink-0 rounded-full"
                   style={{ background: donorCoversFees ? "var(--color-primary)" : "rgba(15, 23, 42, 0.18)" }}
                 >
                   <span
@@ -167,11 +168,11 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
                     style={{ left: donorCoversFees ? "1.35rem" : "0.15rem", transition: "left 0.2s ease" }}
                   />
                 </button>
-                <span className="text-sm leading-6 text-[color:var(--color-primary-dark)]">
+                <p className="min-w-0 text-sm leading-7 text-[color:var(--color-primary-dark)]">
                   Cover the fees so <strong>{charityName}</strong> receives the full £{effectiveAmount.toFixed(2)}{" "}
                   {donorCoversFees ? <span className="text-[color:var(--color-ink-muted)]">(you pay £{fees.donorPays})</span> : null}
-                </span>
-              </label>
+                </p>
+              </div>
             </div>
           ) : null}
 
