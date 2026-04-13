@@ -152,8 +152,8 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
   return (
     <main>
       <section className="section-shell">
-        <div className="site-shell grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-          <div>
+        <div className="site-shell hero-frame grid gap-10 px-6 py-8 sm:px-8 sm:py-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:px-10 lg:py-12">
+          <div className="relative z-10">
             <TrustChip>UK Gift Aid eligible • Verified charities • Fee transparent</TrustChip>
 
             <h1 className="section-heading mt-6 max-w-4xl font-bold">
@@ -182,7 +182,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
 
           {/* The featured card mirrors the donation journey we want users to trust:
               verified charity, visible progress, and one clear CTA. */}
-          <aside className="surface-card overflow-hidden p-6 sm:p-8">
+          <aside className="surface-card relative z-10 overflow-hidden p-6 sm:p-8">
             <div className="section-kicker">Featured Appeal</div>
             <div className="mt-6 rounded-[1.75rem] border border-[color:var(--color-line)] bg-[linear-gradient(180deg,rgba(204,251,241,0.55),rgba(255,255,255,0.95))] p-6">
               <div className="flex items-center justify-between gap-3">
@@ -221,6 +221,12 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
       <section className="section-shell-tight">
         <div className="site-shell">
           <div className="section-panel p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--color-ink-muted)]">Browse by focus</p>
+                <p className="mt-1 text-sm text-[color:var(--color-ink-soft)]">Quick ways into the causes donors most often start with.</p>
+              </div>
+            </div>
             <div className="flex flex-wrap gap-3">
               {CATEGORY_PILLS.map((category) => (
                 <Link
@@ -236,7 +242,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
         </div>
       </section>
 
-      <section id="appeals" className="section-shell">
+      <section id="appeals" className="section-shell section-sandband">
         <div className="site-shell">
           <SectionIntro
             eyebrow={loadError ? "Curated fallback" : "Trending now"}
@@ -276,7 +282,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
 
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
             {BENEFITS.map((benefit) => (
-              <article key={benefit.title} className="surface-card p-7">
+              <article key={benefit.title} className="trust-card">
                 <h3 className="text-xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">{benefit.title}</h3>
                 <p className="mt-4 text-sm leading-7 text-[color:var(--color-ink-soft)]">{benefit.copy}</p>
               </article>
@@ -314,7 +320,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
         <div className="site-shell">
           <div className="grid gap-5 lg:grid-cols-4">
             {TRUST_BAND.map((item) => (
-              <article key={item.title} className="surface-card p-6">
+              <article key={item.title} className="trust-card">
                 <h3 className="text-lg font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">{item.title}</h3>
                 <p className="mt-3 text-sm leading-7 text-[color:var(--color-ink-soft)]">{item.copy}</p>
               </article>
@@ -328,9 +334,9 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
 
 function MiniTrustCard({ value, label }: { value: string; label: string }) {
   return (
-    <div className="surface-card p-5">
-      <p className="text-2xl font-bold tracking-[-0.04em] text-[color:var(--color-primary-dark)]">{value}</p>
-      <p className="mt-1 text-sm font-semibold text-[color:var(--color-ink-soft)]">{label}</p>
+    <div className="stat-card">
+      <p className="stat-card-value">{value}</p>
+      <p className="stat-card-label">{label}</p>
     </div>
   );
 }

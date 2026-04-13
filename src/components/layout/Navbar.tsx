@@ -35,6 +35,8 @@ export async function Navbar() {
             </div>
           </Link>
 
+          {/* Desktop nav stays compact, while the mobile nav is rendered as a
+              separate scroll row below so small screens still expose the public IA. */}
           <nav className="hidden items-center gap-1 lg:flex">
             {NAV_LINKS.map((link) => (
               <Link key={link.href} href={link.href} className="btn-ghost">
@@ -62,6 +64,20 @@ export async function Navbar() {
             Start fundraising
           </Link>
         </div>
+      </div>
+
+      <div className="border-t border-[rgba(15,23,42,0.04)] lg:hidden">
+        <nav className="site-shell flex gap-2 overflow-x-auto py-3 [scrollbar-width:none]">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="trust-chip whitespace-nowrap bg-white text-[color:var(--color-ink-soft)]"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </div>
     </header>
   );

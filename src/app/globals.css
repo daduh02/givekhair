@@ -82,6 +82,37 @@
     padding-block: 3rem;
   }
 
+  .section-sandband {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(248, 245, 239, 0.9) 100%);
+    border-block: 1px solid rgba(15, 23, 42, 0.05);
+  }
+
+  .hero-frame {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: 2rem;
+    background:
+      radial-gradient(circle at top left, rgba(254, 243, 199, 0.66), transparent 28%),
+      radial-gradient(circle at bottom right, rgba(204, 251, 241, 0.72), transparent 34%),
+      rgba(255, 255, 255, 0.72);
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(12px);
+  }
+
+  .hero-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
+    background-size: 42px 42px;
+    pointer-events: none;
+    opacity: 0.45;
+  }
+
   .section-panel {
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
@@ -129,6 +160,29 @@
     max-width: 42rem;
     font-size: 1.05rem;
     line-height: 1.7;
+    color: var(--color-ink-soft);
+  }
+
+  .stat-card {
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: 1.35rem;
+    background: rgba(255, 255, 255, 0.88);
+    padding: 1.1rem 1rem;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .stat-card-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: var(--color-primary-dark);
+  }
+
+  .stat-card-label {
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 700;
     color: var(--color-ink-soft);
   }
 
@@ -220,6 +274,14 @@
     border-color: rgba(212, 160, 23, 0.24);
     background: var(--color-gold-soft);
     color: #8A5B06;
+  }
+
+  .trust-card {
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    border-radius: 1.35rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 245, 239, 0.92));
+    padding: 1.35rem;
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
   }
 
   .footer-column {

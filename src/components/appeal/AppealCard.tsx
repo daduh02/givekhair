@@ -74,6 +74,8 @@ export function AppealCard({ appeal, raisedAmount = 0 }: AppealCardProps) {
         </div>
 
         <div className="mt-6">
+          {/* This is styled as a CTA rather than nested button markup so the
+              whole card remains one accessible link target. */}
           <span className="btn-primary w-full">Donate now</span>
         </div>
       </div>
