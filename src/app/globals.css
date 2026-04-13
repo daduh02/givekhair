@@ -286,6 +286,8 @@
 
   .account-menu-shell {
     position: relative;
+    padding-bottom: 0.8rem;
+    margin-bottom: -0.8rem;
   }
 
   .account-trigger {
@@ -334,7 +336,7 @@
   .account-dropdown {
     position: absolute;
     right: 0;
-    top: calc(100% + 0.65rem);
+    top: calc(100% + 0.15rem);
     width: min(19rem, calc(100vw - 2rem));
     border: 1px solid var(--color-line);
     border-radius: 1.2rem;

@@ -35,9 +35,31 @@ export function AccountMenu({ name, email, image, isAdmin }: AccountMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuId = useId();
   const displayName = name?.trim() || email?.trim() || "GiveKhair account";
   const detail = name?.trim() && email?.trim() ? email : isAdmin ? "Admin access enabled" : "Signed in";
+
+  function openMenu() {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setOpen(true);
+  }
+
+  function closeMenuWithDelay() {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
+
+    // A short delay makes the menu forgiving when the pointer crosses the
+    // trigger/dropdown boundary, especially on trackpads.
+    closeTimeoutRef.current = setTimeout(() => {
+      setOpen(false);
+      closeTimeoutRef.current = null;
+    }, 120);
+  }
 
   // The menu supports both hover and click so it feels lightweight on desktop
   // without becoming inaccessible on touch devices or for keyboard users.
@@ -58,6 +80,9 @@ export function AccountMenu({ name, email, image, isAdmin }: AccountMenuProps) {
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
@@ -86,8 +111,8 @@ export function AccountMenu({ name, email, image, isAdmin }: AccountMenuProps) {
     <div
       ref={containerRef}
       className="account-menu-shell"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={openMenu}
+      onMouseLeave={closeMenuWithDelay}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
           setOpen(false);
@@ -103,7 +128,7 @@ export function AccountMenu({ name, email, image, isAdmin }: AccountMenuProps) {
         aria-controls={menuId}
         aria-label={`Open account menu for ${displayName}`}
         onClick={() => setOpen((current) => !current)}
-        onFocus={() => setOpen(true)}
+        onFocus={openMenu}
       >
         {image ? (
           // We deliberately keep the avatar optional so the menu still feels
