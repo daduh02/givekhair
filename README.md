@@ -70,6 +70,7 @@ npm run dev
 |---|---|
 | `/` | Public homepage — shared shell, admin-controlled featured appeal, and paged trending appeals |
 | `/appeals/[slug]` | Appeal detail + donation widget |
+| `/appeals/[slug]/leaderboard` | Full public rankings for fundraiser pages and teams with period filters |
 | `/charities` | Public charity directory |
 | `/charities/[slug]` | Public charity profile page |
 | `/how-it-works` | Public explainer page |
@@ -77,14 +78,17 @@ npm run dev
 | `/fundraise/[shortName]` | Public fundraising page route with updates, gallery, and donation widget |
 | `/fundraise/[shortName]/edit` | Owner-side fundraiser management for story, updates, gallery, and status guidance |
 | `/admin` | Charity admin dashboard |
+| `/admin/analytics` | Full campaign rankings for appeals, teams, and fundraiser pages |
 | `/admin/disputes` | Dispute and chargeback operations workspace |
 | `/admin/settings` | Contract-led fees, plans, contracts, renewal, and commercial audit |
 | `/admin/payouts` | Payout batch management and contract-aware payout operations |
 | `/admin/gift-aid` | Gift Aid claim queue and settlement workflow |
 | `/admin/reports` | CSV exports and operational previews for donations, refunds/disputes, offline donations, payouts, Gift Aid, and GL rows |
+| `/admin/reconciliation` | Finance exception queue and reconciliation visibility for payouts and Gift Aid |
 | `/api/trpc/[trpc]` | tRPC endpoint |
 | `/api/webhooks/stripe` | Stripe webhook receiver |
 | `/api/admin/reports/export` | Access-controlled CSV export endpoint for admin and accounting reports |
+| `/api/admin/reports/export/history/[exportLogId]` | Access-controlled download for immutable historical CSV artifacts |
 | `/api/auth/[...nextauth]` | Auth.js handlers |
 
 ## Production deploy notes
@@ -136,18 +140,20 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 ## Next steps (build order)
 
 1. **Wire Stripe** — add `STRIPE_SECRET_KEY`, implement `createCheckout` in donations router
-2. **Appeal and team analytics** — leaderboards and clearer combined fundraising views
-3. **Payout batch processor** — async queue worker and reconciliation automation on top of the new manual payout-batch operations
-4. **Reconciliation exports** — settlement-oriented downloads and finance exception reporting
-5. **Commercial approvals** — richer signature/approval workflow for contracts
-6. **Risk engine** — velocity, device fingerprint, IP reputation signals
-7. **Accessibility audit** — axe-core CI checks + NVDA/VoiceOver passes
-8. **Async finance automation** — payout provider submission, HMRC automation, and exception recovery tooling
+2. **Payout batch processor** — async queue worker and reconciliation automation on top of the new manual payout-batch operations
+3. **Commercial approvals** — richer signature/approval workflow for contracts
+4. **Risk engine** — velocity, device fingerprint, IP reputation signals
+5. **Accessibility audit** — axe-core CI checks + NVDA/VoiceOver passes
+6. **Async finance automation** — payout provider submission, HMRC automation, and exception recovery tooling
 
 ## Verification helpers
 
 - `npm run verify:contract-pricing`
 - Verifies donor-supported, charity-paid, hybrid, recurring, payout-blocking, and appeal-override pricing cases against the current database
+- `npm run verify:leaderboards`
+- Verifies leaderboard period resolution, rank/tie behavior, and progress helper logic
+- `npm run reconciliation:alerts`
+- Queues finance alert notifications for charities with stale reconciliation exceptions (14+ days)
 
 ## Data retention (spec §10.1)
 

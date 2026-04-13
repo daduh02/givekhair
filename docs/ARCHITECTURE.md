@@ -46,12 +46,13 @@ One important structural change is now in place: public pages are no longer a lo
 ### Shared libraries
 
 - `src/lib/`
-- Database client, auth config, password utilities, admin-context helper, admin management helpers, offline donation import helpers, tRPC client helpers
+- Database client, auth config, password utilities, admin-context helper, admin management helpers, offline donation import helpers, leaderboard aggregation helpers, leaderboard ranking/period utility helpers, tRPC client helpers
 
 ### Server domain logic
 
 - `src/server/lib/`
 - Fee engine, commercial helpers, payout policy helpers, ledger helpers, queue setup, donations API stub, donation processing helpers
+- Reconciliation helpers now live alongside reports to derive payout/Gift Aid mismatch states and finance exception rows from existing operations data
 
 - `src/server/routers/`
 - tRPC procedures for appeals, pages, donations, fees, and admin-adjacent operations
@@ -84,8 +85,11 @@ The public site now has a dedicated token layer and reusable component classes i
 
 1. User signs in with credentials or Google
 2. NextAuth creates session/JWT
-3. JWT callback enriches token with `id` and `role`
-4. Admin pages and role-aware UI derive authorization from session role
+3. JWT callback enriches token with `id`, `role`, and suspension state from Prisma
+4. Middleware blocks suspended sessions from protected routes before page render
+5. Server `auth()` checks refresh role/suspension from DB so role and suspension updates take effect without stale access
+6. Admin pages and role-aware UI derive authorization from session role
+7. Password setup/reset now uses one-time hashed access tokens via `/auth/set-password`
 
 ### Public appeal browsing
 
@@ -96,7 +100,9 @@ The public site now has a dedicated token layer and reusable component classes i
 5. The homepage first attempts to use an explicitly featured appeal selected by platform admin, falling back to the best available active/public appeal if none is set
 6. Trending appeals are loaded in a larger set, then paged client-side in grouped views while preserving the shared appeal card design
 7. Appeal detail page loads teams, fundraiser pages, and donation widget
-8. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
+8. Appeal detail page now also loads leaderboard aggregates (ranked fundraiser pages and ranked teams) using shared online + approved-offline total rules
+9. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
+10. A dedicated public drill-down route (`/appeals/[slug]/leaderboard`) now exposes full rankings and period filters
 
 ### Public fundraiser page flow
 
@@ -154,6 +160,16 @@ The public site now has a dedicated token layer and reusable component classes i
 4. Appeal edit routes manage team creation and team membership
 5. Fundraiser page approval, rejection, hide, and ban actions are coordinated from the appeal admin route
 6. `/admin/moderation` provides a queue view across moderation record types
+7. `/admin` now includes campaign-performance leaderboards (top appeals, teams, and fundraiser pages) built from the same aggregation helpers used in public flows
+8. `/admin/analytics` now provides full ranking drill-down views with period scoping for appeals, teams, and fundraiser pages
+
+### Platform user administration flow
+
+1. Platform admins use `/admin/users` to search/filter users by name, email, role, and status
+2. Role changes are validated against allowed roles, with guardrails for self-demotion and last-active-platform-admin protection
+3. Suspend/unsuspend actions are server-enforced and include reason capture
+4. User invite and password setup/reset actions issue hashed one-time tokens and record immutable access-audit rows
+5. Access audit records capture actor, target, action, before/after state, and timestamp for operational traceability
 
 ### Public charity discovery flow
 
@@ -231,6 +247,11 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 5. A single access-controlled route handler at `/api/admin/reports/export` returns CSV exports for each report type
 6. Export URLs are built from the active UI filters so the preview state and download scope stay aligned
 7. General-ledger export rows are assembled from immutable journal entries plus their ledger lines, with charity scoping inferred through donations, payouts, disputes, and Gift Aid claim correlation IDs
+8. Reconciliation exports now include payout reconciliation, Gift Aid reconciliation, and finance exceptions datasets
+9. A dedicated `/admin/reconciliation` route provides finance exception queue visibility with filters and operational links back to donations, payouts, Gift Aid, and contract settings
+10. CSV exports now write lightweight `ReportExportLog` audit records for generated-at time, scope, filters, row count, and failure reason visibility
+11. Export logs now persist immutable CSV artifacts and checksum metadata for controlled re-download
+12. Reconciliation operations now include stale-age alerting and a gated finance automation runner (dry-run default, execution via env flag)
 
 ### Fees and contracts flow
 

@@ -1,9 +1,14 @@
-import { db } from "@/lib/db";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { db } from "@/lib/db";
 import { getAdminContext } from "@/lib/admin";
+import { getAdminCampaignLeaderboard, resolveLeaderboardPeriod } from "@/lib/leaderboards";
 
 export const metadata: Metadata = { title: "Admin — Overview" };
+
+type AdminOverviewPageProps = {
+  searchParams?: { period?: string };
+};
 
 function fmt(val: string | number | null | undefined, currency = "GBP") {
   const n = typeof val === "string" ? parseFloat(val) : (val ?? 0);
@@ -21,15 +26,17 @@ function StatCard({ label, value, sub, color }: { label: string; value: string; 
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  CAPTURED:   { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
-  PENDING:    { bg: "rgba(212,162,76,0.12)", color: "#7A5010" },
-  FAILED:     { bg: "rgba(239,68,68,0.12)",  color: "#7F1D1D" },
-  REFUNDED:   { bg: "rgba(58,74,66,0.12)",   color: "#3A4A42" },
-  PAID:       { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
-  SCHEDULED:  { bg: "rgba(212,162,76,0.12)", color: "#7A5010" },
+  CAPTURED: { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
+  PENDING: { bg: "rgba(212,162,76,0.12)", color: "#7A5010" },
+  FAILED: { bg: "rgba(239,68,68,0.12)", color: "#7F1D1D" },
+  REFUNDED: { bg: "rgba(58,74,66,0.12)", color: "#3A4A42" },
+  PAID: { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
+  SCHEDULED: { bg: "rgba(212,162,76,0.12)", color: "#7A5010" },
   PROCESSING: { bg: "rgba(59,130,246,0.12)", color: "#1E3A5F" },
-  ACTIVE:     { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
-  DRAFT:      { bg: "rgba(58,74,66,0.12)",   color: "#3A4A42" },
+  ACTIVE: { bg: "rgba(30,140,110,0.12)", color: "#124E40" },
+  DRAFT: { bg: "rgba(58,74,66,0.12)", color: "#3A4A42" },
+  ENDED: { bg: "rgba(58,74,66,0.12)", color: "#3A4A42" },
+  PAUSED: { bg: "rgba(212,162,76,0.12)", color: "#7A5010" },
 };
 
 function pill(status: string) {
@@ -49,19 +56,43 @@ function pill(status: string) {
   );
 }
 
-export default async function AdminOverviewPage() {
+function LeaderboardList({
+  title,
+  rows,
+  empty,
+  renderRow,
+}: {
+  title: string;
+  rows: Array<{ id: string }>;
+  empty: string;
+  renderRow: (row: Record<string, unknown>) => React.ReactNode;
+}) {
+  return (
+    <div style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", padding: "1rem" }}>
+      <h3 className="text-sm font-semibold px-1" style={{ color: "#233029" }}>{title}</h3>
+      <div className="mt-3 space-y-2">
+        {rows.length > 0 ? rows.map((row) => <div key={row.id}>{renderRow(row as Record<string, unknown>)}</div>) : (
+          <p className="text-sm px-1 py-3" style={{ color: "#8A9E94" }}>{empty}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default async function AdminOverviewPage({ searchParams }: AdminOverviewPageProps) {
+  const period = resolveLeaderboardPeriod(searchParams?.period);
   const { role, managedCharity } = await getAdminContext();
   const charityId = managedCharity?.id ?? "";
 
   if (role === "PLATFORM_ADMIN") {
-    const [charities, onlineAgg, offlineAgg, pendingPayoutAgg, giftAidAgg, recentDonations] = await Promise.all([
-      db.charity.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          _count: { select: { appeals: true, admins: true } },
-          appeals: { select: { id: true } },
-        },
-      }),
+    const charities = await db.charity.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { appeals: true, admins: true } },
+      },
+    });
+
+    const [onlineAgg, offlineAgg, pendingPayoutAgg, giftAidAgg, recentDonations, campaignLeaderboard] = await Promise.all([
       db.donation.aggregate({ where: { status: "CAPTURED" }, _sum: { amount: true }, _count: true }),
       db.offlineDonation.aggregate({ where: { status: "APPROVED" }, _sum: { amount: true }, _count: true }),
       db.payoutBatch.aggregate({ where: { status: { in: ["SCHEDULED", "PROCESSING"] } }, _sum: { netAmount: true } }),
@@ -73,12 +104,13 @@ export default async function AdminOverviewPage() {
         orderBy: { createdAt: "desc" },
         take: 10,
       }),
+      getAdminCampaignLeaderboard({
+        scopedCharityIds: charities.map((charity) => charity.id),
+        period,
+      }),
     ]);
 
-    const fmtPlatform = (val: string | number | null | undefined, currency = "GBP") => {
-      const n = typeof val === "string" ? parseFloat(val) : (val ?? 0);
-      return new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
-    };
+    const platformRaised = campaignLeaderboard.totals.online + campaignLeaderboard.totals.offline;
 
     return (
       <div>
@@ -95,11 +127,11 @@ export default async function AdminOverviewPage() {
 
         <div className="grid grid-cols-2 gap-3 mb-6 lg:grid-cols-3 xl:grid-cols-6">
           <StatCard label="Charities" value={String(charities.length)} sub="active and draft profiles" />
-          <StatCard label="Platform raised" value={fmtPlatform((parseFloat(onlineAgg._sum.amount?.toString() ?? "0") + parseFloat(offlineAgg._sum.amount?.toString() ?? "0")).toString())} color="#1E8C6E" />
-          <StatCard label="Online raised" value={fmtPlatform(onlineAgg._sum.amount?.toString())} sub={`${onlineAgg._count} donations`} />
-          <StatCard label="Offline raised" value={fmtPlatform(offlineAgg._sum.amount?.toString())} sub={`${offlineAgg._count} entries`} />
-          <StatCard label="Pending payouts" value={fmtPlatform(pendingPayoutAgg._sum.netAmount?.toString())} />
-          <StatCard label="Gift Aid pending" value={fmtPlatform(giftAidAgg._sum.reclaimAmount?.toString())} />
+          <StatCard label="Platform raised" value={fmt(platformRaised)} color="#1E8C6E" />
+          <StatCard label="Online raised" value={fmt(onlineAgg._sum.amount?.toString())} sub={`${onlineAgg._count} donations`} />
+          <StatCard label="Offline raised" value={fmt(offlineAgg._sum.amount?.toString())} sub={`${offlineAgg._count} approved entries`} />
+          <StatCard label="Pending payouts" value={fmt(pendingPayoutAgg._sum.netAmount?.toString())} />
+          <StatCard label="Gift Aid pending" value={fmt(giftAidAgg._sum.reclaimAmount?.toString())} />
         </div>
 
         <div className="grid gap-5 lg:grid-cols-3">
@@ -156,11 +188,85 @@ export default async function AdminOverviewPage() {
             </div>
           </div>
         </div>
+
+        <section className="mt-6 space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 className="font-semibold" style={{ color: "#233029" }}>Campaign performance leaderboards</h2>
+            <div className="flex flex-wrap gap-2">
+              {(["30d", "90d", "all"] as const).map((item) => (
+                <Link
+                  key={item}
+                  href={item === "all" ? "/admin" : `/admin?period=${item}`}
+                  className={period === item ? "btn-primary" : "btn-outline"}
+                  style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}
+                >
+                  {item === "all" ? "All time" : item.toUpperCase()}
+                </Link>
+              ))}
+              <Link href={`/admin/analytics?period=${period}`} className="btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
+                View full rankings
+              </Link>
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <LeaderboardList
+              title="Top appeals"
+              rows={campaignLeaderboard.topAppeals}
+              empty="No appeal performance data yet."
+              renderRow={(row) => (
+                <Link href={`/appeals/${String(row.slug)}`} className="block rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(18,78,64,0.08)", background: "#FCFBF7" }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="section-kicker">{Boolean(row.isTied) ? `Tied #${String(row.rank)}` : `#${String(row.rank)}`}</span>
+                    <span className="text-sm font-semibold" style={{ color: "#115E59" }}>{fmt(Number(row.raisedTotal))}</span>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold" style={{ color: "#233029" }}>{String(row.title)}</p>
+                  <p className="mt-1 text-xs" style={{ color: "#8A9E94" }}>
+                    {String(row.charityName)} · {String(row.status)} · {Number(row.progress)}% goal
+                  </p>
+                </Link>
+              )}
+            />
+            <LeaderboardList
+              title="Top teams"
+              rows={campaignLeaderboard.topTeams}
+              empty="No team leaderboard data yet."
+              renderRow={(row) => (
+                <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(18,78,64,0.08)", background: "#FCFBF7" }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="section-kicker">{Boolean(row.isTied) ? `Tied #${String(row.rank)}` : `#${String(row.rank)}`}</span>
+                    <span className="text-sm font-semibold" style={{ color: "#115E59" }}>{fmt(Number(row.raisedTotal))}</span>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold" style={{ color: "#233029" }}>{String(row.name)}</p>
+                  <p className="mt-1 text-xs" style={{ color: "#8A9E94" }}>
+                    {Number(row.fundraiserPageCount)} pages · {Number(row.donorCount)} donor records · {String(row.status)}
+                  </p>
+                </div>
+              )}
+            />
+            <LeaderboardList
+              title="Top fundraiser pages"
+              rows={campaignLeaderboard.topFundraiserPages}
+              empty="No fundraiser ranking data yet."
+              renderRow={(row) => (
+                <Link href={`/fundraise/${String(row.shortName)}`} className="block rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(18,78,64,0.08)", background: "#FCFBF7" }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="section-kicker">{Boolean(row.isTied) ? `Tied #${String(row.rank)}` : `#${String(row.rank)}`}</span>
+                    <span className="text-sm font-semibold" style={{ color: "#115E59" }}>{fmt(Number(row.raisedTotal))}</span>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold" style={{ color: "#233029" }}>{String(row.title)}</p>
+                  <p className="mt-1 text-xs" style={{ color: "#8A9E94" }}>
+                    {String(row.charityName)} · {String(row.appealTitle)}
+                  </p>
+                </Link>
+              )}
+            />
+          </div>
+        </section>
       </div>
     );
   }
 
-  const [onlineAgg, offlineAgg, pendingPayoutAgg, giftAidAgg, recentDonations, appeals, payouts] =
+  const [onlineAgg, offlineAgg, pendingPayoutAgg, giftAidAgg, recentDonations, appeals, payouts, campaignLeaderboard] =
     await Promise.all([
       db.donation.aggregate({ where: { page: { appeal: { charityId } }, status: "CAPTURED" }, _sum: { amount: true }, _count: true }),
       db.offlineDonation.aggregate({ where: { page: { appeal: { charityId } }, status: "APPROVED" }, _sum: { amount: true }, _count: true }),
@@ -173,12 +279,16 @@ export default async function AdminOverviewPage() {
       }),
       db.appeal.findMany({ where: { charityId }, include: { _count: { select: { fundraisingPages: true } } }, orderBy: { createdAt: "desc" }, take: 5 }),
       db.payoutBatch.findMany({ where: { charityId }, orderBy: { createdAt: "desc" }, take: 5 }),
+      getAdminCampaignLeaderboard({
+        scopedCharityIds: [charityId],
+        period,
+      }),
     ]);
 
   const onlineTotal = parseFloat(onlineAgg._sum.amount?.toString() ?? "0");
   const offlineTotal = parseFloat(offlineAgg._sum.amount?.toString() ?? "0");
   const coverPct = onlineAgg._count > 0
-    ? Math.round((recentDonations.filter(d => (d.resolvedChargingMode ?? (d.feeSet?.donorCoversFees ? "DONOR_SUPPORTED" : "CHARITY_PAID")) === "DONOR_SUPPORTED").length / onlineAgg._count) * 100)
+    ? Math.round((recentDonations.filter((d) => (d.resolvedChargingMode ?? (d.feeSet?.donorCoversFees ? "DONOR_SUPPORTED" : "CHARITY_PAID")) === "DONOR_SUPPORTED").length / onlineAgg._count) * 100)
     : 0;
 
   return (
@@ -216,7 +326,7 @@ export default async function AdminOverviewPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
               <thead>
                 <tr style={{ background: "#F6F1E8" }}>
-                  {["Donor", "Amount", "Gift Aid", "Page", "Status"].map(h => (
+                  {["Donor", "Amount", "Gift Aid", "Page", "Status"].map((h) => (
                     <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "left", fontWeight: 600, color: "#8A9E94", fontSize: "0.75rem" }}>{h}</th>
                   ))}
                 </tr>
@@ -251,7 +361,7 @@ export default async function AdminOverviewPage() {
               <Link href="/admin/appeals" className="text-xs font-medium" style={{ color: "#1E8C6E" }}>View all →</Link>
             </div>
             <div className="space-y-2">
-              {appeals.map(a => (
+              {appeals.map((a) => (
                 <div key={a.id} style={{ background: "white", borderRadius: "0.875rem", padding: "0.875rem 1rem", boxShadow: "0 2px 8px rgba(18,78,64,0.06)" }}>
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium truncate" style={{ color: "#233029" }}>{a.title}</p>
@@ -280,7 +390,7 @@ export default async function AdminOverviewPage() {
               <Link href="/admin/payouts" className="text-xs font-medium" style={{ color: "#1E8C6E" }}>View all →</Link>
             </div>
             <div className="space-y-2">
-              {payouts.map(p => (
+              {payouts.map((p) => (
                 <div key={p.id} style={{ background: "white", borderRadius: "0.875rem", padding: "0.875rem 1rem", boxShadow: "0 2px 8px rgba(18,78,64,0.06)" }}>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold" style={{ color: "#233029" }}>£{parseFloat(p.netAmount.toString()).toFixed(2)}</span>
@@ -294,6 +404,87 @@ export default async function AdminOverviewPage() {
           </div>
         </div>
       </div>
+
+      <section className="mt-6 space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="font-semibold" style={{ color: "#233029" }}>Campaign performance</h2>
+          <div className="flex flex-wrap gap-2">
+            {(["30d", "90d", "all"] as const).map((item) => (
+              <Link
+                key={item}
+                href={item === "all" ? "/admin" : `/admin?period=${item}`}
+                className={period === item ? "btn-primary" : "btn-outline"}
+                style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}
+              >
+                {item === "all" ? "All time" : item.toUpperCase()}
+              </Link>
+            ))}
+            <Link href={`/admin/analytics?period=${period}`} className="btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
+              View full rankings
+            </Link>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <StatCard label="Appeals tracked" value={String(campaignLeaderboard.totals.appealCount)} sub={`${campaignLeaderboard.totals.activeAppealCount} active · ${campaignLeaderboard.totals.endedAppealCount} ended`} />
+          <StatCard label="Teams tracked" value={String(campaignLeaderboard.totals.teamCount)} sub="team standings in scope" />
+          <StatCard label="Fundraiser pages" value={String(campaignLeaderboard.totals.fundraiserPageCount)} sub="rankable pages in scope" />
+          <StatCard label="Leaderboard online" value={fmt(campaignLeaderboard.totals.online)} sub={`${campaignLeaderboard.totals.donorCount} donor records`} />
+          <StatCard label="Leaderboard offline" value={fmt(campaignLeaderboard.totals.offline)} sub="approved offline entries" />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <LeaderboardList
+            title="Top appeals"
+            rows={campaignLeaderboard.topAppeals}
+            empty="No appeal performance data yet."
+            renderRow={(row) => (
+              <Link href={`/admin/appeals/${String(row.id)}`} className="block rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(18,78,64,0.08)", background: "#FCFBF7" }}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="section-kicker">{Boolean(row.isTied) ? `Tied #${String(row.rank)}` : `#${String(row.rank)}`}</span>
+                  <span className="text-sm font-semibold" style={{ color: "#115E59" }}>{fmt(Number(row.raisedTotal))}</span>
+                </div>
+                <p className="mt-2 text-sm font-semibold" style={{ color: "#233029" }}>{String(row.title)}</p>
+                <p className="mt-1 text-xs" style={{ color: "#8A9E94" }}>
+                  {String(row.status)} · {Number(row.progress)}% goal · {Number(row.teamCount)} teams
+                </p>
+              </Link>
+            )}
+          />
+          <LeaderboardList
+            title="Top teams"
+            rows={campaignLeaderboard.topTeams}
+            empty="No team leaderboard data yet."
+            renderRow={(row) => (
+              <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(18,78,64,0.08)", background: "#FCFBF7" }}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="section-kicker">{Boolean(row.isTied) ? `Tied #${String(row.rank)}` : `#${String(row.rank)}`}</span>
+                  <span className="text-sm font-semibold" style={{ color: "#115E59" }}>{fmt(Number(row.raisedTotal))}</span>
+                </div>
+                <p className="mt-2 text-sm font-semibold" style={{ color: "#233029" }}>{String(row.name)}</p>
+                <p className="mt-1 text-xs" style={{ color: "#8A9E94" }}>
+                  {Number(row.fundraiserPageCount)} pages · {Number(row.donorCount)} donor records · {String(row.status)}
+                </p>
+              </div>
+            )}
+          />
+          <LeaderboardList
+            title="Top fundraiser pages"
+            rows={campaignLeaderboard.topFundraiserPages}
+            empty="No fundraiser ranking data yet."
+            renderRow={(row) => (
+              <Link href={`/fundraise/${String(row.shortName)}`} className="block rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(18,78,64,0.08)", background: "#FCFBF7" }}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="section-kicker">{Boolean(row.isTied) ? `Tied #${String(row.rank)}` : `#${String(row.rank)}`}</span>
+                  <span className="text-sm font-semibold" style={{ color: "#115E59" }}>{fmt(Number(row.raisedTotal))}</span>
+                </div>
+                <p className="mt-2 text-sm font-semibold" style={{ color: "#233029" }}>{String(row.title)}</p>
+                <p className="mt-1 text-xs" style={{ color: "#8A9E94" }}>
+                  {String(row.appealTitle)} · {String(row.status)}
+                </p>
+              </Link>
+            )}
+          />
+        </div>
+      </section>
     </div>
   );
 }

@@ -35,22 +35,29 @@ Prioritise slices that:
 - Manual Gift Aid claim queue and settlement flow
 - First real fundraiser self-serve layer with owner updates, media management, moderation-state messaging, and lightweight analytics
 - Refund records, dispute visibility, dispute admin workspace, and exception-aware donation exports
+- Appeal and team leaderboard analytics across public appeal pages and admin campaign summaries
+- Leaderboard follow-up slice: period filters, tie-aware rank display, and full ranking drill-down routes
+- Reconciliation-focused exports and finance exception queue with payout/Gift Aid mismatch visibility
+- Export-history persistence for finance/reporting CSV operations
+- Immutable export artifacts, stale exception alerting, and gated auto-reconciliation runs
+- Platform-admin user management with role administration, suspension controls, invite/setup/reset actions, and access audit history
 
 ### Remaining in this phase
 
 - Live payment-provider checkout beyond the hosted test flow
 - Better admin charity resolution and switching for platform admins
 - Richer fee-rule builder and final contract approval/signature workflows
+- Invite/reset email delivery wiring on top of the shipped secure token workflow
 
 ## Phase 2: Charity Operations
 
 ### Recommended next
 
-1. Appeal/team analytics and leaderboards
-2. Accounting-oriented reconciliation exports
-3. Commercial approval/signature workflow
-4. Async finance automation
-5. Risk and hold-state operations
+1. Commercial approval/signature workflow
+2. Async finance automation
+3. Risk and hold-state operations
+4. Moderation/DSAR governance workflows
+5. Provider-integrated invite/reset email delivery
 
 ### Why this phase matters
 
@@ -100,9 +107,9 @@ This is the shortest path to matching the operational needs in the spec for real
 
 ### Ticket 4: Team analytics and leaderboards
 
-- Build team-level public and admin summaries
-- Add ranking/leaderboard views for appeals and teams
-- Show clearer combined totals across pages, teams, and appeals
+- Completed: team-level public and admin summaries
+- Completed: ranking/leaderboard views for appeals, teams, and fundraiser pages
+- Completed: consistent combined totals across online plus approved offline donations
 
 ## What to keep updating
 

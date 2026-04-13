@@ -7,11 +7,14 @@ export const metadata: Metadata = { title: "Admin" };
 
 const NAV = [
   { href: "/admin",          label: "Overview",         icon: "▦" },
+  { href: "/admin/users",    label: "Users",            icon: "👤", platformOnly: true },
   { href: "/admin/charities",label: "Charities",        icon: "🏛️" },
   { href: "/admin/appeals",  label: "Appeals",          icon: "📣" },
   { href: "/admin/moderation",label: "Moderation",      icon: "🛡️" },
   { href: "/admin/donations",label: "Donations",        icon: "💷" },
   { href: "/admin/disputes", label: "Disputes",         icon: "⚠️" },
+  { href: "/admin/reconciliation", label: "Reconciliation", icon: "🧾" },
+  { href: "/admin/analytics",label: "Analytics",        icon: "🏁" },
   { href: "/admin/payouts",  label: "Payouts",          icon: "🏦" },
   { href: "/admin/gift-aid", label: "Gift Aid",         icon: "🎁" },
   { href: "/admin/offline",  label: "Offline uploads",  icon: "📋" },
@@ -26,6 +29,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const role = (session.user as { role?: string } | undefined)?.role ?? "DONOR";
   const allowed = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"];
   if (!allowed.includes(role)) redirect("/403");
+
+  const navItems = NAV.filter((item) => !(item as { platformOnly?: boolean }).platformOnly || role === "PLATFORM_ADMIN");
 
   return (
     <div style={{ minHeight: "100vh", background: "#F6F1E8", display: "flex", flexDirection: "column" }}>
@@ -58,7 +63,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {/* Sidebar */}
         <aside className="w-52 flex-shrink-0 pr-4">
           <nav className="sticky top-20 space-y-0.5">
-            {NAV.map((item) => (
+            {navItems.map((item) => (
               <AdminNavLink key={item.href} href={item.href} icon={item.icon} label={item.label} />
             ))}
           </nav>

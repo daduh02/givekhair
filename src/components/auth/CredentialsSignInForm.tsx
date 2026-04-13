@@ -10,10 +10,17 @@ export function CredentialsSignInForm({
   callbackUrl: string;
   initialError?: string;
 }) {
+  const initialErrorMessage =
+    initialError === "CredentialsSignin"
+      ? "Invalid email or password."
+      : initialError === "AccountSuspended" || initialError === "AccessDenied"
+        ? "This account is suspended. Please contact GiveKhair support."
+        : "";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(initialError === "CredentialsSignin" ? "Invalid email or password." : "");
+  const [error, setError] = useState(initialErrorMessage);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,7 +41,13 @@ export function CredentialsSignInForm({
     }
 
     if (result.error) {
-      setError(result.error === "CredentialsSignin" ? "Invalid email or password." : "Unable to sign in right now.");
+      setError(
+        result.error === "CredentialsSignin"
+          ? "Invalid email or password."
+          : result.error === "AccountSuspended" || result.error === "AccessDenied"
+            ? "This account is suspended. Please contact GiveKhair support."
+            : "Unable to sign in right now."
+      );
       setSubmitting(false);
       return;
     }

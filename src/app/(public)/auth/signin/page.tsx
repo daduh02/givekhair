@@ -5,10 +5,17 @@ import { TrustChip } from "@/components/ui/TrustChip";
 export default function SignInPage({
   searchParams,
 }: {
-  searchParams: { callbackUrl?: string; error?: string };
+  searchParams: { callbackUrl?: string; error?: string; notice?: string };
 }) {
   const callbackUrl = searchParams.callbackUrl ?? "/dashboard";
   const error = searchParams.error;
+  const notice = searchParams.notice;
+  const errorMessage =
+    error === "AccountSuspended" || error === "AccessDenied"
+      ? "This account is suspended. Please contact GiveKhair support."
+      : error
+        ? "Sign in failed. Please check your details and try again."
+        : "";
 
   return (
     <main className="section-shell">
@@ -37,9 +44,15 @@ export default function SignInPage({
               Your dashboard keeps fundraising, donations, and charity administration in one place.
             </p>
 
-            {error ? (
+            {notice ? (
+              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {notice}
+              </div>
+            ) : null}
+
+            {errorMessage ? (
               <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                Sign in failed. Please check your details and try again.
+                {errorMessage}
               </div>
             ) : null}
 

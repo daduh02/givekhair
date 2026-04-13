@@ -19,6 +19,8 @@ This file tracks the current delivery state of the product against the working g
 - Public-facing routes now use a shared shell with a reusable footer, centralized theme tokens, and cleaner reusable components.
 - Commercial pricing is now contract-led for new donation writes, with donor-supported, charity-paid, and hybrid charging modes.
 - Major reconciliation and advanced recovery workflows are still incomplete, but refunds, disputes, and finance/accounting exports now have a real operational starting point.
+- Appeal and team leaderboard analytics are now live across public appeal pages and admin overview reporting.
+- Reconciliation exports and finance exception reporting are now live across admin reports and a dedicated reconciliation queue.
 
 ## Completed
 
@@ -37,6 +39,10 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Email/password sign-in flow
 - `Done` Session role propagation into the app
 - `Done` Admin route protection
+- `Done` Platform-admin user management surface at `/admin/users` with user list/search/filter
+- `Done` Server-side suspension enforcement across credentials sign-in, OAuth sign-in, middleware checks, and server `auth()` lookups
+- `Done` One-time invite/password setup/reset token flow via `/auth/set-password`
+- `Done` Access-control audit logging for invite, role, suspension, and password-access actions
 - `Done` Homepage and navbar admin entrypoints after login
 - `Done` Demo passwords populated for seeded users
 
@@ -83,6 +89,17 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Offline CSV dry-run and commit flow
 - `Done` Reports center with scoped CSV exports for donations, offline donations, payouts, and Gift Aid
 - `Done` General-ledger CSV export in spec-style journal row format
+- `Done` Reconciliation CSV exports for payouts, Gift Aid, and finance exceptions
+- `Done` Admin reconciliation queue with payout readiness, blocked reasons, and Gift Aid allocation visibility
+- `Done` Platform-admin-only user management workflow with role updates, suspend/unsuspend, invite, password setup/reset triggers, and recent access audit feed
+- `Done` Export history persistence for CSV generation with status, row-count, scope, filters, and error metadata
+- `Done` Immutable export artifact storage with checksum metadata and controlled re-download endpoint
+- `Done` Reconciliation stale-age visibility and queued finance alert notifications
+- `Done` Gated finance automation runner (dry-run by default, execution behind env flag) for payout and Gift Aid settlement actions
+- `Done` Public appeal leaderboards for fundraiser-page and team rankings with online/offline combined totals
+- `Done` Admin campaign-performance leaderboards for top appeals, teams, and fundraiser pages
+- `Done` Leaderboard timeframe filters (`30d`, `90d`, `all-time`) and tie-aware ranking labels
+- `Done` Full leaderboard drill-down pages for public appeals and admin analytics
 - `Done` Shared admin context helper for resolving current charity/admin scope
 - `Done` Platform-admin appeal visibility across all charities
 
@@ -144,9 +161,10 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Donations management and operational visibility
 - `Done` Refunds, disputes, and chargeback workflows
 - `Not started` Payout batching lifecycle and reconciliation UI
+- `Done` First-pass reconciliation UI and exports
 - `Partial` GL export and finance CSV exports per accounting structure
 - `Done` Gift Aid claim queue, submission, and paid-state workflow
-- `Not started` Team leaderboards
+- `Done` Team leaderboards and first-pass campaign analytics
 - `Done` Public charity directory now links into rich public charity profile pages
 - `Done` Reporting center with downloadable exports
 - `Not started` Risk scoring, hold states, and moderation logs
@@ -231,7 +249,8 @@ This file tracks the current delivery state of the product against the working g
 - `Done` schema
 - `Done` team creation and member management in appeal admin
 - `Done` offline donation management workflow
-- `Partial` leaderboards and richer team analytics
+- `Done` public and admin leaderboard layer with consistent online + approved-offline aggregation rules
+- `Done` leaderboard aggregation helper reuse across public/admin with period scoping
 
 ### 5.11 Bulk Upload
 
@@ -247,8 +266,8 @@ This file tracks the current delivery state of the product against the working g
 
 ## Immediate Next Recommendations
 
-1. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.
-2. Build `Reconciliation-specific exports` and finance exception reporting on top of the new GL export.
-3. Build `Async finance automation` for payout processing, refund provider submission, and HMRC submission flows.
-4. Build `Commercial approval/signature workflow` on top of the shipped contract management foundation.
-5. Build `Risk scoring and hold-state operations` on top of the current moderation and donation foundations.
+1. Build `Async finance automation` for payout processing, refund provider submission, and HMRC submission flows.
+2. Build `Commercial approval/signature workflow` on top of the shipped contract management foundation.
+3. Build `Risk scoring and hold-state operations` on top of the current moderation and donation foundations.
+4. Build `Moderation audit trails and DSAR/governance operations` to close compliance gaps.
+5. Build `Export replay/download tracking` if finance needs file-level retention beyond current export-event metadata.

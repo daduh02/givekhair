@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -7,9 +8,11 @@ import { TRPCProvider } from "@/components/providers";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { TrustChip } from "@/components/ui/TrustChip";
 import { getOrCreateAppealCheckoutPage } from "@/lib/appeal-checkout";
+import { getAppealLeaderboard, getGoalProgress } from "@/lib/leaderboards";
 
 interface Props {
   params: { slug: string };
+  searchParams?: { period?: string };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -28,19 +31,23 @@ function formatCurrency(amount: number, currency = "GBP") {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
 }
 
-export default async function AppealPage({ params }: Props) {
+function periodLink(slug: string, period: "30d" | "90d" | "all") {
+  return period === "all" ? `/appeals/${slug}` : `/appeals/${slug}?period=${period}`;
+}
+
+function rankLabel(rank: number, isTied: boolean) {
+  return isTied ? `Tied #${rank}` : `#${rank}`;
+}
+
+export default async function AppealPage({ params, searchParams }: Props) {
   const appeal = await db.appeal.findUnique({
     where: { slug: params.slug },
     include: {
       charity: true,
       category: true,
       teams: {
-        include: {
-          pages: {
-            where: { status: "ACTIVE" },
-            include: { user: { select: { name: true, image: true } } },
-          },
-        },
+        where: { status: "ACTIVE", visibility: "PUBLIC" },
+        select: { id: true, name: true, slug: true },
       },
       fundraisingPages: {
         where: { status: "ACTIVE", visibility: "PUBLIC", teamId: null },
@@ -54,30 +61,18 @@ export default async function AppealPage({ params }: Props) {
     notFound();
   }
 
-  const [onlineAgg, offlineAgg, donorCount] = await Promise.all([
-    db.donation.aggregate({
-      where: { page: { appealId: appeal.id }, status: "CAPTURED" },
-      _sum: { amount: true },
-    }),
-    db.offlineDonation.aggregate({
-      where: { page: { appealId: appeal.id }, status: "APPROVED" },
-      _sum: { amount: true },
-    }),
-    db.donation.groupBy({
-      by: ["userId"],
-      where: { page: { appealId: appeal.id }, status: "CAPTURED" },
-    }),
-  ]);
+  const leaderboard = await getAppealLeaderboard({
+    appealId: appeal.id,
+    publicOnly: true,
+    period: searchParams?.period,
+  });
 
-  const raised =
-    parseFloat(onlineAgg._sum.amount?.toString() ?? "0") +
-    parseFloat(offlineAgg._sum.amount?.toString() ?? "0");
+  const raised = leaderboard.totals.online + leaderboard.totals.offline;
   const goal = parseFloat(appeal.goalAmount.toString());
-  const progress = goal > 0 ? Math.min(Math.round((raised / goal) * 100), 100) : 0;
+  const progress = getGoalProgress(raised, goal);
 
   const checkoutPage =
     appeal.fundraisingPages[0] ??
-    appeal.teams.flatMap((team) => team.pages)[0] ??
     (await getOrCreateAppealCheckoutPage({
       appealId: appeal.id,
       appealTitle: appeal.title,
@@ -109,6 +104,7 @@ export default async function AppealPage({ params }: Props) {
             </TrustChip>
             {appeal.charity.isVerified ? <TrustChip tone="gold">Verified charity</TrustChip> : null}
             {appeal.category?.name ? <TrustChip>{appeal.category.name}</TrustChip> : null}
+            {appeal.status === "ENDED" ? <TrustChip>Campaign ended</TrustChip> : null}
           </div>
 
           <h1 className="mt-6 text-4xl font-bold tracking-[-0.04em] text-[color:var(--color-ink)] sm:text-5xl">
@@ -120,18 +116,18 @@ export default async function AppealPage({ params }: Props) {
               {formatCurrency(raised, appeal.currency)}
             </p>
             <p className="mt-2 text-base text-[color:var(--color-ink-muted)]">
-              raised of {formatCurrency(goal, appeal.currency)} goal · includes offline donations
+              raised of {formatCurrency(goal, appeal.currency)} goal · includes approved offline donations
             </p>
             <ProgressBar value={progress} className="mt-5" />
           </div>
 
           <div className="mt-6 flex flex-wrap gap-6 text-sm font-semibold text-[color:var(--color-ink-soft)]">
-            <span>{donorCount.length} donors</span>
+            <span>{leaderboard.totals.donorCount} donor records</span>
             <span>{progress}% of goal</span>
+            <span>{leaderboard.totals.fundraiserPageCount} fundraiser pages</span>
             {appeal.endsAt ? (
               <span>{Math.max(0, Math.ceil((appeal.endsAt.getTime() - Date.now()) / 86_400_000))} days left</span>
             ) : null}
-            <span>Gift Aid eligible</span>
           </div>
 
           {appeal.story ? (
@@ -141,24 +137,128 @@ export default async function AppealPage({ params }: Props) {
             </section>
           ) : null}
 
-          {appeal.fundraisingPages.length > 0 ? (
-            <section className="mt-10">
-              <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">Fundraiser pages</h2>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                {appeal.fundraisingPages.map((page) => (
-                  <a key={page.id} href={`/fundraise/${page.shortName}`} className="surface-card flex items-center gap-4 p-5">
-                    <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-full bg-[color:var(--color-primary-soft)] font-bold text-[color:var(--color-primary-dark)]">
-                      {page.user.name?.charAt(0) ?? "?"}
-                    </div>
+          <section className="mt-10">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">Fundraiser leaderboard</h2>
+                <p className="mt-2 text-sm text-[color:var(--color-ink-muted)]">
+                  Ranked by total raised, combining online and approved offline donations.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(["30d", "90d", "all"] as const).map((period) => {
+                  const active = leaderboard.period === period;
+                  return (
+                    <Link
+                      key={period}
+                      href={periodLink(appeal.slug, period)}
+                      className={active ? "btn-primary" : "btn-outline"}
+                      style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}
+                    >
+                      {period === "all" ? "All time" : period.toUpperCase()}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {leaderboard.rankedPages.length > 0 ? (
+              <div className="mt-5 space-y-3">
+                {leaderboard.rankedPages.slice(0, 10).map((page) => (
+                  <Link key={page.id} href={`/fundraise/${page.shortName}`} className="surface-card flex flex-wrap items-center justify-between gap-4 p-5">
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-[color:var(--color-ink)]">{page.title}</p>
-                      <p className="mt-1 text-sm text-[color:var(--color-ink-muted)]">{page.user.name}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="section-kicker">{rankLabel(page.rank, page.isTied)}</span>
+                        {page.teamName ? <TrustChip>{page.teamName}</TrustChip> : null}
+                      </div>
+                      <p className="mt-3 text-lg font-semibold text-[color:var(--color-ink)]">{page.title}</p>
+                      <p className="mt-1 text-sm text-[color:var(--color-ink-muted)]">
+                        {page.userName ?? "Fundraiser"} · {page.donorCount} donor records
+                      </p>
                     </div>
-                  </a>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-[color:var(--color-primary-dark)]">
+                        {formatCurrency(page.raisedTotal, appeal.currency)}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--color-ink-muted)]">
+                        Online {formatCurrency(page.onlineTotal, appeal.currency)} · Offline {formatCurrency(page.offlineTotal, appeal.currency)}
+                      </p>
+                    </div>
+                  </Link>
                 ))}
               </div>
+            ) : (
+              <div className="surface-card mt-5 p-6 text-sm text-[color:var(--color-ink-muted)]">
+                No fundraiser pages are ranked yet for this appeal.
+              </div>
+            )}
+            {leaderboard.rankedPages.length > 10 ? (
+              <div className="mt-4">
+                <Link href={`/appeals/${appeal.slug}/leaderboard?period=${leaderboard.period}`} className="btn-outline">
+                  View full leaderboard
+                </Link>
+              </div>
+            ) : null}
+          </section>
+
+          {leaderboard.rankedTeams.length > 0 ? (
+            <section className="mt-10">
+              <div>
+                <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">Team standings</h2>
+                <p className="mt-2 text-sm text-[color:var(--color-ink-muted)]">
+                  Teams are ranked by the combined performance of their fundraiser pages.
+                </p>
+              </div>
+              <div className="mt-5 grid gap-4">
+                {leaderboard.rankedTeams.slice(0, 8).map((team) => (
+                  <article key={team.id} className="surface-card p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="section-kicker">{rankLabel(team.rank, team.isTied)}</span>
+                          <TrustChip>{team.fundraiserPageCount} pages</TrustChip>
+                        </div>
+                        <h3 className="mt-3 text-xl font-semibold text-[color:var(--color-ink)]">{team.name}</h3>
+                        <p className="mt-1 text-sm text-[color:var(--color-ink-muted)]">
+                          {team.donorCount} donor records · Online {formatCurrency(team.onlineTotal, appeal.currency)} · Offline {formatCurrency(team.offlineTotal, appeal.currency)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-[color:var(--color-primary-dark)]">
+                          {formatCurrency(team.raisedTotal, appeal.currency)}
+                        </p>
+                        {team.goalAmount > 0 ? (
+                          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--color-ink-muted)]">
+                            {team.progress}% of team goal
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    {team.topPages.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2 text-xs text-[color:var(--color-ink-soft)]">
+                        {team.topPages.map((teamPage) => (
+                          <Link key={teamPage.id} href={`/fundraise/${teamPage.shortName}`} className="trust-chip">
+                            {rankLabel(teamPage.rank, teamPage.isTied)} {teamPage.title}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+              {leaderboard.rankedTeams.length > 8 ? (
+                <div className="mt-4">
+                  <Link href={`/appeals/${appeal.slug}/leaderboard?period=${leaderboard.period}`} className="btn-outline">
+                    View full team standings
+                  </Link>
+                </div>
+              ) : null}
             </section>
-          ) : null}
+          ) : (
+            <section className="mt-10 surface-card p-6 text-sm text-[color:var(--color-ink-muted)]">
+              This appeal currently has no active public teams.
+            </section>
+          )}
         </section>
 
         <aside className="lg:sticky lg:top-24">

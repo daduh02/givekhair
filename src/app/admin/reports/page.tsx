@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getAdminContext } from "@/lib/admin";
 import { getReportsDashboardData, resolveAdminReportScope } from "@/server/lib/reports";
+import { getReconciliationDashboardData } from "@/server/lib/reconciliation";
 import type { ReportsRole } from "@/server/lib/reports";
 
 export const metadata: Metadata = { title: "Admin - Reports" };
@@ -41,7 +42,15 @@ function sumValues(values: Array<string | number | { toString(): string } | null
 }
 
 function buildExportHref(input: {
-  report: "donations" | "offline" | "payouts" | "gift-aid" | "gl";
+  report:
+    | "donations"
+    | "offline"
+    | "payouts"
+    | "gift-aid"
+    | "gl"
+    | "payout-reconciliation"
+    | "gift-aid-reconciliation"
+    | "finance-exceptions";
   charityId?: string;
   start?: string;
   end?: string;
@@ -150,6 +159,10 @@ export default async function AdminReportsPage({
     scopedCharityIds: scope.scopedCharityIds,
     filters,
   });
+  const reconciliationData = await getReconciliationDashboardData({
+    scopedCharityIds: scope.scopedCharityIds,
+    filters,
+  });
 
   const donationGrossTotal = sumValues(
     dashboardData.donations.map((row) => row.grossCheckoutTotal ?? row.amount)
@@ -188,6 +201,24 @@ export default async function AdminReportsPage({
   });
   const glExportHref = buildExportHref({
     report: "gl",
+    charityId: effectiveCharityId,
+    start,
+    end,
+  });
+  const payoutReconciliationHref = buildExportHref({
+    report: "payout-reconciliation",
+    charityId: effectiveCharityId,
+    start,
+    end,
+  });
+  const giftAidReconciliationHref = buildExportHref({
+    report: "gift-aid-reconciliation",
+    charityId: effectiveCharityId,
+    start,
+    end,
+  });
+  const financeExceptionsHref = buildExportHref({
+    report: "finance-exceptions",
     charityId: effectiveCharityId,
     start,
     end,
@@ -247,7 +278,7 @@ export default async function AdminReportsPage({
         <StatCard label="Payouts / Gift Aid" value={`${fmt(payoutTotal)} / ${fmt(giftAidTotal)}`} sub={`${dashboardData.payouts.length} payout batches, ${dashboardData.claims.length} claims, ${ledgerLineCount} GL lines`} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
         <ExportCard
           title="Donations export"
           description="Donation operations including pricing snapshots, refunded amounts, dispute state, payout exposure, and Gift Aid expectations."
@@ -278,7 +309,79 @@ export default async function AdminReportsPage({
           href={glExportHref}
           meta={`${dashboardData.ledgerEntries.length} journal entries and ${ledgerLineCount} ledger lines currently match the selected scope.`}
         />
+        <ExportCard
+          title="Payout reconciliation"
+          description="Batch-level reconciliation view with donation totals, fee totals, donor-support exclusions, Gift Aid allocations, readiness state, and references."
+          href={payoutReconciliationHref}
+          meta={`${reconciliationData.payoutRows.length} payout reconciliation rows currently match the selected scope.`}
+        />
+        <ExportCard
+          title="Gift Aid reconciliation"
+          description="Claim-level expected vs submitted vs paid reconciliation, with payout-linkage status for received reclaim values."
+          href={giftAidReconciliationHref}
+          meta={`${reconciliationData.giftAidRows.length} Gift Aid reconciliation rows currently match the selected scope.`}
+        />
+        <ExportCard
+          title="Finance exceptions"
+          description="Operational exception queue for blocked payouts, missing references, unclaimed Gift Aid, and refund/dispute payout implications."
+          href={financeExceptionsHref}
+          meta={`${reconciliationData.exceptionRows.length} exception rows currently match the selected scope.`}
+        />
       </div>
+
+      <section style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", overflow: "hidden" }}>
+        <div className="p-6 pb-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold" style={{ color: "#233029" }}>Finance exceptions</h2>
+              <p className="text-sm" style={{ color: "#8A9E94" }}>
+                Reconciliation-first queue showing payout, Gift Aid, and donation exception states that need finance attention.
+              </p>
+            </div>
+            <Link href={`/admin/reconciliation?${new URLSearchParams({
+              ...(effectiveCharityId ? { charityId: effectiveCharityId } : {}),
+              ...(start ? { start } : {}),
+              ...(end ? { end } : {}),
+            }).toString()}`} className="text-xs font-semibold" style={{ color: "#1E8C6E" }}>
+              Open exception queue →
+            </Link>
+          </div>
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+          <thead>
+            <tr style={{ background: "#F6F1E8" }}>
+              {["Date", "Type", "Status", "Charity", "Summary", "Action hint"].map((heading) => (
+                <th key={heading} style={{ padding: "0.8rem 1rem", textAlign: "left", fontSize: "0.75rem", color: "#8A9E94" }}>
+                  {heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {reconciliationData.exceptionRows.slice(0, 10).map((item, index) => (
+              <tr key={`${item.exceptionType}-${item.relatedEntityId}-${index}`} style={{ borderTop: index > 0 ? "1px solid rgba(18,78,64,0.06)" : "none" }}>
+                <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>
+                  {new Date(item.relatedDate).toLocaleDateString("en-GB")}
+                </td>
+                <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>{item.exceptionType}</td>
+                <td style={{ padding: "0.9rem 1rem" }}>
+                  <StatusPill label={item.exceptionStatus} tone={item.exceptionStatus === "OPEN" ? "warning" : "neutral"} />
+                </td>
+                <td style={{ padding: "0.9rem 1rem", color: "#233029", fontWeight: 600 }}>{item.charityName}</td>
+                <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>{item.summary}</td>
+                <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>{item.actionHint}</td>
+              </tr>
+            ))}
+            {reconciliationData.exceptionRows.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ padding: "2rem", textAlign: "center", color: "#8A9E94" }}>
+                  No finance exceptions match the current scope and filters.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </section>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", overflow: "hidden" }}>

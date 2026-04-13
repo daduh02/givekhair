@@ -24,7 +24,8 @@ export const giftAidQueue = new Queue("gift-aid", { connection });
 export type EmailJobData =
   | { type: "DONATION_RECEIPT"; donationId: string }
   | { type: "PAYOUT_NOTIFICATION"; payoutBatchId: string }
-  | { type: "GIFT_AID_CLAIM_SUBMITTED"; claimId: string };
+  | { type: "GIFT_AID_CLAIM_SUBMITTED"; claimId: string }
+  | { type: "FINANCE_EXCEPTION_ALERT"; charityId?: string | null; summary: string };
 
 export type PayoutsJobData =
   | { type: "SCHEDULE_BATCH"; charityId: string }
@@ -42,6 +43,17 @@ export async function enqueueEmail(data: EmailJobData) {
     backoff: { type: "exponential", delay: 2000 },
     removeOnComplete: { count: 100 },
     removeOnFail: false,
+  });
+}
+
+export async function enqueueFinanceExceptionAlert(input: {
+  charityId?: string | null;
+  summary: string;
+}) {
+  return enqueueEmail({
+    type: "FINANCE_EXCEPTION_ALERT",
+    charityId: input.charityId ?? null,
+    summary: input.summary,
   });
 }
 
@@ -83,6 +95,9 @@ export function startWorkers() {
           break;
         case "PAYOUT_NOTIFICATION":
           // await sendPayoutNotification(job.data.payoutBatchId)
+          break;
+        case "FINANCE_EXCEPTION_ALERT":
+          // TODO: send finance alert email/slack once channel integration is configured.
           break;
       }
     },

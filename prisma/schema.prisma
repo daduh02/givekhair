@@ -66,6 +66,10 @@ model User {
   image         String?
   passwordHash  String?
   role          UserRole  @default(DONOR)
+  invitedAt     DateTime?
+  suspendedAt   DateTime?
+  suspendedReason String? @db.Text
+  lastAccessChangeAt DateTime?
   twoFactorEnabled Boolean @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -79,6 +83,12 @@ model User {
   charityAdminOf    CharityAdmin[]
   teamMemberships   TeamMember[]
   uploadBatches     OfflineUploadBatch[]
+  reportExports     ReportExportLog[]
+  financeAutomationRuns FinanceAutomationRun[]
+  accessTokens      UserAccessToken[]   @relation("AccessTokenTargetUser")
+  issuedAccessTokens UserAccessToken[]  @relation("AccessTokenActorUser")
+  accessAuditAsActor UserAccessAuditLog[] @relation("AccessAuditActorUser")
+  accessAuditAsTarget UserAccessAuditLog[] @relation("AccessAuditTargetUser")
 }
 
 // ─────────────────────────────────────────────
@@ -117,6 +127,7 @@ model Charity {
   termsAcceptances TermsAcceptance[]
   commercialAuditLogs CommercialAuditLog[]
   moderationItems ModerationItem[]
+  reportExports   ReportExportLog[]
 }
 
 enum CharityVerificationStatus {
@@ -990,4 +1001,136 @@ model ModerationLog {
   createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])
+}
+
+// ─────────────────────────────────────────────
+// REPORT EXPORT AUDIT
+// ─────────────────────────────────────────────
+
+enum ReportExportType {
+  DONATIONS
+  OFFLINE
+  PAYOUTS
+  GIFT_AID
+  GL
+  PAYOUT_RECONCILIATION
+  GIFT_AID_RECONCILIATION
+  FINANCE_EXCEPTIONS
+}
+
+enum ReportExportStatus {
+  SUCCEEDED
+  FAILED
+}
+
+model ReportExportLog {
+  id               String             @id @default(cuid())
+  reportType       ReportExportType
+  status           ReportExportStatus @default(SUCCEEDED)
+  exportedById     String
+  charityId        String?
+  requestedCharityId String?
+  filtersJson      Json?
+  fileName         String?
+  contentType      String?            @default("text/csv; charset=utf-8")
+  checksumSha256   String?
+  byteSize         Int?
+  rowCount         Int?
+  errorMessage     String?            @db.Text
+  createdAt        DateTime           @default(now())
+
+  exportedBy       User               @relation(fields: [exportedById], references: [id], onDelete: Cascade)
+  charity          Charity?           @relation(fields: [charityId], references: [id], onDelete: SetNull)
+  artifact         ReportExportArtifact?
+
+  @@index([exportedById, createdAt])
+  @@index([charityId, createdAt])
+  @@index([reportType, createdAt])
+}
+
+model ReportExportArtifact {
+  id            String          @id @default(cuid())
+  exportLogId   String          @unique
+  content       String          @db.Text
+  createdAt     DateTime        @default(now())
+
+  exportLog     ReportExportLog @relation(fields: [exportLogId], references: [id], onDelete: Cascade)
+}
+
+enum FinanceAutomationRunType {
+  AUTO_RECONCILIATION
+  PAYOUT_PROVIDER_SYNC
+  HMRC_CLAIM_SYNC
+}
+
+enum FinanceAutomationRunStatus {
+  DRY_RUN
+  EXECUTED
+  FAILED
+}
+
+model FinanceAutomationRun {
+  id           String                    @id @default(cuid())
+  runType      FinanceAutomationRunType
+  status       FinanceAutomationRunStatus
+  requestedById String?
+  summary      String
+  detailsJson  Json?
+  startedAt    DateTime                  @default(now())
+  finishedAt   DateTime?
+
+  requestedBy  User?                     @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+
+  @@index([runType, startedAt])
+  @@index([status, startedAt])
+}
+
+enum UserAccessTokenType {
+  INVITE
+  PASSWORD_SETUP
+  PASSWORD_RESET
+}
+
+enum UserAccessAuditAction {
+  USER_INVITED
+  USER_ROLE_CHANGED
+  USER_SUSPENDED
+  USER_UNSUSPENDED
+  PASSWORD_SETUP_TRIGGERED
+  PASSWORD_RESET_TRIGGERED
+}
+
+model UserAccessToken {
+  id            String              @id @default(cuid())
+  userId        String
+  tokenType     UserAccessTokenType
+  tokenHash     String              @unique
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdById   String?
+  createdAt     DateTime            @default(now())
+
+  user          User                @relation("AccessTokenTargetUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy     User?               @relation("AccessTokenActorUser", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([userId, tokenType, createdAt])
+  @@index([expiresAt, usedAt])
+}
+
+model UserAccessAuditLog {
+  id            String               @id @default(cuid())
+  actorUserId   String
+  targetUserId  String
+  action        UserAccessAuditAction
+  reason        String?              @db.Text
+  beforeJson    Json?
+  afterJson     Json?
+  createdAt     DateTime             @default(now())
+
+  actorUser     User                 @relation("AccessAuditActorUser", fields: [actorUserId], references: [id], onDelete: Cascade)
+  targetUser    User                 @relation("AccessAuditTargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([actorUserId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([action, createdAt])
 }

@@ -254,6 +254,29 @@ Access rules:
 - hidden, banned, rejected, suspended, draft, and pending-approval pages do not render publicly
 - middleware now reserves `/fundraise/new` for future authenticated creation, while `/fundraise/[shortName]` stays public
 
+## Public appeal leaderboard layer
+
+Implementation:
+
+- `src/app/(public)/appeals/[slug]/page.tsx`
+- `src/lib/leaderboards.ts`
+
+Current behavior:
+
+- each appeal page now includes a fundraiser leaderboard ranked by total raised
+- where teams exist, the same page includes team standings and top fundraiser pages per team
+- totals combine successful online donations with approved offline donations
+- period filters are available for `30d`, `90d`, and `all-time`
+- tied totals render as `Tied #N` for clearer ranking context
+- empty-state handling keeps the page usable when no fundraiser/team data exists yet
+- full ranking drill-down is available at `/appeals/[slug]/leaderboard`
+
+Aggregation rules:
+
+- online totals use `Donation.status = CAPTURED`
+- offline totals use `OfflineDonation.status = APPROVED`
+- donor count is a practical record count proxy (online donation rows + approved offline rows)
+
 ## Fundraiser creation and editing
 
 Implementation:

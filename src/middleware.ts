@@ -24,6 +24,12 @@ export async function middleware(req: NextRequest) {
     );
   }
 
+  if ((token as { suspended?: boolean }).suspended) {
+    return NextResponse.redirect(
+      new URL(`/auth/signin?error=AccountSuspended&callbackUrl=${encodeURIComponent(pathname)}`, req.url)
+    );
+  }
+
   return NextResponse.next();
 }
 

@@ -47,7 +47,7 @@ export const authOptions: NextAuthOptions = {
             where: { email },
           });
 
-          if (!user || !verifyPassword(password, user.passwordHash)) {
+          if (!user || user.suspendedAt || !verifyPassword(password, user.passwordHash)) {
             return null;
           }
 
@@ -69,6 +69,23 @@ export const authOptions: NextAuthOptions = {
         : []),
     ],
   callbacks: {
+    async signIn({ user }) {
+      const email = user?.email?.trim().toLowerCase();
+      if (!email) {
+        return false;
+      }
+
+      const dbUser = await db.user.findUnique({
+        where: { email },
+        select: { suspendedAt: true },
+      });
+
+      if (dbUser?.suspendedAt) {
+        return false;
+      }
+
+      return true;
+    },
     async jwt({ token, user }: { token: JWT; user?: any }) {
       if (user) {
         token.role = normalizeRole(user.role);
@@ -79,12 +96,13 @@ export const authOptions: NextAuthOptions = {
       if (token.email) {
         const dbUser = await db.user.findUnique({
           where: { email: token.email.toLowerCase() },
-          select: { id: true, role: true },
+          select: { id: true, role: true, suspendedAt: true },
         });
 
         if (dbUser) {
           token.id = dbUser.id;
           token.role = normalizeRole(dbUser.role);
+          token.suspended = Boolean(dbUser.suspendedAt);
         }
       }
 
@@ -94,6 +112,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = normalizeRole(token.role);
+        (session.user as any).suspended = Boolean((token as any).suspended);
       }
       return session;
     },
@@ -105,5 +124,26 @@ export async function auth() {
   if (!authSecret) {
     return null;
   }
-  return getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return session;
+  }
+
+  const userId = (session.user as { id?: string } | undefined)?.id;
+  if (!userId) {
+    return session;
+  }
+
+  const dbUser = await db.user.findUnique({
+    where: { id: userId },
+    select: { role: true, suspendedAt: true },
+  });
+
+  if (!dbUser || dbUser.suspendedAt) {
+    return null;
+  }
+
+  (session.user as any).role = normalizeRole(dbUser.role);
+  (session.user as any).suspended = false;
+  return session;
 }
