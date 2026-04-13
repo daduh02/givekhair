@@ -125,7 +125,7 @@ This file tracks the current delivery state of the product against the working g
 - `Not started` GL export and finance CSV exports per accounting structure
 - `Not started` Gift Aid claim queue, submission, and paid-state workflow
 - `Not started` Team leaderboards
-- `Partial` Charity directory exists, but rich public charity profiles are still missing
+- `Done` Public charity directory now links into rich public charity profile pages
 - `Not started` Reporting center with downloadable exports
 - `Not started` Risk scoring, hold states, and moderation logs
 - `Not started` DSAR/governance workflows
@@ -209,8 +209,8 @@ This file tracks the current delivery state of the product against the working g
 
 ## Immediate Next Recommendations
 
-1. Build `Fundraising page public route + page management UI` because it is still the biggest missing public product promise after the homepage refresh.
-2. Build `Public charity profile pages` so `/charities` becomes a real trust and discovery surface rather than a directory placeholder.
-3. Build `Payouts + Gift Aid workflows` after the public fundraising surface is complete.
-4. Build `Reports and exports` so charities can actually use the data they are entering.
-5. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
+1. Build `Reports and exports` so charity teams can actually extract and use the data they are entering.
+2. Build `Payouts + Gift Aid workflows` after the public fundraising surface is now in place.
+3. Build `Richer fundraiser self-serve tools` such as updates, media management, and moderation-state messaging.
+4. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
+5. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.

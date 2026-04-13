@@ -32,7 +32,6 @@ Prioritise slices that:
 
 ### Remaining in this phase
 
-- Rich public charity profile pages
 - Live payment-provider checkout beyond the hosted test flow
 - Better admin charity resolution and switching for platform admins
 
@@ -74,36 +73,36 @@ This is the shortest path to matching the operational needs in the spec for real
 
 ## Candidate next tickets
 
-### Ticket 1: Public charity profiles
-
-- Add a public charity detail route
-- Show charity verification, story, active appeals, and trust/support information
-- Reuse the public shell and shared section/card components
-
-### Ticket 2: Reports and exports
+### Ticket 1: Reports and exports
 
 - Replace `/admin/reports` placeholder
 - Add donations, offline, Gift Aid, and payout export actions
 - Add charity-scoped filters and export history
 
-### Ticket 3: Finance workflows
+### Ticket 2: Finance workflows
 
 - Build payout batches and history
 - Build Gift Aid claim queue
 - Add finance summaries and reconciliation hooks
 
-### Ticket 4: Richer fundraiser self-serve tools
+### Ticket 3: Richer fundraiser self-serve tools
 
 - Add media management
 - Add fundraiser-authored updates publishing
 - Add status messaging for pending/rejected pages
 - Add lightweight fundraiser analytics
 
-### Ticket 5: Refunds and disputes
+### Ticket 4: Refunds and disputes
 
 - Add refund records and admin actions from the donations workflow
 - Add dispute ingestion and case visibility
 - Show reversal/recovery state alongside donation status
+
+### Ticket 5: Team analytics and leaderboards
+
+- Build team-level public and admin summaries
+- Add ranking/leaderboard views for appeals and teams
+- Show clearer combined totals across pages, teams, and appeals
 
 ## What to keep updating
 

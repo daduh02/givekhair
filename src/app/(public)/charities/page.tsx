@@ -1,54 +1,49 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { db } from "@/lib/db";
 import { SectionIntro } from "@/components/ui/SectionIntro";
 import { TrustChip } from "@/components/ui/TrustChip";
+import { CharityDirectoryCard } from "@/components/charity/CharityDirectoryCard";
+import { getPublicCharityDirectory } from "@/lib/public-charities";
 
-export const metadata: Metadata = { title: "Charities" };
+export const metadata: Metadata = {
+  title: "Charities",
+  description: "Browse public GiveKhair charity profiles with verification cues, active appeals, and live trust signals.",
+};
 
 export default async function CharitiesPage() {
-  const charities = await db.charity.findMany({
-    where: { status: "ACTIVE" },
-    orderBy: { createdAt: "desc" },
-    take: 12,
-    include: { _count: { select: { appeals: true } } },
-  });
+  const charities = await getPublicCharityDirectory();
+  const verifiedCount = charities.filter((charity) => charity.isVerified).length;
 
   return (
-    <main className="section-shell">
-      <div className="site-shell">
-        <SectionIntro
-          eyebrow="Charity directory"
-          title="Explore verified charities building trust before the ask"
-          description="This public directory is still early, but the goal is clear: each charity profile should make governance, purpose, and active appeals easy to understand."
-        />
+    <main>
+      <section className="section-shell">
+        <div className="site-shell">
+          <div className="hero-frame px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+            <TrustChip tone="gold">Public charity profiles</TrustChip>
 
-        <div className="mt-10 grid gap-5 lg:grid-cols-3">
-          {charities.map((charity) => (
-            <article key={charity.id} className="surface-card p-7">
-              <div className="flex flex-wrap gap-2">
-                <TrustChip>{charity.defaultCurrency}</TrustChip>
-                {charity.isVerified ? <TrustChip tone="gold">Verified</TrustChip> : null}
-              </div>
-              <h2 className="mt-5 text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">{charity.name}</h2>
-              <p className="mt-4 text-sm leading-7 text-[color:var(--color-ink-soft)]">
-                {charity.shortDescription || "This charity profile is being expanded with more public-facing trust and impact details."}
-              </p>
-              <p className="mt-5 text-sm font-semibold text-[color:var(--color-ink-muted)]">
-                {charity._count.appeals} active or draft appeals
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link href={`/?q=${encodeURIComponent(charity.name)}`} className="btn-secondary">View related appeals</Link>
-                {charity.websiteUrl ? (
-                  <a href={charity.websiteUrl} target="_blank" rel="noreferrer" className="btn-ghost">
-                    Visit website
-                  </a>
-                ) : null}
-              </div>
-            </article>
-          ))}
+            <SectionIntro
+              eyebrow="Charity directory"
+              title="Explore charities with stronger public trust signals"
+              description="Each profile is designed to help donors understand who the charity is, what it is fundraising for, and whether the public campaign surface feels credible before they ever reach checkout."
+              actions={
+                <>
+                  <span className="trust-chip bg-white text-[color:var(--color-ink-soft)]">{charities.length} listed charities</span>
+                  <span className="trust-chip bg-white text-[color:var(--color-ink-soft)]">{verifiedCount} verified</span>
+                </>
+              }
+            />
+          </div>
         </div>
-      </div>
+      </section>
+
+      <section className="section-shell-tight section-sandband">
+        <div className="site-shell">
+          <div className="grid gap-5 lg:grid-cols-3">
+            {charities.map((charity) => (
+              <CharityDirectoryCard key={charity.id} charity={charity} />
+            ))}
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

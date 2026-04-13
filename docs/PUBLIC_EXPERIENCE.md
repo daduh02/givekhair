@@ -160,6 +160,7 @@ The donation widget was restyled to match the premium public shell while preserv
 - `/appeals/[slug]`
 - `/fundraise/[shortName]`
 - `/charities`
+- `/charities/[slug]`
 - `/how-it-works`
 - `/zakat-gift-aid`
 
@@ -258,6 +259,23 @@ Current behavior:
 - short name and target validation are enforced server-side
 - new pages are created as `PENDING_APPROVAL` and `UNLISTED`
 - page edits are restricted to the page owner or platform admin
+
+## Public charity directory and profiles
+
+Implementation:
+
+- `src/app/(public)/charities/page.tsx`
+- `src/app/(public)/charities/[slug]/page.tsx`
+- `src/components/charity/CharityDirectoryCard.tsx`
+- `src/lib/public-charities.ts`
+
+Current behavior:
+
+- `/charities` now works as a richer discovery directory instead of a placeholder
+- directory cards show verification, raised totals, fundraiser counts, and active appeal previews
+- clicking a card opens `/charities/[slug]`
+- the public charity profile shows trust and registration context, raised totals, live appeal inventory, and recent fundraiser pages
+- active appeals on the profile reuse the same appeal-card presentation used elsewhere in the public experience
 - dashboard surfaces the user’s fundraiser pages with create/edit links
 
 ## Extension guidance

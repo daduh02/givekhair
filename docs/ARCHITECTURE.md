@@ -146,6 +146,13 @@ The public site now has a dedicated token layer and reusable component classes i
 5. Fundraiser page approval, rejection, hide, and ban actions are coordinated from the appeal admin route
 6. `/admin/moderation` provides a queue view across moderation record types
 
+### Public charity discovery flow
+
+1. `/charities` now acts as a real discovery directory rather than a placeholder listing
+2. Directory cards combine profile data, live raised totals, fundraiser counts, and active appeal previews
+3. `/charities/[slug]` provides a dedicated public charity profile with trust context, summary metrics, recent fundraiser pages, and active appeals
+4. Charity discovery and profile pages both reuse the shared public shell and card primitives
+
 ### Offline donations flow
 
 1. Admin visits `/admin/offline`
@@ -197,31 +204,27 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 
 ## Known architectural gaps
 
-### 1. Public charity profiles are still shallow
-
-The public directory exists, but individual charity profile pages and richer trust/impact storytelling are not yet implemented.
-
-### 2. Fundraiser self-serve tooling is still shallow
+### 1. Fundraiser self-serve tooling is still shallow
 
 The core create/edit routes now exist, but richer tools such as media management, update publishing, analytics, and moderation-state messaging still need to be layered on top.
 
-### 3. Admin workflows are still uneven
+### 2. Admin workflows are still uneven
 
 `Charities`, `Appeals`, `Moderation`, `Offline donations`, and `Donations` now have real workflows, but payouts, reports, Gift Aid operations, and settings are still mostly placeholders.
 
-### 4. Payments integration is stubbed
+### 3. Payments integration is stubbed
 
 The current donation flow supports an end-to-end hosted test checkout lifecycle, but a live payment provider still needs to replace the stubbed checkout session creation.
 
-### 5. Background jobs are modeled but not operational
+### 4. Background jobs are modeled but not operational
 
 Queues exist conceptually, but operational workers and async processing flows are not yet part of the delivered app behavior.
 
-### 6. Finance reconciliation exists more in schema than in workflows
+### 5. Finance reconciliation exists more in schema than in workflows
 
 The ledger and payout models are present, but finance operations still need real end-user surfaces and automated processing.
 
-### 7. Offline ingestion is functional but not yet complete
+### 6. Offline ingestion is functional but not yet complete
 
 The platform can now validate and import offline donations, but downloadable batch reports, richer audit tooling, and broader totals/reconciliation visibility still need to be added.
 
