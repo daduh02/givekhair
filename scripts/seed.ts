@@ -126,6 +126,75 @@ async function main() {
   });
   console.log("  ✓ Charities");
 
+  // ── Commercial plans & contracts foundation ────────────────────────────────
+  const starterPlan = await db.commercialPlan.upsert({
+    where: { slug: "starter-charity" },
+    update: {
+      name: "Starter charity",
+      description: "Entry plan for charities onboarding to GiveKhair with the default public fundraising stack.",
+      fundraisingModel: "CHARITY",
+      billingInterval: "MONTHLY",
+      platformFlatFee: "0.00",
+      status: "ACTIVE",
+      featureSummary: {
+        donor_cover_fees: true,
+        public_charity_profile: true,
+        fundraiser_pages: true,
+      },
+    },
+    create: {
+      name: "Starter charity",
+      slug: "starter-charity",
+      description: "Entry plan for charities onboarding to GiveKhair with the default public fundraising stack.",
+      fundraisingModel: "CHARITY",
+      billingInterval: "MONTHLY",
+      platformFlatFee: "0.00",
+      status: "ACTIVE",
+      featureSummary: {
+        donor_cover_fees: true,
+        public_charity_profile: true,
+        fundraiser_pages: true,
+      },
+    },
+  });
+
+  const growthPlan = await db.commercialPlan.upsert({
+    where: { slug: "growth-charity" },
+    update: {
+      name: "Growth charity",
+      description: "Operational plan for charities needing reporting, admin oversight, and managed fundraising growth.",
+      fundraisingModel: "CHARITY",
+      billingInterval: "MONTHLY",
+      platformFlatFee: "149.00",
+      status: "ACTIVE",
+      featureSummary: {
+        reporting_exports: true,
+        moderation_queue: true,
+        charity_contracts: true,
+      },
+    },
+    create: {
+      name: "Growth charity",
+      slug: "growth-charity",
+      description: "Operational plan for charities needing reporting, admin oversight, and managed fundraising growth.",
+      fundraisingModel: "CHARITY",
+      billingInterval: "MONTHLY",
+      platformFlatFee: "149.00",
+      status: "ACTIVE",
+      featureSummary: {
+        reporting_exports: true,
+        moderation_queue: true,
+        charity_contracts: true,
+      },
+    },
+  });
+
+  await db.feeSchedule.update({
+    where: { id: schedule.id },
+    data: { commercialPlanId: starterPlan.id },
+  });
+  console.log("  ✓ Commercial plans");
+
   // ── Users ───────────────────────────────────────────────────────────────────
   const adminUser = await db.user.upsert({
     where: { email: "admin@givekhair.dev" },
@@ -183,6 +252,69 @@ async function main() {
     create: { userId: charityAdmin.id, charityId: islamicRelief.id },
   });
   console.log("  ✓ Users");
+
+  const islamicReliefContract = await db.charityContract.upsert({
+    where: { id: "contract-islamic-relief-2026" },
+    update: {
+      charityId: islamicRelief.id,
+      commercialPlanId: growthPlan.id,
+      feeScheduleId: schedule.id,
+      status: "ACTIVE",
+      effectiveFrom: new Date("2026-01-01"),
+      effectiveTo: new Date("2026-12-31"),
+      signedAt: new Date("2026-01-03"),
+      signedByName: "Platform Admin",
+      signedByEmail: "admin@givekhair.dev",
+      termsVersion: "2026.1",
+      payoutTerms: "Monthly payouts in GBP, subject to compliance review and operational holds.",
+      reservePolicy: "No rolling reserve in the starter contract baseline unless risk review changes the account state.",
+      autoRenew: true,
+      notes: "Seeded commercial contract for admin/testing flows.",
+    },
+    create: {
+      id: "contract-islamic-relief-2026",
+      charityId: islamicRelief.id,
+      commercialPlanId: growthPlan.id,
+      feeScheduleId: schedule.id,
+      status: "ACTIVE",
+      effectiveFrom: new Date("2026-01-01"),
+      effectiveTo: new Date("2026-12-31"),
+      signedAt: new Date("2026-01-03"),
+      signedByName: "Platform Admin",
+      signedByEmail: "admin@givekhair.dev",
+      termsVersion: "2026.1",
+      payoutTerms: "Monthly payouts in GBP, subject to compliance review and operational holds.",
+      reservePolicy: "No rolling reserve in the starter contract baseline unless risk review changes the account state.",
+      autoRenew: true,
+      notes: "Seeded commercial contract for admin/testing flows.",
+    },
+  });
+
+  await db.termsAcceptance.upsert({
+    where: { id: "terms-islamic-relief-platform-2026-1" },
+    update: {
+      contractId: islamicReliefContract.id,
+      charityId: islamicRelief.id,
+      documentType: "PLATFORM_TERMS",
+      version: "2026.1",
+      acceptedByName: "Platform Admin",
+      acceptedByEmail: "admin@givekhair.dev",
+      acceptedAt: new Date("2026-01-03"),
+      notes: "Seeded acceptance for baseline contract setup.",
+    },
+    create: {
+      id: "terms-islamic-relief-platform-2026-1",
+      contractId: islamicReliefContract.id,
+      charityId: islamicRelief.id,
+      documentType: "PLATFORM_TERMS",
+      version: "2026.1",
+      acceptedByName: "Platform Admin",
+      acceptedByEmail: "admin@givekhair.dev",
+      acceptedAt: new Date("2026-01-03"),
+      notes: "Seeded acceptance for baseline contract setup.",
+    },
+  });
+  console.log("  ✓ Contracts foundation");
 
   // ── Bank account ────────────────────────────────────────────────────────────
   const bankAccount = await db.bankAccount.upsert({

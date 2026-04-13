@@ -34,6 +34,7 @@ Prioritise slices that:
 
 - Live payment-provider checkout beyond the hosted test flow
 - Better admin charity resolution and switching for platform admins
+- Richer fee-rule builder and contract requirements once the commercial model is finalized
 
 ## Phase 2: Charity Operations
 

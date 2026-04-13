@@ -95,8 +95,9 @@ This file tracks the current delivery state of the product against the working g
 ### Fees and finance
 
 - `Partial` Fee engine exists with schedule/rule resolution
+- `Done` Starter admin settings area now stores commercial plans, fee schedules, charity contracts, and terms acceptances
 - `Partial` Ledger helper code exists
-- `Partial` Finance UI is mostly placeholder pages
+- `Partial` Finance UI is still incomplete, but fees/contracts now have a real foundation
 
 ### Gift Aid
 
@@ -167,7 +168,7 @@ This file tracks the current delivery state of the product against the working g
 ### 5.5 Fee & Pricing Model
 
 - `Partial` fee schedule + runtime preview
-- `Not started` admin fee configuration UX
+- `Partial` starter admin fee configuration UX now exists in `/admin/settings`
 
 ### 5.6 Bank Accounts & Payouts
 

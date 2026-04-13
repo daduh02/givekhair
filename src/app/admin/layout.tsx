@@ -15,7 +15,7 @@ const NAV = [
   { href: "/admin/gift-aid", label: "Gift Aid",         icon: "🎁" },
   { href: "/admin/offline",  label: "Offline uploads",  icon: "📋" },
   { href: "/admin/reports",  label: "Reports",          icon: "📊" },
-  { href: "/admin/settings", label: "Settings",         icon: "⚙️"  },
+  { href: "/admin/settings", label: "Fees & contracts", icon: "⚙️"  },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

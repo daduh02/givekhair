@@ -105,6 +105,7 @@ export function revalidateAdminSurfaces(extraPaths: string[] = []) {
     "/admin/appeals",
     "/admin/charities",
     "/admin/moderation",
+    "/admin/settings",
     ...extraPaths,
   ];
 

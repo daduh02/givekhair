@@ -113,6 +113,8 @@ model Charity {
   payoutBatches   PayoutBatch[]
   giftAidClaims   GiftAidClaim[]
   feeSchedules    FeeSchedule[]
+  contracts       CharityContract[]
+  termsAcceptances TermsAcceptance[]
   moderationItems ModerationItem[]
 }
 
@@ -362,6 +364,7 @@ enum FeeRuleType {
 model FeeSchedule {
   id          String   @id @default(cuid())
   charityId   String?  // null = platform default
+  commercialPlanId String?
   version     Int
   name        String
   isActive    Boolean  @default(false)
@@ -369,9 +372,11 @@ model FeeSchedule {
   validTo     DateTime?
   createdAt   DateTime @default(now())
 
-  charity  Charity?   @relation(fields: [charityId], references: [id])
-  rules    FeeRule[]
-  feeSets  FeeSet[]
+  charity         Charity?        @relation(fields: [charityId], references: [id])
+  commercialPlan  CommercialPlan? @relation(fields: [commercialPlanId], references: [id])
+  rules           FeeRule[]
+  feeSets         FeeSet[]
+  contracts       CharityContract[]
 }
 
 model FeeRule {
@@ -410,6 +415,94 @@ model FeeSet {
 
   schedule FeeSchedule @relation(fields: [scheduleId], references: [id])
   donation Donation?   @relation(fields: [donationId], references: [id])
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+  CUSTOM
+}
+
+enum CommercialPlanStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+  TERMINATED
+}
+
+enum TermsDocumentType {
+  MASTER_SERVICE_AGREEMENT
+  FEE_SCHEDULE
+  DATA_PROCESSING
+  FUNDRAISING_RULES
+  GIFT_AID_TERMS
+  PLATFORM_TERMS
+}
+
+model CommercialPlan {
+  id                   String               @id @default(cuid())
+  name                 String
+  slug                 String               @unique
+  description          String?              @db.Text
+  fundraisingModel     FundrasingModel?
+  billingInterval      BillingInterval      @default(MONTHLY)
+  platformFlatFee      Decimal?             @db.Decimal(10, 2)
+  platformFlatFeeCurrency String            @default("GBP")
+  featureSummary       Json?
+  status               CommercialPlanStatus @default(DRAFT)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  feeSchedules         FeeSchedule[]
+  contracts            CharityContract[]
+}
+
+model CharityContract {
+  id               String         @id @default(cuid())
+  charityId        String
+  commercialPlanId String
+  feeScheduleId    String?
+  status           ContractStatus @default(DRAFT)
+  effectiveFrom    DateTime
+  effectiveTo      DateTime?
+  signedAt         DateTime?
+  signedByName     String?
+  signedByEmail    String?
+  termsVersion     String
+  payoutTerms      String?        @db.Text
+  reservePolicy    String?        @db.Text
+  autoRenew        Boolean        @default(false)
+  notes            String?        @db.Text
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  charity          Charity        @relation(fields: [charityId], references: [id])
+  commercialPlan   CommercialPlan @relation(fields: [commercialPlanId], references: [id])
+  feeSchedule      FeeSchedule?   @relation(fields: [feeScheduleId], references: [id])
+  acceptances      TermsAcceptance[]
+}
+
+model TermsAcceptance {
+  id               String            @id @default(cuid())
+  contractId       String?
+  charityId        String
+  documentType     TermsDocumentType
+  version          String
+  acceptedByName   String?
+  acceptedByEmail  String?
+  acceptedAt       DateTime          @default(now())
+  notes            String?           @db.Text
+
+  contract         CharityContract?  @relation(fields: [contractId], references: [id])
+  charity          Charity           @relation(fields: [charityId], references: [id])
 }
 
 // ─────────────────────────────────────────────

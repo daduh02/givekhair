@@ -75,6 +75,7 @@ npm run dev
 | `/zakat-gift-aid` | Public giving guidance page |
 | `/fundraise/[shortName]` | Planned fundraising page route |
 | `/admin` | Charity admin dashboard |
+| `/admin/settings` | Fees, plans, and contracts foundation |
 | `/admin/payouts` | Payout management |
 | `/admin/gift-aid` | Gift Aid claims |
 | `/api/trpc/[trpc]` | tRPC endpoint |

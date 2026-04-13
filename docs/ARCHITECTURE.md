@@ -202,6 +202,14 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 3. The screen exposes donation status, fee coverage, Gift Aid state, recurring flag, provider refs, and receipt state
 4. Pending donations can be opened in the hosted test checkout route to complete or fail the payment loop manually
 
+### Fees and contracts flow
+
+1. `/admin/settings` now acts as the starter commercial control surface
+2. Commercial plans classify the package a charity is on
+3. Fee schedules remain the pricing input used by the fee engine, but can now optionally link to a commercial plan
+4. Charity contracts link charities to plans and optional schedules, while preserving term dates and operational notes
+5. Terms acceptances are stored separately so legal version history can grow without mutating the contract record
+
 ## Known architectural gaps
 
 ### 1. Fundraiser self-serve tooling is still shallow
@@ -210,7 +218,7 @@ The core create/edit routes now exist, but richer tools such as media management
 
 ### 2. Admin workflows are still uneven
 
-`Charities`, `Appeals`, `Moderation`, `Offline donations`, and `Donations` now have real workflows, but payouts, reports, Gift Aid operations, and settings are still mostly placeholders.
+`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, and starter `Fees & contracts` now have real workflows, but payouts, reports, and Gift Aid operations are still mostly placeholders.
 
 ### 3. Payments integration is stubbed
 
