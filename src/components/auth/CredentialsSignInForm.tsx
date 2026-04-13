@@ -43,70 +43,40 @@ export function CredentialsSignInForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div style={{ display: "grid", gap: "0.75rem" }}>
-        <label style={{ textAlign: "left" }}>
-          <span style={{ display: "block", marginBottom: "0.35rem", fontSize: "0.8rem", color: "#3A4A42" }}>Email</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            autoComplete="email"
-            style={{
-              width: "100%",
-              borderRadius: "12px",
-              border: "1px solid rgba(18,78,64,0.16)",
-              padding: "12px 14px",
-              fontSize: "0.9rem",
-              color: "#233029",
-            }}
-          />
-        </label>
+    <form onSubmit={handleSubmit} className="grid gap-4">
+      {/* Label and field stay grouped so auth validation states remain easy to
+          extend later without hunting through disconnected markup. */}
+      <label className="grid gap-2 text-left">
+        <span className="text-sm font-semibold text-[color:var(--color-ink-soft)]">Email</span>
+        <input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          autoComplete="email"
+          className="input"
+        />
+      </label>
 
-        <label style={{ textAlign: "left" }}>
-          <span style={{ display: "block", marginBottom: "0.35rem", fontSize: "0.8rem", color: "#3A4A42" }}>Password</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            autoComplete="current-password"
-            style={{
-              width: "100%",
-              borderRadius: "12px",
-              border: "1px solid rgba(18,78,64,0.16)",
-              padding: "12px 14px",
-              fontSize: "0.9rem",
-              color: "#233029",
-            }}
-          />
-        </label>
-      </div>
+      <label className="grid gap-2 text-left">
+        <span className="text-sm font-semibold text-[color:var(--color-ink-soft)]">Password</span>
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+          autoComplete="current-password"
+          className="input"
+        />
+      </label>
 
-      {error && (
-        <div style={{ marginTop: "0.9rem", padding: "10px", borderRadius: "8px", background: "#FEE2E2", color: "#991B1B", fontSize: "0.8rem" }}>
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
-      )}
+      ) : null}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        style={{
-          marginTop: "1rem",
-          width: "100%",
-          borderRadius: "12px",
-          border: "none",
-          background: "#124E40",
-          color: "#F6F1E8",
-          padding: "12px 16px",
-          fontSize: "0.9rem",
-          fontWeight: 600,
-          cursor: submitting ? "wait" : "pointer",
-          opacity: submitting ? 0.8 : 1,
-        }}
-      >
+      <button type="submit" disabled={submitting} className="btn-primary mt-2 w-full">
         {submitting ? "Signing in..." : "Sign in with email"}
       </button>
     </form>

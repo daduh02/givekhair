@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Last updated: 2026-04-12
+Last updated: 2026-04-13
 
 This file tracks the current delivery state of the product against the working giveKhair specification.
 
@@ -12,10 +12,11 @@ This file tracks the current delivery state of the product against the working g
 
 ## Current Summary
 
-- Product foundation is in place: auth, core schema, homepage, appeal pages, fee preview, donation intent creation, admin shell, and production deployment flow.
+- Product foundation is in place: auth, core schema, public homepage, appeal pages, fee preview, donation intent creation, admin shell, and production deployment flow.
 - Email/password login and Google login are both now available.
 - Admin and homepage role-aware navigation are working.
 - Charity setup, appeal management, moderation, offline donation operations, and donation management now have real admin workflows.
+- Public-facing routes now use a shared shell with a reusable footer, centralized theme tokens, and cleaner reusable components.
 - Major finance, payout, reporting, reconciliation, refund, and dispute workflows are still incomplete.
 
 ## Completed
@@ -26,6 +27,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Prisma schema covering users, charities, appeals, teams, pages, donations, fees, payouts, Gift Aid, offline donations, ledger entities
 - `Done` Vercel production deployment working on Node 20
 - `Done` Production hardening so public pages do not crash on missing env or transient DB failures
+- `Done` Public route-group layout for shared public navigation and footer
 
 ### Authentication and access
 
@@ -39,12 +41,16 @@ This file tracks the current delivery state of the product against the working g
 
 ### Public fundraising experience
 
-- `Done` Homepage with featured appeals and category filtering
+- `Done` Homepage rewritten around a premium public shell, featured appeal, trust messaging, category pills, and reusable cards
+- `Done` Global public footer applied through shared layout rather than copied into individual pages
+- `Done` Public information architecture for charities, how-it-works, Zakat/Gift Aid, and policy/support placeholder pages
+- `Done` Centralized public theme tokens, button styles, chips, cards, and progress bar patterns
 - `Done` Appeal detail page with totals, teams, fundraiser list, and donation widget on every appeal page
 - `Done` Fee preview in donation widget
 - `Done` Donation intent creation flow in tRPC
 - `Done` Gift Aid capture fields in donation intent flow
 - `Done` Hosted test checkout route and thank-you flow
+- `Done` Sign-in and auth error pages restyled into the same public design system
 
 ### Admin experience
 
@@ -69,7 +75,7 @@ This file tracks the current delivery state of the product against the working g
 
 - `Partial` Page data model exists
 - `Partial` Page create and update tRPC mutations exist
-- `Partial` Public page detail rendering exists for appeals, but the dedicated `/fundraise/[shortName]` experience is still missing
+- `Partial` Public page detail rendering exists for appeals, but the dedicated `/fundraise/[shortName]` fundraiser experience is still missing
 
 ### Donations
 
@@ -113,7 +119,7 @@ This file tracks the current delivery state of the product against the working g
 - `Not started` GL export and finance CSV exports per accounting structure
 - `Not started` Gift Aid claim queue, submission, and paid-state workflow
 - `Not started` Team leaderboards
-- `Not started` Charity directory and richer public charity profiles
+- `Partial` Charity directory exists, but rich public charity profiles are still missing
 - `Not started` Reporting center with downloadable exports
 - `Not started` Risk scoring, hold states, and moderation logs
 - `Not started` DSAR/governance workflows
@@ -143,6 +149,7 @@ This file tracks the current delivery state of the product against the working g
 - `Partial` schema and mutations
 - `Partial` moderation controls exist in admin appeal flows
 - `Not started` dedicated fundraiser page management UI
+- `Not started` dedicated public fundraiser page route and public fundraising story/update experience
 
 ### 5.4 Donations
 
@@ -175,6 +182,7 @@ This file tracks the current delivery state of the product against the working g
 ### 5.9 Risk, Trust & Moderation
 
 - `Partial` moderation queue and page status controls
+- `Partial` public trust messaging and compliance cues now exist in the marketing surface
 - `Not started` risk scoring, hold states, and immutable moderation log workflow
 
 ### 5.10 Offline Donations & Teams
@@ -195,7 +203,8 @@ This file tracks the current delivery state of the product against the working g
 
 ## Immediate Next Recommendations
 
-1. Build `Fundraising page public route + page management UI` because it is a core product promise already referenced by the schema and homepage.
-2. Build `Payouts + Gift Aid workflows` after the above operational flows are stable.
-3. Build `Reports and exports` so charities can actually use the data they are entering.
-4. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
+1. Build `Fundraising page public route + page management UI` because it is still the biggest missing public product promise after the homepage refresh.
+2. Build `Public charity profile pages` so `/charities` becomes a real trust and discovery surface rather than a directory placeholder.
+3. Build `Payouts + Gift Aid workflows` after the public fundraising surface is complete.
+4. Build `Reports and exports` so charities can actually use the data they are entering.
+5. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.

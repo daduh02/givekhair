@@ -1,15 +1,25 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+// The public refresh leans on a warmer editorial serif for emphasis while keeping
+// a clear sans-serif for application text and forms.
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-serif",
+});
 
 export const metadata: Metadata = {
-  title: { template: "%s | giveKhair", default: "giveKhair — Give charity, give khair" },
-  description: "Peer-to-peer fundraising for the causes you care about. Gift Aid eligible, fee transparent.",
+  title: { template: "%s | GiveKhair", default: "GiveKhair — Every act of Khair is an act of care." },
+  description: "A trust-first charity fundraising platform with verified charities, Gift Aid support, and fee-transparent giving.",
   openGraph: {
     type: "website",
-    siteName: "giveKhair",
+    siteName: "GiveKhair",
   },
 };
 
@@ -20,7 +30,7 @@ export default async function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${plusJakartaSans.variable} ${fraunces.variable} font-sans`}>
         {children}
       </body>
     </html>

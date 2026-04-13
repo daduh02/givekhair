@@ -1,5 +1,7 @@
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { TrustChip } from "@/components/ui/TrustChip";
 
 export interface AppealCardAppeal {
   id: string;
@@ -16,7 +18,7 @@ export interface AppealCardAppeal {
   _count?: { fundraisingPages: number };
 }
 
-interface Props {
+interface AppealCardProps {
   appeal: AppealCardAppeal;
   raisedAmount?: number;
 }
@@ -25,50 +27,55 @@ function formatCurrency(amount: number, currency = "GBP") {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
 }
 
-export function AppealCard({ appeal, raisedAmount = 0 }: Props) {
+export function AppealCard({ appeal, raisedAmount = 0 }: AppealCardProps) {
   const goal = typeof appeal.goalAmount === "string" ? parseFloat(appeal.goalAmount) : appeal.goalAmount;
-  const pct = goal > 0 ? Math.min(Math.round((raisedAmount / goal) * 100), 100) : 0;
+  const progress = goal > 0 ? Math.min(Math.round((raisedAmount / goal) * 100), 100) : 0;
 
   return (
     <Link
       href={`/appeals/${appeal.slug}`}
-      className="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:border-green-300 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-green-500"
+      className="group surface-card flex h-full flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-1"
     >
-      {/* Banner */}
-      <div className="relative h-36 bg-green-100">
+      <div className="relative h-52 w-full overflow-hidden">
         {appeal.bannerUrl ? (
-          <Image src={appeal.bannerUrl} alt={appeal.title} fill className="object-cover" />
+          <Image src={appeal.bannerUrl} alt={appeal.title} fill className="object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
         ) : (
-          <div className="flex h-full items-center justify-center text-3xl">🌿</div>
-        )}
-        {appeal.charity.isVerified && (
-          <span className="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-green-700">
-            ✓ Verified
-          </span>
+          <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,rgba(204,251,241,0.9),rgba(248,245,239,0.98))] text-6xl">
+            🌿
+          </div>
         )}
       </div>
 
-      {/* Body */}
-      <div className="flex flex-1 flex-col p-4">
-        <p className="mb-1 text-xs text-gray-500">{appeal.charity.name}</p>
-        <h3 className="mb-3 flex-1 text-sm font-medium text-gray-900 group-hover:text-green-700 line-clamp-2">
+      <div className="flex flex-1 flex-col p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          {appeal.charity.isVerified ? <TrustChip tone="gold">Verified</TrustChip> : null}
+          {appeal._count ? <TrustChip>{appeal._count.fundraisingPages} pages</TrustChip> : null}
+        </div>
+
+        <h3 className="mt-4 text-2xl font-bold tracking-[-0.04em] text-[color:var(--color-ink)] transition-colors group-hover:text-[color:var(--color-primary-dark)]">
           {appeal.title}
         </h3>
+        <p className="mt-2 text-sm font-semibold text-[color:var(--color-ink-muted)]">{appeal.charity.name}</p>
 
-        {/* Progress */}
-        <div className="progress-bar mb-1.5">
-          <div className="progress-fill" style={{ width: `${pct}%` }} />
-        </div>
-        <div className="flex items-baseline justify-between text-xs">
-          <span className="font-medium text-green-700">{formatCurrency(raisedAmount, appeal.currency)}</span>
-          <span className="text-gray-400">{pct}% of {formatCurrency(goal, appeal.currency)}</span>
+        <div className="mt-6">
+          <ProgressBar value={progress} />
         </div>
 
-        {appeal._count && (
-          <p className="mt-2 text-xs text-gray-400">
-            {appeal._count.fundraisingPages} fundraiser{appeal._count.fundraisingPages !== 1 ? "s" : ""}
-          </p>
-        )}
+        <div className="mt-4 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-2xl font-bold tracking-[-0.04em] text-[color:var(--color-primary-dark)]">
+              {formatCurrency(raisedAmount, appeal.currency)}
+            </p>
+            <p className="mt-1 text-sm text-[color:var(--color-ink-muted)]">
+              of {formatCurrency(goal, appeal.currency)}
+            </p>
+          </div>
+          <p className="text-sm font-semibold text-[color:var(--color-ink-soft)]">{progress}%</p>
+        </div>
+
+        <div className="mt-6">
+          <span className="btn-primary w-full">Donate now</span>
+        </div>
       </div>
     </Link>
   );

@@ -9,18 +9,18 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          bg:      "#F6F1E8",
-          dark:    "#124E40",
-          DEFAULT: "#1E8C6E",
-          light:   "#D4EDE5",
-          text:    "#233029",
-          muted:   "#3A4A42",
-          gold:    "#D4A24C",
+          sand: "#F8F5EF",
+          primary: "#0F766E",
+          primaryDark: "#115E59",
+          primarySoft: "#CCFBF1",
+          gold: "#D4A017",
+          goldSoft: "#FEF3C7",
+          ink: "#0F172A",
         },
       },
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "sans-serif"],
-        serif: ["ui-serif", "Georgia", "serif"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)", "ui-serif", "Georgia", "serif"],
       },
       borderRadius: {
         xl:  "1rem",
@@ -33,4 +33,3 @@ module.exports = {
   },
   plugins: [],
 };
-

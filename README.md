@@ -7,6 +7,7 @@ Peer-to-peer fundraising platform. Gift Aid eligible, fee-transparent, UK-focuse
 - [Documentation Hub](./docs/README.md)
 - [Progress Tracker](./docs/PROGRESS.md)
 - [Architecture](./docs/ARCHITECTURE.md)
+- [Public Experience](./docs/PUBLIC_EXPERIENCE.md)
 - [Implementation Roadmap](./docs/ROADMAP.md)
 
 ## Stack
@@ -67,9 +68,12 @@ npm run dev
 
 | Route | Description |
 |---|---|
-| `/` | Homepage — appeal grid |
+| `/` | Public homepage — shared shell, featured appeal, trust sections |
 | `/appeals/[slug]` | Appeal detail + donation widget |
-| `/fundraise/[shortName]` | Fundraising page |
+| `/charities` | Public charity directory |
+| `/how-it-works` | Public explainer page |
+| `/zakat-gift-aid` | Public giving guidance page |
+| `/fundraise/[shortName]` | Planned fundraising page route |
 | `/admin` | Charity admin dashboard |
 | `/admin/payouts` | Payout management |
 | `/admin/gift-aid` | Gift Aid claims |
@@ -120,7 +124,7 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 
 1. **Wire Stripe** — add `STRIPE_SECRET_KEY`, implement `createCheckout` in donations router
 2. **Fundraising page UI** — `/fundraise/[shortName]` page component
-3. **Offline donation upload** — CSV bulk upload flow (spec §5.11)
+3. **Public charity profiles** — individual charity detail pages using the new public shell
 4. **Gift Aid claim builder** — BullMQ worker + HMRC submission
 5. **Payout batch processor** — nightly BullMQ job + reconciliation report
 6. **GL export** — CSV download matching spec appendix 16.A format

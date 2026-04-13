@@ -12,12 +12,12 @@ interface Props {
 }
 
 const PRESET_AMOUNTS = [5, 10, 25, 50, 100];
-
+const STEPS = ["amount", "details", "giftaid"] as const;
 const GIFT_AID_MULTIPLIER = 0.25;
 
 export function DonationCheckout({ pageId, charityId, charityName, pageName }: Props) {
   const router = useRouter();
-  const [step, setStep] = useState<"amount" | "details" | "giftaid">("amount");
+  const [step, setStep] = useState<(typeof STEPS)[number]>("amount");
   const [amount, setAmount] = useState<number>(10);
   const [customAmount, setCustomAmount] = useState("");
   const [donorCoversFees, setDonorCoversFees] = useState(true);
@@ -47,13 +47,16 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
     },
   });
 
-  function selectPreset(val: number) {
-    setAmount(val);
+  function selectPreset(value: number) {
+    setAmount(value);
     setCustomAmount("");
   }
 
   async function handleSubmit() {
-    if (effectiveAmount <= 0) return;
+    if (effectiveAmount <= 0) {
+      return;
+    }
+
     await createIntent.mutateAsync({
       pageId,
       amount: effectiveAmount,
@@ -74,293 +77,244 @@ export function DonationCheckout({ pageId, charityId, charityName, pageName }: P
     });
   }
 
-  const giftAidBoost = claimGiftAid
-    ? (effectiveAmount * GIFT_AID_MULTIPLIER).toFixed(2)
-    : null;
+  const giftAidBoost = claimGiftAid ? (effectiveAmount * GIFT_AID_MULTIPLIER).toFixed(2) : null;
 
   return (
-    <div className="card max-w-md w-full mx-auto">
-      {/* Step indicator */}
-      <div className="mb-6 flex items-center gap-1.5">
-        {(["amount", "details", "giftaid"] as const).map((s, i) => (
-          <div
-            key={s}
-            className={`h-1.5 flex-1 rounded-full transition-colors ${
-              step === s
-                ? "bg-green-600"
-                : i < ["amount", "details", "giftaid"].indexOf(step)
-                ? "bg-green-300"
-                : "bg-gray-200"
-            }`}
-          />
-        ))}
+    <div className="surface-card mx-auto w-full max-w-md overflow-hidden p-6 sm:p-7">
+      <div className="mb-6 flex items-center gap-2">
+        {STEPS.map((item, index) => {
+          const activeIndex = STEPS.indexOf(step);
+          const isComplete = index < activeIndex;
+          const isCurrent = item === step;
+
+          return (
+            <div
+              key={item}
+              className="h-2 flex-1 rounded-full"
+              style={{
+                background: isCurrent
+                  ? "var(--color-primary)"
+                  : isComplete
+                    ? "rgba(15, 118, 110, 0.35)"
+                    : "rgba(15, 23, 42, 0.08)",
+              }}
+            />
+          );
+        })}
       </div>
 
-      <p className="mb-1 text-sm text-gray-500">{charityName}</p>
-      <h2 className="mb-5 text-base font-medium text-gray-900">{pageName}</h2>
+      <p className="text-sm font-semibold text-[color:var(--color-ink-muted)]">{charityName}</p>
+      <h2 className="mt-1 text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">{pageName}</h2>
 
-      {/* ── Step 1: Amount ── */}
-      {step === "amount" && (
+      {step === "amount" ? (
         <>
-          <p className="mb-3 text-sm font-medium text-gray-700">Choose an amount</p>
+          <p className="mt-6 text-sm font-semibold text-[color:var(--color-ink-soft)]">Choose an amount</p>
 
-          <div className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {PRESET_AMOUNTS.map((p) => (
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
+            {PRESET_AMOUNTS.map((preset) => (
               <button
-                key={p}
-                onClick={() => selectPreset(p)}
-                className={`rounded-lg border py-2.5 text-sm font-medium transition-colors ${
-                  amount === p && !customAmount
-                    ? "border-green-600 bg-green-50 text-green-800"
-                    : "border-gray-200 text-gray-700 hover:border-green-400"
-                }`}
+                key={preset}
+                type="button"
+                onClick={() => selectPreset(preset)}
+                className="rounded-2xl border px-3 py-3 text-sm font-bold transition-colors"
+                style={{
+                  borderColor: amount === preset && !customAmount ? "rgba(15, 118, 110, 0.5)" : "rgba(15, 23, 42, 0.1)",
+                  background: amount === preset && !customAmount ? "rgba(204, 251, 241, 0.65)" : "rgba(255, 255, 255, 0.85)",
+                  color: amount === preset && !customAmount ? "var(--color-primary-dark)" : "var(--color-ink-soft)",
+                }}
               >
-                £{p}
+                £{preset}
               </button>
             ))}
           </div>
 
           <input
             type="number"
-            placeholder="Other amount"
-            value={customAmount}
-            onChange={(e) => { setCustomAmount(e.target.value); setAmount(0); }}
-            className="input mb-4"
             min="1"
             step="0.01"
+            placeholder="Other amount"
+            value={customAmount}
+            onChange={(event) => {
+              setCustomAmount(event.target.value);
+              setAmount(0);
+            }}
+            className="input mt-4"
             aria-label="Enter a custom donation amount"
           />
 
-          {/* Fee breakdown */}
-          {fees && effectiveAmount > 0 && (
-            <div className="mb-4 rounded-lg bg-gray-50 p-3 text-sm">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-gray-600">Platform fee (1.5%)</span>
-                <span className="text-gray-700">£{fees.platformFeeAmount}</span>
-              </div>
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-gray-600">Processing fee (1.4% + 20p)</span>
-                <span className="text-gray-700">£{fees.processingFeeAmount}</span>
-              </div>
-              <div className="mb-3 flex items-center justify-between font-medium text-green-700">
-                <span>Charity receives</span>
-                <span>£{fees.netToCharity}</span>
-              </div>
+          {feesLoading && effectiveAmount > 0 ? (
+            <div className="mt-5 h-28 animate-pulse rounded-[1.25rem] bg-[rgba(15,23,42,0.05)]" />
+          ) : null}
 
-              {/* Cover fees toggle */}
-              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-3">
-                <div
-                  role="switch"
-                  aria-checked={donorCoversFees}
+          {fees && effectiveAmount > 0 ? (
+            <div className="surface-muted mt-5 p-4">
+              <FeeRow label="Platform fee (1.5%)" value={`£${fees.platformFeeAmount}`} />
+              <FeeRow label="Processing fee (1.4% + 20p)" value={`£${fees.processingFeeAmount}`} />
+              <FeeRow label="Charity receives" value={`£${fees.netToCharity}`} emphasis />
+
+              {/* The fee toggle stays inside the breakdown because it changes every
+                  number around it. Grouping the logic here keeps the mental model obvious. */}
+              <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-[1.2rem] border border-[rgba(15,118,110,0.16)] bg-[rgba(204,251,241,0.45)] p-4">
+                <button
+                  type="button"
                   onClick={() => setDonorCoversFees(!donorCoversFees)}
-                  className={`relative mt-0.5 h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors ${
-                    donorCoversFees ? "bg-green-600" : "bg-gray-300"
-                  }`}
+                  aria-pressed={donorCoversFees}
+                  className="relative mt-1 h-6 w-11 rounded-full"
+                  style={{ background: donorCoversFees ? "var(--color-primary)" : "rgba(15, 23, 42, 0.18)" }}
                 >
                   <span
-                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                      donorCoversFees ? "translate-x-4" : "translate-x-0.5"
-                    }`}
+                    className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow"
+                    style={{ left: donorCoversFees ? "1.35rem" : "0.15rem", transition: "left 0.2s ease" }}
                   />
-                </div>
-                <span className="text-xs text-green-800">
-                  Cover the fees so <strong>{charityName}</strong> receives the full
-                  £{effectiveAmount.toFixed(2)}{" "}
-                  {donorCoversFees && (
-                    <span className="text-gray-500">(you pay £{fees.donorPays})</span>
-                  )}
+                </button>
+                <span className="text-sm leading-6 text-[color:var(--color-primary-dark)]">
+                  Cover the fees so <strong>{charityName}</strong> receives the full £{effectiveAmount.toFixed(2)}{" "}
+                  {donorCoversFees ? <span className="text-[color:var(--color-ink-muted)]">(you pay £{fees.donorPays})</span> : null}
                 </span>
               </label>
             </div>
-          )}
+          ) : null}
 
-          {feesLoading && effectiveAmount > 0 && (
-            <div className="mb-4 h-20 animate-pulse rounded-lg bg-gray-100" />
-          )}
-
-          <label className="mb-4 flex cursor-pointer items-center gap-3 text-sm">
+          <label className="mt-5 flex items-start gap-3 text-sm text-[color:var(--color-ink-soft)]">
             <input
               type="checkbox"
               checked={isRecurring}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-green-600"
+              onChange={(event) => setIsRecurring(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-[color:var(--color-line-strong)]"
             />
             Make this a recurring monthly donation when supported
           </label>
 
-          <button
-            className="btn-primary w-full"
-            disabled={effectiveAmount <= 0}
-            onClick={() => setStep("details")}
-          >
+          <button className="btn-primary mt-6 w-full" disabled={effectiveAmount <= 0} onClick={() => setStep("details")}>
             Continue →
           </button>
         </>
-      )}
+      ) : null}
 
-      {/* ── Step 2: Donor details ── */}
-      {step === "details" && (
+      {step === "details" ? (
         <>
-          <div className="mb-4 grid gap-3">
-            <input
-              className="input"
-              placeholder="Your name"
-              value={donorName}
-              onChange={(e) => setDonorName(e.target.value)}
-              aria-label="Your name"
-            />
-            <input
-              className="input"
-              type="email"
-              placeholder="Email for receipt"
-              value={donorEmail}
-              onChange={(e) => setDonorEmail(e.target.value)}
-              aria-label="Email for receipt"
-            />
+          <div className="mt-6 grid gap-4">
+            <input className="input" placeholder="Your name" value={donorName} onChange={(event) => setDonorName(event.target.value)} />
+            <input className="input" type="email" placeholder="Email for receipt" value={donorEmail} onChange={(event) => setDonorEmail(event.target.value)} />
           </div>
 
-          <div className="mb-5 flex items-center justify-between rounded-lg bg-gray-50 p-3 text-sm">
-            <span className="text-gray-600">Donating</span>
-            <span className="font-medium text-gray-900">
-              £{fees?.donorPays ?? effectiveAmount.toFixed(2)}{" "}
-              {donorCoversFees && <span className="text-xs text-gray-500">(incl. fees)</span>}
+          <div className="surface-muted mt-5 flex items-center justify-between p-4 text-sm">
+            <span className="text-[color:var(--color-ink-muted)]">Donating</span>
+            <span className="font-bold text-[color:var(--color-ink)]">
+              £{fees?.donorPays ?? effectiveAmount.toFixed(2)} {donorCoversFees ? <span className="text-xs text-[color:var(--color-ink-muted)]">(incl. fees)</span> : null}
             </span>
           </div>
 
-          <label className="mb-4 flex cursor-pointer items-center gap-3 text-sm">
+          <label className="mt-5 flex items-start gap-3 text-sm text-[color:var(--color-ink-soft)]">
             <input
               type="checkbox"
               checked={isAnonymous}
-              onChange={(e) => setIsAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-green-600"
+              onChange={(event) => setIsAnonymous(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-[color:var(--color-line-strong)]"
             />
             Donate anonymously
           </label>
 
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="message">
-            Leave a message (optional)
+          <label className="mt-5 grid gap-2">
+            <span className="text-sm font-semibold text-[color:var(--color-ink-soft)]">Leave a message (optional)</span>
+            <textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              className="input min-h-[7rem] resize-y"
+              rows={3}
+              maxLength={500}
+              placeholder="A message to the fundraiser..."
+            />
           </label>
-          <textarea
-            id="message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="input mb-5 resize-none"
-            rows={3}
-            maxLength={500}
-            placeholder="A message to the fundraiser..."
-          />
 
-          <div className="flex gap-3">
+          <div className="mt-6 flex gap-3">
             <button className="btn-ghost flex-1" onClick={() => setStep("amount")}>← Back</button>
-            <button className="btn-primary flex-1" onClick={() => setStep("giftaid")} disabled={!donorEmail}>
-              Continue →
-            </button>
+            <button className="btn-primary flex-1" onClick={() => setStep("giftaid")} disabled={!donorEmail}>Continue →</button>
           </div>
         </>
-      )}
+      ) : null}
 
-      {/* ── Step 3: Gift Aid ── */}
-      {step === "giftaid" && (
+      {step === "giftaid" ? (
         <>
-          {/* Gift Aid callout */}
-          <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4">
-            <p className="mb-1 text-sm font-medium text-green-800">
+          <div className="mt-6 rounded-[1.4rem] border border-[rgba(15,118,110,0.16)] bg-[rgba(204,251,241,0.45)] p-4">
+            <p className="text-sm font-bold text-[color:var(--color-primary-dark)]">
               Boost your gift by 25% with Gift Aid — at no cost to you
             </p>
-            <p className="text-xs text-green-700">
-              If you're a UK taxpayer, {charityName} can reclaim 25p for every £1 you donate.
-              Your £{effectiveAmount.toFixed(2)} becomes{" "}
-              <strong>£{(effectiveAmount * 1.25).toFixed(2)}</strong>.
+            <p className="mt-2 text-sm leading-6 text-[color:var(--color-primary-dark)]">
+              If you&apos;re a UK taxpayer, {charityName} can reclaim 25p for every £1 you donate. Your £{effectiveAmount.toFixed(2)} becomes <strong>£{(effectiveAmount * 1.25).toFixed(2)}</strong>.
             </p>
           </div>
 
-          <label className="mb-4 flex cursor-pointer items-center gap-3 text-sm">
+          <label className="mt-5 flex items-start gap-3 text-sm text-[color:var(--color-ink-soft)]">
             <input
               type="checkbox"
               checked={claimGiftAid}
-              onChange={(e) => setClaimGiftAid(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-green-600"
+              onChange={(event) => setClaimGiftAid(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-[color:var(--color-line-strong)]"
             />
-            <span>I'm a UK taxpayer — claim Gift Aid on this donation</span>
+            I&apos;m a UK taxpayer — claim Gift Aid on this donation
           </label>
 
-          {claimGiftAid && (
-            <div className="mb-4 space-y-3">
-              <input
-                className="input"
-                placeholder="Full name"
-                value={giftAidDetails.donorFullName}
-                onChange={(e) => setGiftAidDetails({ ...giftAidDetails, donorFullName: e.target.value })}
-                aria-label="Full name for Gift Aid"
-              />
-              <input
-                className="input"
-                placeholder="Address line 1"
-                value={giftAidDetails.addressLine1}
-                onChange={(e) => setGiftAidDetails({ ...giftAidDetails, addressLine1: e.target.value })}
-                aria-label="Address line 1"
-              />
+          {claimGiftAid ? (
+            <div className="mt-5 grid gap-4">
+              <input className="input" placeholder="Full name" value={giftAidDetails.donorFullName} onChange={(event) => setGiftAidDetails({ ...giftAidDetails, donorFullName: event.target.value })} />
+              <input className="input" placeholder="Address line 1" value={giftAidDetails.addressLine1} onChange={(event) => setGiftAidDetails({ ...giftAidDetails, addressLine1: event.target.value })} />
               <div className="grid grid-cols-2 gap-3">
-                <input
-                  className="input"
-                  placeholder="Town/City"
-                  value={giftAidDetails.city}
-                  onChange={(e) => setGiftAidDetails({ ...giftAidDetails, city: e.target.value })}
-                  aria-label="Town or city"
-                />
-                <input
-                  className="input"
-                  placeholder="Postcode"
-                  value={giftAidDetails.postcode}
-                  onChange={(e) => setGiftAidDetails({ ...giftAidDetails, postcode: e.target.value })}
-                  aria-label="Postcode"
-                />
+                <input className="input" placeholder="Town/City" value={giftAidDetails.city} onChange={(event) => setGiftAidDetails({ ...giftAidDetails, city: event.target.value })} />
+                <input className="input" placeholder="Postcode" value={giftAidDetails.postcode} onChange={(event) => setGiftAidDetails({ ...giftAidDetails, postcode: event.target.value })} />
               </div>
-              <p className="text-xs text-gray-500">
-                I am a UK taxpayer and understand that if I pay less Income Tax and/or Capital Gains Tax than
-                the amount of Gift Aid claimed on all my donations in that tax year it is my responsibility
-                to pay any difference.
+              <p className="text-xs leading-6 text-[color:var(--color-ink-muted)]">
+                I am a UK taxpayer and understand that if I pay less Income Tax and/or Capital Gains Tax than the amount of Gift Aid claimed on all my donations in that tax year it is my responsibility to pay any difference.
               </p>
             </div>
-          )}
+          ) : null}
 
-          <div className="mb-5 rounded-lg bg-gray-50 p-3 text-sm">
-            <div className="flex justify-between text-gray-600">
+          <div className="surface-muted mt-5 p-4 text-sm">
+            <div className="flex justify-between text-[color:var(--color-ink-muted)]">
               <span>You pay</span>
-              <span className="font-medium text-gray-900">£{fees?.donorPays ?? effectiveAmount.toFixed(2)}</span>
+              <span className="font-bold text-[color:var(--color-ink)]">£{fees?.donorPays ?? effectiveAmount.toFixed(2)}</span>
             </div>
-            {claimGiftAid && (
-              <div className="flex justify-between text-green-700 mt-1">
+            {claimGiftAid ? (
+              <div className="mt-2 flex justify-between text-[color:var(--color-primary-dark)]">
                 <span>Gift Aid boost</span>
-                <span className="font-medium">+£{giftAidBoost}</span>
+                <span className="font-bold">+£{giftAidBoost}</span>
               </div>
-            )}
-            <div className="mt-2 flex justify-between border-t border-gray-200 pt-2 font-medium text-green-800">
+            ) : null}
+            <div className="mt-3 flex justify-between border-t border-[color:var(--color-line)] pt-3 font-bold text-[color:var(--color-primary-dark)]">
               <span>Total charity receives</span>
-              <span>£{claimGiftAid
-                ? (parseFloat(fees?.netToCharity ?? "0") + parseFloat(giftAidBoost ?? "0")).toFixed(2)
-                : fees?.netToCharity ?? effectiveAmount.toFixed(2)
-              }</span>
+              <span>
+                £{claimGiftAid
+                  ? (parseFloat(fees?.netToCharity ?? "0") + parseFloat(giftAidBoost ?? "0")).toFixed(2)
+                  : fees?.netToCharity ?? effectiveAmount.toFixed(2)}
+              </span>
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="mt-6 flex gap-3">
             <button className="btn-ghost flex-1" onClick={() => setStep("details")}>← Back</button>
-            <button
-              className="btn-primary flex-1"
-              onClick={handleSubmit}
-              disabled={createIntent.isPending}
-              aria-busy={createIntent.isPending}
-            >
+            <button className="btn-primary flex-1" onClick={handleSubmit} disabled={createIntent.isPending} aria-busy={createIntent.isPending}>
               {createIntent.isPending ? "Processing…" : `Donate £${fees?.donorPays ?? effectiveAmount.toFixed(2)}`}
             </button>
           </div>
 
-          <p className="mt-3 text-center text-xs text-gray-400">
-            🔒 Secure hosted checkout · PCI-DSS Level 1 · TLS 1.3
+          <p className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--color-ink-muted)]">
+            Secure hosted checkout · PCI-DSS Level 1 · TLS 1.3
           </p>
         </>
-      )}
+      ) : null}
+    </div>
+  );
+}
+
+function FeeRow({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-1.5 text-sm">
+      <span className={emphasis ? "font-semibold text-[color:var(--color-primary-dark)]" : "text-[color:var(--color-ink-muted)]"}>
+        {label}
+      </span>
+      <span className={emphasis ? "font-bold text-[color:var(--color-primary-dark)]" : "font-semibold text-[color:var(--color-ink)]"}>
+        {value}
+      </span>
     </div>
   );
 }

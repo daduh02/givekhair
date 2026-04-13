@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-Last updated: 2026-04-12
+Last updated: 2026-04-13
 
 This roadmap turns the broader product specification into a practical delivery order for the current codebase.
 
@@ -20,6 +20,9 @@ Prioritise slices that:
 - Production deployment fixed on Vercel
 - Credentials and Google sign-in
 - Role-aware homepage and admin entrypoints
+- Public route-group layout with shared footer and shared header
+- Homepage redesign with centralized theme tokens and reusable public UI primitives
+- Public support/information routes for charities, how-it-works, Zakat/Gift Aid, and policy placeholders
 - Platform overview and charity-overview split in admin
 - Charity setup and appeal management
 - Moderation queue
@@ -31,6 +34,7 @@ Prioritise slices that:
 
 - Fundraising page public route `/fundraise/[shortName]`
 - Fundraising page creation and edit UI
+- Rich public charity profile pages
 - Live payment-provider checkout beyond the hosted test flow
 - Better admin charity resolution and switching for platform admins
 
@@ -39,9 +43,10 @@ Prioritise slices that:
 ### Recommended next
 
 1. Fundraising page public route and page management UI
-2. Reports and exports
-3. Payouts and Gift Aid workflows
-4. Appeal/team analytics and leaderboards
+2. Public charity profile pages
+3. Reports and exports
+4. Payouts and Gift Aid workflows
+5. Appeal/team analytics and leaderboards
 
 ### Why this phase matters
 
@@ -77,19 +82,25 @@ This is the shortest path to matching the operational needs in the spec for real
 - Show totals, story, updates, media, donation feed
 - Reuse donation widget where appropriate
 
-### Ticket 2: Reports and exports
+### Ticket 2: Public charity profiles
+
+- Add a public charity detail route
+- Show charity verification, story, active appeals, and trust/support information
+- Reuse the public shell and shared section/card components
+
+### Ticket 3: Reports and exports
 
 - Replace `/admin/reports` placeholder
 - Add donations, offline, Gift Aid, and payout export actions
 - Add charity-scoped filters and export history
 
-### Ticket 3: Finance workflows
+### Ticket 4: Finance workflows
 
 - Build payout batches and history
 - Build Gift Aid claim queue
 - Add finance summaries and reconciliation hooks
 
-### Ticket 4: Refunds and disputes
+### Ticket 5: Refunds and disputes
 
 - Add refund records and admin actions from the donations workflow
 - Add dispute ingestion and case visibility

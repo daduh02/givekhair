@@ -1,10 +1,12 @@
 # Architecture
 
-Last updated: 2026-04-12
+Last updated: 2026-04-13
 
 ## Current shape
 
 The codebase is currently a modular monolith built in Next.js. The UI, route handlers, server procedures, and persistence all live in one repo and one deployment target.
+
+One important structural change is now in place: public pages are no longer a loose collection of standalone routes with duplicated framing. They are grouped under a shared public route layout and design system.
 
 ## Runtime layers
 
@@ -34,11 +36,12 @@ The codebase is currently a modular monolith built in Next.js. The UI, route han
 
 - `src/app/`
 - Public pages, admin pages, auth pages, and route handlers
+- `src/app/(public)/` now owns the public shell, homepage, appeal pages, auth entry pages, and shared informational pages
 
 ### Reusable UI
 
 - `src/components/`
-- Appeal cards, donation checkout, auth controls, navbar, providers
+- Appeal cards, donation checkout, auth controls, navbar, footer, providers, and small UI primitives
 
 ### Shared libraries
 
@@ -71,6 +74,10 @@ Fees, payout preparation, Gift Aid, and ledger logic should continue to live in 
 
 Recent production fixes showed that shared providers in the root layout can create subtle deployment-only failures. Keep global layout concerns minimal and push client-only providers down to the narrowest route scope that needs them.
 
+### 5. Keep public styling centralized
+
+The public site now has a dedicated token layer and reusable component classes in `src/app/globals.css`. New public pages should extend that system instead of introducing new inline-style islands.
+
 ## Core flows
 
 ### Authentication flow
@@ -82,10 +89,12 @@ Recent production fixes showed that shared providers in the root layout can crea
 
 ### Public appeal browsing
 
-1. Homepage loads active, public appeals from Prisma
-2. Appeals show charity details and aggregated raised amounts
-3. Appeal detail page loads teams, fundraiser pages, and donation widget
-4. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
+1. Public routes render through `src/app/(public)/layout.tsx`
+2. Shared navbar and shared footer are applied automatically to all public pages in that route group
+3. Homepage loads active, public appeals from Prisma
+4. Homepage maps live appeal data into a featured appeal and trending appeal cards, with curated fallback content if the live query fails
+5. Appeal detail page loads teams, fundraiser pages, and donation widget
+6. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
 
 ### Donation flow
 
@@ -96,6 +105,12 @@ Recent production fixes showed that shared providers in the root layout can crea
 5. Hosted test checkout route simulates provider completion for development and staging-like testing
 6. Shared donation-processing helpers capture or fail the donation, create payment records, update receipt state, write ledger entries, and attach Gift Aid declarations to a draft claim queue
 7. Stripe webhook route reuses the same donation-processing helpers for provider-driven confirmation
+
+### Public content and support flow
+
+1. Lightweight public content pages live under `src/app/(public)/[slug]/page.tsx`
+2. Stable routes now exist for about, fees, contact, help, accessibility, privacy, terms, and related policy/support destinations
+3. These pages currently act as structured placeholders until full content is approved and expanded
 
 ### Admin appeal flow
 
@@ -121,6 +136,40 @@ Recent production fixes showed that shared providers in the root layout can crea
 4. Only valid dry-run rows are committed into `OfflineDonation` records
 5. Batch and record updates revalidate admin surfaces so totals stay fresh
 
+## Public design system
+
+### Token source
+
+- `src/app/globals.css`
+
+The app now uses a shared token layer for:
+
+- primary brand colours
+- sand/neutral backgrounds
+- gold trust accents
+- ink text colours
+- shadows
+- radii
+- max-width/layout constraints
+
+### Shared public primitives
+
+- `Navbar`
+- `PublicFooter`
+- `SectionIntro`
+- `TrustChip`
+- `ProgressBar`
+- rewritten `AppealCard`
+- rewritten `DonationCheckout`
+
+### Why this matters
+
+Before the refresh, public styling was fragmented and heavily inline-driven. The new structure makes it easier to:
+
+- extend the homepage without duplicating patterns
+- keep appeal, auth, and content pages visually coherent
+- apply future marketing or charity-profile work through a known design system
+
 ### Donations operations flow
 
 1. Admin visits `/admin/donations`
@@ -130,27 +179,31 @@ Recent production fixes showed that shared providers in the root layout can crea
 
 ## Known architectural gaps
 
-### 1. Public fundraising page route is missing
+### 1. Public fundraiser page route is still missing
 
 The schema and router support fundraiser pages, but the dedicated public route and management UX are still absent.
 
-### 2. Admin workflows are still uneven
+### 2. Public charity profiles are still shallow
+
+The public directory exists, but individual charity profile pages and richer trust/impact storytelling are not yet implemented.
+
+### 3. Admin workflows are still uneven
 
 `Charities`, `Appeals`, `Moderation`, `Offline donations`, and `Donations` now have real workflows, but payouts, reports, Gift Aid operations, and settings are still mostly placeholders.
 
-### 3. Payments integration is stubbed
+### 4. Payments integration is stubbed
 
 The current donation flow supports an end-to-end hosted test checkout lifecycle, but a live payment provider still needs to replace the stubbed checkout session creation.
 
-### 4. Background jobs are modeled but not operational
+### 5. Background jobs are modeled but not operational
 
 Queues exist conceptually, but operational workers and async processing flows are not yet part of the delivered app behavior.
 
-### 5. Finance reconciliation exists more in schema than in workflows
+### 6. Finance reconciliation exists more in schema than in workflows
 
 The ledger and payout models are present, but finance operations still need real end-user surfaces and automated processing.
 
-### 6. Offline ingestion is functional but not yet complete
+### 7. Offline ingestion is functional but not yet complete
 
 The platform can now validate and import offline donations, but downloadable batch reports, richer audit tooling, and broader totals/reconciliation visibility still need to be added.
 
@@ -163,6 +216,9 @@ The following docs would be useful as the product grows:
 
 - `docs/OPERATIONS.md`
 - environment variables, deploy flow, Vercel notes, DB workflows, incident steps
+
+- `docs/PUBLIC_EXPERIENCE.md`
+- public shell, route group, design tokens, reusable UI primitives, and content architecture
 
 - `docs/API_SURFACE.md`
 - document current tRPC procedures and route handlers
