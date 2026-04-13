@@ -27,9 +27,11 @@ export async function Navbar() {
           {session ? (
             <>
               {isAdmin && (
-                <Link href="/admin" className="btn-ghost text-sm">Admin panel</Link>
+                <Link href="/admin" className="btn-ghost text-sm">Admin</Link>
               )}
-              <Link href="/dashboard" className="btn-ghost text-sm">Dashboard</Link>
+              {!isAdmin && (
+                <Link href="/dashboard" className="btn-ghost text-sm">Dashboard</Link>
+              )}
             </>
           ) : (
             <Link href="/auth/signin?callbackUrl=%2Fdashboard" className="btn-ghost text-sm">Log in</Link>

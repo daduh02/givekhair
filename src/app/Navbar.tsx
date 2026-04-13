@@ -7,6 +7,8 @@ import { useState } from "react";
 export function Navbar() {
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  const role = (session?.user as { role?: string } | undefined)?.role ?? "";
+  const isAdmin = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"].includes(role);
 
   return (
     <nav style={{ background: "#F6F1E8", borderBottom: "1px solid rgba(18,78,64,0.12)" }}
@@ -43,8 +45,10 @@ export function Navbar() {
                       <p className="text-sm font-semibold truncate" style={{ color: "#233029" }}>{session.user?.name ?? "User"}</p>
                       <p className="text-xs truncate" style={{ color: "#3A4A42" }}>{session.user?.email ?? ""}</p>
                     </div>
-                    <Link href="/dashboard" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Dashboard</Link>
-                    {(["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"] as const).includes(((session.user as { role?: string } | undefined)?.role ?? "") as any) && (
+                    {!isAdmin && (
+                      <Link href="/dashboard" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Dashboard</Link>
+                    )}
+                    {isAdmin && (
                       <Link href="/admin" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Admin</Link>
                     )}
                     <Link href="/account" className="block px-4 py-2 text-sm hover:bg-[#F6F1E8]" style={{ color: "#233029" }} onClick={() => setMenuOpen(false)}>Account settings</Link>
