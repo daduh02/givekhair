@@ -18,7 +18,7 @@ This file tracks the current delivery state of the product against the working g
 - Charity setup, appeal management, moderation, offline donation operations, and donation management now have real admin workflows.
 - Public-facing routes now use a shared shell with a reusable footer, centralized theme tokens, and cleaner reusable components.
 - Commercial pricing is now contract-led for new donation writes, with donor-supported, charity-paid, and hybrid charging modes.
-- Major reconciliation, refund, and dispute workflows are still incomplete, but finance/accounting exports now have a real starting point.
+- Major reconciliation and advanced recovery workflows are still incomplete, but refunds, disputes, and finance/accounting exports now have a real operational starting point.
 
 ## Completed
 
@@ -78,6 +78,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Team creation and membership management within appeal admin
 - `Done` Moderation queue page
 - `Done` Donations admin page
+- `Done` Disputes and chargebacks admin page
 - `Done` Offline donations admin page
 - `Done` Offline CSV dry-run and commit flow
 - `Done` Reports center with scoped CSV exports for donations, offline donations, payouts, and Gift Aid
@@ -102,7 +103,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Hosted test checkout handoff exists for end-to-end development
 - `Done` Webhook route reuses donation capture and failure processing
 - `Partial` Live payment-provider checkout is not yet wired
-- `Partial` Refund and dispute operations are not yet built
+- `Done` Refund records and dispute operations now exist in admin
 
 ### Fees and finance
 
@@ -141,7 +142,7 @@ This file tracks the current delivery state of the product against the working g
 ### Spec-critical product slices
 
 - `Done` Donations management and operational visibility
-- `Not started` Refunds, disputes, and chargeback workflows
+- `Done` Refunds, disputes, and chargeback workflows
 - `Not started` Payout batching lifecycle and reconciliation UI
 - `Partial` GL export and finance CSV exports per accounting structure
 - `Done` Gift Aid claim queue, submission, and paid-state workflow
@@ -184,7 +185,8 @@ This file tracks the current delivery state of the product against the working g
 - `Done` donation intent, fee snapshot, and hosted test-checkout completion flow
 - `Done` webhook-driven payment confirmation and failure handling foundation
 - `Done` appeal pages guarantee a donation widget via a hidden fallback checkout page when needed
-- `Partial` robust receipt delivery, provider-specific recurring billing, and refund operations
+- `Done` admin refund records, partial/full refund tracking, and dispute visibility
+- `Partial` robust receipt delivery and provider-specific recurring billing
 
 ### 5.5 Fee & Pricing Model
 
@@ -214,7 +216,7 @@ This file tracks the current delivery state of the product against the working g
 ### 5.8 Reporting
 
 - `Done` admin reports center with scoped export cards and operational previews
-- `Done` CSV exports for donations, offline donations, payouts, and Gift Aid claims
+- `Done` CSV exports for donations, refunds/disputes fields, offline donations, payouts, and Gift Aid claims
 - `Done` general-ledger export matching the journal-row direction from the spec appendix
 - `Partial` PDF exports, reconciliation-specific downloads, and accounting-system-specific formats remain unbuilt
 
@@ -238,12 +240,15 @@ This file tracks the current delivery state of the product against the working g
 
 ### 5.12 Refunds, Disputes & Chargebacks
 
-- `Not started`
+- `Done` refund records and admin actions
+- `Done` dispute and chargeback records with admin visibility
+- `Done` donation exports now include refund/dispute exception fields
+- `Partial` provider-side refund automation, dispute evidence workflows, and recovery automation
 
 ## Immediate Next Recommendations
 
-1. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
-2. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.
-3. Build `Reconciliation-specific exports` and finance exception reporting on top of the new GL export.
-4. Build `Async finance automation` for payout processing and HMRC submission flows.
-5. Build `Commercial approval/signature workflow` on top of the shipped contract management foundation.
+1. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.
+2. Build `Reconciliation-specific exports` and finance exception reporting on top of the new GL export.
+3. Build `Async finance automation` for payout processing, refund provider submission, and HMRC submission flows.
+4. Build `Commercial approval/signature workflow` on top of the shipped contract management foundation.
+5. Build `Risk scoring and hold-state operations` on top of the current moderation and donation foundations.

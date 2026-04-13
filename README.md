@@ -77,10 +77,11 @@ npm run dev
 | `/fundraise/[shortName]` | Public fundraising page route with updates, gallery, and donation widget |
 | `/fundraise/[shortName]/edit` | Owner-side fundraiser management for story, updates, gallery, and status guidance |
 | `/admin` | Charity admin dashboard |
+| `/admin/disputes` | Dispute and chargeback operations workspace |
 | `/admin/settings` | Contract-led fees, plans, contracts, renewal, and commercial audit |
 | `/admin/payouts` | Payout batch management and contract-aware payout operations |
 | `/admin/gift-aid` | Gift Aid claim queue and settlement workflow |
-| `/admin/reports` | CSV exports and operational previews for donations, offline donations, payouts, Gift Aid, and GL rows |
+| `/admin/reports` | CSV exports and operational previews for donations, refunds/disputes, offline donations, payouts, Gift Aid, and GL rows |
 | `/api/trpc/[trpc]` | tRPC endpoint |
 | `/api/webhooks/stripe` | Stripe webhook receiver |
 | `/api/admin/reports/export` | Access-controlled CSV export endpoint for admin and accounting reports |
@@ -138,10 +139,10 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 2. **Appeal and team analytics** — leaderboards and clearer combined fundraising views
 3. **Payout batch processor** — async queue worker and reconciliation automation on top of the new manual payout-batch operations
 4. **Reconciliation exports** — settlement-oriented downloads and finance exception reporting
-5. **Refunds and disputes** — operational handling on top of the donation and ledger foundations
-6. **Commercial approvals** — richer signature/approval workflow for contracts
-7. **Risk engine** — velocity, device fingerprint, IP reputation signals
-8. **Accessibility audit** — axe-core CI checks + NVDA/VoiceOver passes
+5. **Commercial approvals** — richer signature/approval workflow for contracts
+6. **Risk engine** — velocity, device fingerprint, IP reputation signals
+7. **Accessibility audit** — axe-core CI checks + NVDA/VoiceOver passes
+8. **Async finance automation** — payout provider submission, HMRC automation, and exception recovery tooling
 
 ## Verification helpers
 

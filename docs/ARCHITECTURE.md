@@ -208,8 +208,19 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 
 1. Admin visits `/admin/donations`
 2. Charity admins see charity-scoped donation records, while platform admins can filter across charities
-3. The screen exposes donation status, fee coverage, Gift Aid state, recurring flag, provider refs, and receipt state
-4. Pending donations can be opened in the hosted test checkout route to complete or fail the payment loop manually
+3. The screen now exposes donation status, fee coverage, Gift Aid state, recurring flag, provider refs, receipt state, refund history, dispute history, payout exposure, and ledger-reversal visibility
+4. Admins can record refund requests, progress refund records through workflow statuses, and mark succeeded refunds so the ledger reversal is written
+5. Admins can record disputes from the donation screen and then manage them in a dedicated `/admin/disputes` workspace
+6. Pending donations can still be opened in the hosted test checkout route to complete or fail the payment loop manually
+
+### Refund and dispute operations flow
+
+1. Refunds are now first-class operational records with their own workflow status rather than a bare historic amount row
+2. Successful refunds write a reversal-style ledger entry through the existing refund ledger helper
+3. Disputes are stored as lightweight operational case records tied to a donation
+4. Open disputes push the donation into a `DISPUTED` operational state for visibility
+5. Lost disputes can record a separate dispute-linked ledger impact without pretending that payout recovery automation already exists
+6. The dedicated disputes page provides scoped list, filter, and update actions for finance/admin users
 
 ### Reports and exports flow
 
@@ -219,7 +230,7 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 4. The page renders summary cards plus lightweight operational previews so admins can sanity-check scope before exporting
 5. A single access-controlled route handler at `/api/admin/reports/export` returns CSV exports for each report type
 6. Export URLs are built from the active UI filters so the preview state and download scope stay aligned
-7. General-ledger export rows are assembled from immutable journal entries plus their ledger lines, with charity scoping inferred through donations, payouts, and Gift Aid claim correlation IDs
+7. General-ledger export rows are assembled from immutable journal entries plus their ledger lines, with charity scoping inferred through donations, payouts, disputes, and Gift Aid claim correlation IDs
 
 ### Fees and contracts flow
 
@@ -262,7 +273,7 @@ The first real self-serve layer now exists for updates, media, moderation guidan
 
 ### 2. Admin workflows are still uneven
 
-`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, `Reports`, `Fees & contracts`, manual `Payouts`, and manual `Gift Aid` claim operations now have real workflows, but async finance operations are still only partially operational.
+`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, `Disputes`, `Reports`, `Fees & contracts`, manual `Payouts`, and manual `Gift Aid` claim operations now have real workflows, but async finance operations are still only partially operational.
 
 ### 3. Payments integration is stubbed
 
@@ -274,7 +285,7 @@ Queues exist conceptually, but operational workers and async processing flows ar
 
 ### 5. Finance reconciliation exists more in schema than in workflows
 
-The ledger, payout, and Gift Aid settlement models are present, and manual finance workflows now exist, but reconciliation, provider submission, and finance exception handling still need deeper workflows.
+The ledger, payout, Gift Aid settlement, refund, and dispute models are present, and manual finance workflows now exist, but reconciliation, provider submission, payout recovery, and finance exception automation still need deeper workflows.
 
 ### 6. Contract lifecycle is still intentionally light
 

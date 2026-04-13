@@ -83,6 +83,28 @@ export async function getDonationsReportRows(input: {
         },
       },
       giftAidDeclaration: { select: { id: true } },
+      refunds: {
+        select: {
+          id: true,
+          amount: true,
+          status: true,
+          processedAt: true,
+        },
+      },
+      disputes: {
+        select: {
+          id: true,
+          amount: true,
+          status: true,
+          outcome: true,
+          openedAt: true,
+        },
+      },
+      payoutItems: {
+        select: {
+          payoutBatchId: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -191,6 +213,17 @@ export async function getGeneralLedgerReportRows(input: {
             charityId: { in: input.scopedCharityIds.length ? input.scopedCharityIds : ["__none__"] },
           },
         },
+        {
+          dispute: {
+            donation: {
+              page: {
+                appeal: {
+                  charityId: { in: input.scopedCharityIds.length ? input.scopedCharityIds : ["__none__"] },
+                },
+              },
+            },
+          },
+        },
         ...(scopedCorrelationIds.length > 0
           ? [{ correlationId: { in: scopedCorrelationIds } }]
           : []),
@@ -217,6 +250,24 @@ export async function getGeneralLedgerReportRows(input: {
         select: {
           id: true,
           charity: { select: { name: true } },
+        },
+      },
+      dispute: {
+        select: {
+          id: true,
+          donation: {
+            select: {
+              page: {
+                select: {
+                  appeal: {
+                    select: {
+                      charity: { select: { name: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       },
     },

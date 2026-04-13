@@ -34,6 +34,7 @@ Prioritise slices that:
 - Manual payout batch operations with linked payout items and contract-aware payout gating
 - Manual Gift Aid claim queue and settlement flow
 - First real fundraiser self-serve layer with owner updates, media management, moderation-state messaging, and lightweight analytics
+- Refund records, dispute visibility, dispute admin workspace, and exception-aware donation exports
 
 ### Remaining in this phase
 
@@ -46,10 +47,10 @@ Prioritise slices that:
 ### Recommended next
 
 1. Appeal/team analytics and leaderboards
-2. Refunds and disputes
-3. Accounting-oriented reconciliation exports
-4. Commercial approval/signature workflow
-5. Async finance automation
+2. Accounting-oriented reconciliation exports
+3. Commercial approval/signature workflow
+4. Async finance automation
+5. Risk and hold-state operations
 
 ### Why this phase matters
 
@@ -97,13 +98,7 @@ This is the shortest path to matching the operational needs in the spec for real
 - Add explicit contract renewal history/timeline
 - Add safer document storage and download handling
 
-### Ticket 4: Refunds and disputes
-
-- Add refund records and admin actions from the donations workflow
-- Add dispute ingestion and case visibility
-- Show reversal/recovery state alongside donation status
-
-### Ticket 5: Team analytics and leaderboards
+### Ticket 4: Team analytics and leaderboards
 
 - Build team-level public and admin summaries
 - Add ranking/leaderboard views for appeals and teams

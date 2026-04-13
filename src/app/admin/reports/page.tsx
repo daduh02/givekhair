@@ -250,7 +250,7 @@ export default async function AdminReportsPage({
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
         <ExportCard
           title="Donations export"
-          description="Captured and pending donations, pricing snapshots, donor-support amounts, charging mode, and Gift Aid expectations."
+          description="Donation operations including pricing snapshots, refunded amounts, dispute state, payout exposure, and Gift Aid expectations."
           href={donationExportHref}
           meta={`${dashboardData.donations.length} rows currently match the selected scope.`}
         />
@@ -298,7 +298,7 @@ export default async function AdminReportsPage({
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
             <thead>
               <tr style={{ background: "#F6F1E8" }}>
-                {["Created", "Donor", "Appeal", "Gross", "Net", "Gift Aid"].map((heading) => (
+                {["Created", "Donor", "Appeal", "Gross", "Net", "Exceptions", "Gift Aid"].map((heading) => (
                   <th key={heading} style={{ padding: "0.8rem 1rem", textAlign: "left", fontSize: "0.75rem", color: "#8A9E94" }}>
                     {heading}
                   </th>
@@ -323,6 +323,11 @@ export default async function AdminReportsPage({
                   </td>
                   <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>
                     {fmt(donation.charityNetAmount ?? donation.amount, donation.currency)}
+                  </td>
+                  <td style={{ padding: "0.9rem 1rem", color: "#3A4A42" }}>
+                    {donation.refunds.length > 0 || donation.disputes.length > 0
+                      ? `${donation.refunds.length} refund / ${donation.disputes.length} dispute`
+                      : "None"}
                   </td>
                   <td style={{ padding: "0.9rem 1rem" }}>
                     {donation.giftAidDeclaration ? <StatusPill label="Declared" tone="positive" /> : <StatusPill label="No claim" />}

@@ -657,6 +657,7 @@ model Donation {
   giftAidDeclaration GiftAidDeclaration?
   journalEntries    JournalEntry[]
   refunds           Refund[]
+  disputes          Dispute[]
   payoutItems       PayoutBatchItem[]
 }
 
@@ -675,10 +676,19 @@ model Payment {
   donation Donation @relation(fields: [donationId], references: [id])
 }
 
+enum RefundStatus {
+  REQUESTED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
 model Refund {
   id          String   @id @default(cuid())
   donationId  String
   amount      Decimal  @db.Decimal(10, 2)
+  status      RefundStatus @default(REQUESTED)
   reason      String?  @db.Text
   providerRef String?
   initiatedBy String?
@@ -687,6 +697,47 @@ model Refund {
 
   donation    Donation       @relation(fields: [donationId], references: [id])
   journalEntries JournalEntry[]
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  WON
+  LOST
+  CLOSED
+}
+
+enum DisputeOutcome {
+  WON
+  LOST
+  WRITTEN_OFF
+}
+
+model Dispute {
+  id                    String        @id @default(cuid())
+  donationId            String
+  providerRef           String?
+  status                DisputeStatus @default(OPEN)
+  amount                Decimal       @db.Decimal(10, 2)
+  currency              String        @default("GBP")
+  reason                String?
+  evidenceDueAt         DateTime?
+  openedAt              DateTime      @default(now())
+  closedAt              DateTime?
+  outcome               DisputeOutcome?
+  notes                 String?       @db.Text
+  metadataJson          Json?
+  recordedById          String?
+  financialImpactRecordedAt DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  donation       Donation       @relation(fields: [donationId], references: [id])
+  journalEntries JournalEntry[]
+
+  @@index([donationId])
+  @@index([status])
+  @@index([openedAt])
 }
 
 // ─────────────────────────────────────────────
@@ -896,12 +947,14 @@ model JournalEntry {
   correlationId String
   donationId    String?
   refundId      String?
+  disputeId     String?
   payoutBatchId String?
   description   String
   createdAt     DateTime @default(now())
 
   donation    Donation?    @relation(fields: [donationId], references: [id])
   refund      Refund?      @relation(fields: [refundId], references: [id])
+  dispute     Dispute?     @relation(fields: [disputeId], references: [id])
   payoutBatch PayoutBatch? @relation(fields: [payoutBatchId], references: [id])
   lines       LedgerLine[]
 }

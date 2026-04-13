@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin/appeals",  label: "Appeals",          icon: "📣" },
   { href: "/admin/moderation",label: "Moderation",      icon: "🛡️" },
   { href: "/admin/donations",label: "Donations",        icon: "💷" },
+  { href: "/admin/disputes", label: "Disputes",         icon: "⚠️" },
   { href: "/admin/payouts",  label: "Payouts",          icon: "🏦" },
   { href: "/admin/gift-aid", label: "Gift Aid",         icon: "🎁" },
   { href: "/admin/offline",  label: "Offline uploads",  icon: "📋" },

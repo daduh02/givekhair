@@ -46,26 +46,49 @@ export async function GET(request: Request) {
   if (report === "donations") {
     const rows = await getDonationsReportRows({ scopedCharityIds: scope.scopedCharityIds, filters });
     const csv = stringify(
-      rows.map((row) => ({
-        created_at: row.createdAt.toISOString(),
-        charity: row.page.appeal.charity.name,
-        appeal: row.page.appeal.title,
-        page: row.page.title,
-        short_name: row.page.shortName,
-        donor_name: row.donorName ?? "",
-        donor_email: row.donorEmail ?? "",
-        donation_amount: row.donationAmount?.toString() ?? row.amount.toString(),
-        donor_support_amount: row.donorSupportAmount?.toString() ?? "0.00",
-        gross_checkout_total: row.grossCheckoutTotal?.toString() ?? row.amount.toString(),
-        fee_charged_to_charity: row.feeChargedToCharity?.toString() ?? "0.00",
-        charity_net_amount: row.charityNetAmount?.toString() ?? row.amount.toString(),
-        charging_mode: row.resolvedChargingMode ?? "",
-        gift_aid_declared: row.giftAidDeclaration ? "yes" : "no",
-        gift_aid_expected_amount: row.giftAidExpectedAmount?.toString() ?? "0.00",
-        gift_aid_received_amount: row.giftAidReceivedAmount?.toString() ?? "0.00",
-        status: row.status,
-        currency: row.currency,
-      })),
+      rows.map((row) => {
+        const succeededRefunds = row.refunds.filter((refund) => refund.status === "SUCCEEDED");
+        const refundedAmount = succeededRefunds.reduce(
+          (sum, refund) => sum + parseFloat(refund.amount.toString()),
+          0,
+        );
+        const latestRefund = [...row.refunds].sort((a, b) => {
+          const aTs = (a.processedAt ?? row.createdAt).getTime();
+          const bTs = (b.processedAt ?? row.createdAt).getTime();
+          return bTs - aTs;
+        })[0];
+        const latestDispute = [...row.disputes].sort((a, b) => b.openedAt.getTime() - a.openedAt.getTime())[0];
+
+        return {
+          created_at: row.createdAt.toISOString(),
+          charity: row.page.appeal.charity.name,
+          appeal: row.page.appeal.title,
+          page: row.page.title,
+          short_name: row.page.shortName,
+          donor_name: row.donorName ?? "",
+          donor_email: row.donorEmail ?? "",
+          donation_amount: row.donationAmount?.toString() ?? row.amount.toString(),
+          donor_support_amount: row.donorSupportAmount?.toString() ?? "0.00",
+          gross_checkout_total: row.grossCheckoutTotal?.toString() ?? row.amount.toString(),
+          fee_charged_to_charity: row.feeChargedToCharity?.toString() ?? "0.00",
+          charity_net_amount: row.charityNetAmount?.toString() ?? row.amount.toString(),
+          charging_mode: row.resolvedChargingMode ?? "",
+          gift_aid_declared: row.giftAidDeclaration ? "yes" : "no",
+          gift_aid_expected_amount: row.giftAidExpectedAmount?.toString() ?? "0.00",
+          gift_aid_received_amount: row.giftAidReceivedAmount?.toString() ?? "0.00",
+          status: row.status,
+          refunded_amount: refundedAmount.toFixed(2),
+          refund_count: row.refunds.length,
+          latest_refund_status: latestRefund?.status ?? "",
+          latest_refund_processed_at: latestRefund?.processedAt?.toISOString() ?? "",
+          dispute_count: row.disputes.length,
+          latest_dispute_status: latestDispute?.status ?? "",
+          latest_dispute_amount: latestDispute?.amount.toString() ?? "",
+          latest_dispute_outcome: latestDispute?.outcome ?? "",
+          payout_batch_count: row.payoutItems.length,
+          currency: row.currency,
+        };
+      }),
       { header: true }
     );
 
@@ -169,14 +192,15 @@ export async function GET(request: Request) {
           charity:
             entry.donation?.page.appeal.charity.name ??
             entry.payoutBatch?.charity.name ??
+            entry.dispute?.donation.page.appeal.charity.name ??
             "",
           account_code: line.accountCode,
           debit_minor: Math.round(parseFloat(line.debit.toString()) * 100),
           credit_minor: Math.round(parseFloat(line.credit.toString()) * 100),
           currency: line.currency,
           fx_rate: line.fxRate.toString(),
-          ref_type: entry.donationId ? "Donation" : entry.payoutBatchId ? "PayoutBatch" : entry.refundId ? "Refund" : "JournalEntry",
-          ref_id: entry.donationId ?? entry.payoutBatchId ?? entry.refundId ?? entry.id,
+          ref_type: entry.donationId ? "Donation" : entry.payoutBatchId ? "PayoutBatch" : entry.refundId ? "Refund" : entry.disputeId ? "Dispute" : "JournalEntry",
+          ref_id: entry.donationId ?? entry.payoutBatchId ?? entry.refundId ?? entry.disputeId ?? entry.id,
           description: line.description ?? entry.description,
         }))
       ),

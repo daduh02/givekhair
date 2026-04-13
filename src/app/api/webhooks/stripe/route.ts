@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { markDonationCaptured, markDonationFailed } from "@/server/lib/donation-processing";
+import { createDisputeRecord } from "@/server/lib/donation-exceptions";
 
 // Stub: replace with `import Stripe from 'stripe'` once key is set
 async function constructStripeEvent(req: NextRequest) {
@@ -55,7 +56,38 @@ export async function POST(req: NextRequest) {
       }
 
       case "charge.dispute.created": {
-        // TODO: ingest dispute, create moderation log entry, enqueue evidence workflow
+        const dispute = event.data.object as {
+          id?: string;
+          amount?: number;
+          currency?: string;
+          reason?: string;
+          evidence_details?: { due_by?: number };
+          metadata?: { donationId?: string };
+          payment_intent?: string;
+        };
+
+        const donationId =
+          dispute.metadata?.donationId ??
+          (dispute.payment_intent
+            ? (await db.payment.findFirst({
+                where: { provider: "stripe", providerRef: dispute.payment_intent },
+                select: { donationId: true },
+              }))?.donationId
+            : null);
+
+        if (!donationId) {
+          break;
+        }
+
+        await createDisputeRecord({
+          donationId,
+          amount: ((dispute.amount ?? 0) / 100) || 0,
+          currency: (dispute.currency ?? "gbp").toUpperCase(),
+          reason: dispute.reason ?? "Stripe dispute created.",
+          providerRef: dispute.id,
+          evidenceDueAt: dispute.evidence_details?.due_by ? new Date(dispute.evidence_details.due_by * 1000) : null,
+          notes: "Recorded from Stripe dispute webhook.",
+        });
         break;
       }
 
