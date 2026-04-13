@@ -226,6 +226,8 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 3. Expired contracts block payouts only when the contract says to
 4. Donor-support revenue is excluded from charity payout totals
 5. Gift Aid actually received is added to the payout pool in full
+6. Manual batch creation links payout batches to concrete donation and Gift Aid allocations through payout-batch items
+7. Paid batches write the payout ledger entry once, when the batch is marked paid
 
 ## Known architectural gaps
 
@@ -235,7 +237,7 @@ The core create/edit routes now exist, but richer tools such as media management
 
 ### 2. Admin workflows are still uneven
 
-`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, and `Fees & contracts` now have real workflows, but payouts, reports, and Gift Aid operations are still only partially operational.
+`Charities`, `Appeals`, `Moderation`, `Offline donations`, `Donations`, `Fees & contracts`, and manual `Payouts` now have real workflows, but reports, Gift Aid settlement, and async finance operations are still only partially operational.
 
 ### 3. Payments integration is stubbed
 
@@ -247,7 +249,7 @@ Queues exist conceptually, but operational workers and async processing flows ar
 
 ### 5. Finance reconciliation exists more in schema than in workflows
 
-The ledger and payout models are present, but finance operations still need real end-user surfaces and automated processing.
+The ledger and payout models are present, and manual payout batching now exists, but reconciliation, provider submission, and finance exception handling still need deeper workflows.
 
 ### 6. Contract lifecycle is still intentionally light
 

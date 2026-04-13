@@ -656,6 +656,7 @@ model Donation {
   giftAidDeclaration GiftAidDeclaration?
   journalEntries    JournalEntry[]
   refunds           Refund[]
+  payoutItems       PayoutBatchItem[]
 }
 
 model Payment {
@@ -834,6 +835,11 @@ enum PayoutStatus {
   FAILED
 }
 
+enum PayoutBatchItemType {
+  DONATION
+  GIFT_AID
+}
+
 model PayoutBatch {
   id            String       @id @default(cuid())
   charityId     String
@@ -853,7 +859,26 @@ model PayoutBatch {
 
   charity       Charity        @relation(fields: [charityId], references: [id])
   bankAccount   BankAccount    @relation(fields: [bankAccountId], references: [id])
+  items         PayoutBatchItem[]
   journalEntries JournalEntry[]
+}
+
+model PayoutBatchItem {
+  id            String            @id @default(cuid())
+  payoutBatchId String
+  donationId    String?
+  itemType      PayoutBatchItemType @default(DONATION)
+  grossAmount   Decimal           @db.Decimal(12, 2)
+  feesAmount    Decimal           @db.Decimal(12, 2)
+  netAmount     Decimal           @db.Decimal(12, 2)
+  notes         String?
+  createdAt     DateTime          @default(now())
+
+  payoutBatch   PayoutBatch       @relation(fields: [payoutBatchId], references: [id], onDelete: Cascade)
+  donation      Donation?         @relation(fields: [donationId], references: [id], onDelete: SetNull)
+
+  @@index([payoutBatchId])
+  @@index([donationId])
 }
 
 // ─────────────────────────────────────────────

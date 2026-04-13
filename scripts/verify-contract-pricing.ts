@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import Decimal from "decimal.js";
 import { previewFees } from "../src/server/lib/fee-engine";
 import { resolvePayoutPolicy } from "../src/server/lib/commercials";
+import { createScheduledPayoutBatch, markPayoutBatchPaid } from "../src/server/lib/payouts";
 
 const db = new PrismaClient();
 
@@ -363,6 +364,82 @@ async function main() {
   const payoutPolicy = await resolvePayoutPolicy(expiredFixture.charity.id, new Date("2026-06-01T00:00:00.000Z"));
   assert(payoutPolicy.blocked === true, "Expired contract should block payouts when configured.");
 
+  const bankAccount = await db.bankAccount.upsert({
+    where: { id: "pricing-verification-bank" },
+    update: {
+      charityId: hybridFixture.charity.id,
+      accountName: "Verification payout account",
+      currency: "GBP",
+      provider: "bacs",
+      isDefault: true,
+      isVerified: true,
+    },
+    create: {
+      id: "pricing-verification-bank",
+      charityId: hybridFixture.charity.id,
+      accountName: "Verification payout account",
+      currency: "GBP",
+      provider: "bacs",
+      isDefault: true,
+      isVerified: true,
+    },
+  });
+
+  await db.donation.create({
+    data: {
+      pageId: await (async () => {
+        const page = await db.fundraisingPage.upsert({
+          where: { shortName: "pricing-hybrid-page" },
+          update: {
+            userId: (await db.user.findFirstOrThrow({ where: { email: "admin@givekhair.dev" } })).id,
+            appealId: hybridFixture.appeal.id,
+            title: "Pricing hybrid page",
+            currency: "GBP",
+            status: "ACTIVE",
+            visibility: "PUBLIC",
+          },
+          create: {
+            userId: (await db.user.findFirstOrThrow({ where: { email: "admin@givekhair.dev" } })).id,
+            appealId: hybridFixture.appeal.id,
+            title: "Pricing hybrid page",
+            shortName: "pricing-hybrid-page",
+            currency: "GBP",
+            status: "ACTIVE",
+            visibility: "PUBLIC",
+          },
+        });
+        return page.id;
+      })(),
+      contractId: `${hybridFixture.charity.slug}-contract`,
+      amount: "10.00",
+      donationAmount: "10.00",
+      donorSupportAmount: "0.00",
+      grossCheckoutTotal: "10.00",
+      feeChargedToCharity: "0.49",
+      charityNetAmount: "9.51",
+      resolvedChargingMode: "CHARITY_PAID",
+      donationKind: "ONE_OFF",
+      giftAidExpectedAmount: "0.00",
+      giftAidReceivedAmount: "1.25",
+      currency: "GBP",
+      status: "CAPTURED",
+      donorEmail: "pricing-payout@example.com",
+      idempotencyKey: `pricing-payout-${Date.now()}`,
+    },
+  });
+
+  const payoutBatch = await createScheduledPayoutBatch(hybridFixture.charity.id);
+  assert(payoutBatch.bankAccountId === bankAccount.id, "Payout batch should use the default bank account.");
+  assert(money(payoutBatch.netAmount) === "10.76", "Payout batch should include charity net plus received Gift Aid.");
+  assert(payoutBatch.items.length >= 2, "Payout batch should include donation and Gift Aid line items.");
+
+  const paidBatch = await markPayoutBatchPaid({
+    payoutBatchId: payoutBatch.id,
+    providerRef: "verification-provider-ref",
+    bankRef: "verification-bank-ref",
+  });
+  assert(paidBatch.status === "PAID", "Payout batch should transition to paid.");
+
   console.log("Verified contract-led pricing cases:");
   console.log(" - donor-supported with donor support added");
   console.log(" - charity-paid");
@@ -371,6 +448,7 @@ async function main() {
   console.log(" - recurring vs one-off fee selection");
   console.log(" - expired contract blocks payout");
   console.log(" - appeal override disables donor support");
+  console.log(" - payout batch creation and paid transition");
 }
 
 main()

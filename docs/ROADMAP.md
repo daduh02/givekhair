@@ -30,6 +30,7 @@ Prioritise slices that:
 - Donations admin workflow and hosted test checkout
 - Appeal pages now guarantee a donation widget even when no public fundraiser page exists yet
 - Contract-led pricing foundation with donor-supported, charity-paid, and hybrid charging modes
+- Manual payout batch operations with linked payout items and contract-aware payout gating
 
 ### Remaining in this phase
 
@@ -43,7 +44,7 @@ Prioritise slices that:
 
 1. Public charity profile pages
 2. Reports and exports
-3. Payouts and Gift Aid workflows
+3. Gift Aid settlement and payout automation
 4. Appeal/team analytics and leaderboards
 5. Richer fundraiser self-serve tools
 
@@ -83,10 +84,10 @@ This is the shortest path to matching the operational needs in the spec for real
 
 ### Ticket 2: Finance workflows
 
-- Build payout batches and history
 - Build Gift Aid claim queue
+- Add automatic payout queue processing on top of manual payout batches
 - Add finance summaries and reconciliation hooks
-- Add contract-state-aware payout actions beyond the current readiness/gating view
+- Add provider submission and failure handling for payout batches
 
 ### Ticket 3: Commercial ops hardening
 

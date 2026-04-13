@@ -102,6 +102,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Contract edit and renewal/versioning routes now exist on top of the admin settings surface
 - `Done` Fee rules can now vary by donation kind, charging mode, active state, and effective dates
 - `Done` Appeal-level donor-support override exists and only overrides donor-support behavior
+- `Done` Manual payout batches can now be created, itemized, and advanced through scheduled, processing, and paid states
 - `Partial` Ledger helper code exists
 - `Partial` Finance UI is still incomplete, but fees/contracts now have a working contract-led foundation
 
@@ -183,9 +184,10 @@ This file tracks the current delivery state of the product against the working g
 
 ### 5.6 Bank Accounts & Payouts
 
-- `Partial` schema and overview aggregates
+- `Done` payout overview and manual payout batch operations
+- `Done` payout items now link batches back to donation and Gift Aid allocations
 - `Done` payout readiness now respects contract expiry/suspension policy and excludes donor-support revenue from charity payout totals
-- `Not started` working payout operations
+- `Partial` async payout provider processing and reconciliation are still not built
 
 ### 5.7 Gift Aid
 
@@ -223,7 +225,7 @@ This file tracks the current delivery state of the product against the working g
 ## Immediate Next Recommendations
 
 1. Build `Reports and exports` so charity teams can actually extract and use the data they are entering.
-2. Build `Payout batch operations + Gift Aid settlement workflow` on top of the new contract-led pricing and payout gating.
+2. Build `Gift Aid settlement workflow` so received reclaim amounts move into payouts from a real HMRC/payment lifecycle.
 3. Build `Richer fundraiser self-serve tools` such as updates, media management, and moderation-state messaging.
 4. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
 5. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.
