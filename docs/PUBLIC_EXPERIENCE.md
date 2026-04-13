@@ -41,8 +41,9 @@ Responsibilities:
 Responsibilities:
 
 - public nav links for appeals, charities, how it works, and Zakat/Gift Aid
-- auth-aware right-side action
-- role-aware signed-in entry point (`Admin` for admins, `Dashboard` for other signed-in users)
+- signed-out login plus fundraiser CTA
+- signed-in account chip with name/email context
+- role-aware account menu (`Admin` for admin-capable users, `Dashboard`, `Fundraise`, `Log out`)
 - primary CTA for starting a fundraiser
 
 ### Shared public footer
@@ -195,10 +196,10 @@ These routes are intentionally lightweight and should be replaced with richer co
 ## Homepage structure
 
 - sticky shared header
-- hero with trust pill, main headline, CTA pair, mini trust cards, and featured appeal
+- hero with trust pill, more product-specific headline/subcopy, CTA pair, mini proof cards, and featured appeal
 - category pill band
 - trending appeals section
-- benefit cards section
+- charity-operations value section
 - secondary CTA band
 - trust/compliance band
 - shared public footer
@@ -218,6 +219,13 @@ Current behavior:
 - map the first result to the featured appeal
 - map the next three into trending cards
 - fall back to curated mock content if the live query fails or returns too little
+
+Copy direction now intentionally avoids generic startup language. The page keeps the same visual architecture, but the wording is more specific about:
+
+- verified charities
+- Gift Aid-aware giving
+- offline donations contributing to totals
+- fee visibility and donor-supported giving
 
 This preserves real data wiring without making the homepage feel empty during transient data issues.
 

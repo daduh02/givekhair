@@ -71,6 +71,7 @@ npm run dev
 | `/` | Public homepage — shared shell, featured appeal, trust sections |
 | `/appeals/[slug]` | Appeal detail + donation widget |
 | `/charities` | Public charity directory |
+| `/charities/[slug]` | Public charity profile page |
 | `/how-it-works` | Public explainer page |
 | `/zakat-gift-aid` | Public giving guidance page |
 | `/fundraise/[shortName]` | Public fundraising page route |
@@ -133,11 +134,11 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 ## Next steps (build order)
 
 1. **Wire Stripe** — add `STRIPE_SECRET_KEY`, implement `createCheckout` in donations router
-2. **Fundraising page UI** — `/fundraise/[shortName]` page component
-3. **Public charity profiles** — individual charity detail pages using the new public shell
-4. **Fundraiser self-serve tools** — richer updates, media management, and fundraiser-facing status messaging
-5. **Payout batch processor** — async queue worker and reconciliation automation on top of the new manual payout-batch operations
-6. **Reconciliation exports** — settlement-oriented downloads and finance exception reporting
+2. **Fundraiser self-serve tools** — richer updates, media management, and fundraiser-facing status messaging
+3. **Payout batch processor** — async queue worker and reconciliation automation on top of the new manual payout-batch operations
+4. **Reconciliation exports** — settlement-oriented downloads and finance exception reporting
+5. **Refunds and disputes** — operational handling on top of the donation and ledger foundations
+6. **Contract approval and signature workflow** — stronger commercial lifecycle handling beyond the current renewal/edit surface
 7. **Risk engine** — velocity, device fingerprint, IP reputation signals
 8. **Accessibility audit** — axe-core CI checks + NVDA/VoiceOver passes
 

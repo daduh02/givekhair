@@ -46,6 +46,8 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Global public footer applied through shared layout rather than copied into individual pages
 - `Done` Public information architecture for charities, how-it-works, Zakat/Gift Aid, and policy/support placeholder pages
 - `Done` Centralized public theme tokens, button styles, chips, cards, and progress bar patterns
+- `Done` Signed-in public navbar account menu with role-aware actions for admin, dashboard, fundraising, and logout
+- `Done` Homepage tone refinement so the public landing experience reads more product-specific and less generic
 - `Done` Appeal detail page with totals, teams, fundraiser list, and donation widget on every appeal page
 - `Done` Dedicated public fundraiser page route at `/fundraise/[shortName]` with story, progress, updates, donor feed, and donation widget
 - `Done` Protected fundraiser creation flow at `/fundraise/new`
@@ -131,11 +133,11 @@ This file tracks the current delivery state of the product against the working g
 
 ### Spec-critical product slices
 
-- `Partial` Donations management and operational visibility
+- `Done` Donations management and operational visibility
 - `Not started` Refunds, disputes, and chargeback workflows
 - `Not started` Payout batching lifecycle and reconciliation UI
 - `Partial` GL export and finance CSV exports per accounting structure
-- `Not started` Gift Aid claim queue, submission, and paid-state workflow
+- `Done` Gift Aid claim queue, submission, and paid-state workflow
 - `Not started` Team leaderboards
 - `Done` Public charity directory now links into rich public charity profile pages
 - `Done` Reporting center with downloadable exports
@@ -167,6 +169,7 @@ This file tracks the current delivery state of the product against the working g
 - `Partial` schema and mutations
 - `Partial` moderation controls exist in admin appeal flows
 - `Done` protected create/edit routes for fundraiser owners
+- `Done` public fundraiser detail route
 - `Partial` richer fundraiser self-serve management remains limited to the current core form
 
 ### 5.4 Donations

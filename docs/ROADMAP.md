@@ -43,11 +43,11 @@ Prioritise slices that:
 
 ### Recommended next
 
-1. Public charity profile pages
+1. Richer fundraiser self-serve tools
 2. Appeal/team analytics and leaderboards
-3. Richer fundraiser self-serve tools
-4. Accounting-oriented exports
-5. Refunds and disputes
+3. Accounting-oriented reconciliation exports
+4. Refunds and disputes
+5. Commercial approval/signature workflow
 
 ### Why this phase matters
 
