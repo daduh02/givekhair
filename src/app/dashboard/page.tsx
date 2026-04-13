@@ -8,6 +8,10 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 const ADMIN_ROLES = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"];
 
+function normalizeRole(value: unknown) {
+  return typeof value === "string" && value.length > 0 ? value : "DONOR";
+}
+
 function formatCurrency(value: number, currency = "GBP") {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
@@ -88,8 +92,8 @@ export default async function DashboardPage() {
     redirect("/auth/signin?callbackUrl=%2Fdashboard");
   }
 
-  const user = session.user as { id?: string; role?: string; name?: string | null; email?: string | null } | undefined;
-  const role = user?.role ?? "DONOR";
+  const user = session.user as { id?: string; role?: unknown; name?: string | null; email?: string | null } | undefined;
+  const role = normalizeRole(user?.role);
   const isAdmin = ADMIN_ROLES.includes(role);
 
   const [appealCount, managedCharity, recentAppeals] = await Promise.all([

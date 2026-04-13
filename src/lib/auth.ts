@@ -7,9 +7,17 @@ import type { JWT } from "next-auth/jwt";
 import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 
+const KNOWN_ROLES = ["DONOR", "FUNDRAISER", "TEAM_LEAD", "CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"] as const;
+
 const googleClientId = process.env.AUTH_GOOGLE_ID;
 const googleClientSecret = process.env.AUTH_GOOGLE_SECRET;
 const authSecret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET;
+
+function normalizeRole(role: unknown) {
+  return typeof role === "string" && KNOWN_ROLES.includes(role as (typeof KNOWN_ROLES)[number])
+    ? role
+    : "DONOR";
+}
 
 export const authOptions: NextAuthOptions = {
   ...(process.env.DATABASE_URL ? { adapter: PrismaAdapter(db) } : {}),
@@ -47,7 +55,7 @@ export const authOptions: NextAuthOptions = {
             id: user.id,
             email: user.email,
             name: user.name,
-            role: user.role,
+            role: normalizeRole(user.role),
           };
         },
       }),
@@ -63,7 +71,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }: { token: JWT; user?: any }) {
       if (user) {
-        token.role = user.role ?? "DONOR";
+        token.role = normalizeRole(user.role);
         token.id = user.id;
         return token;
       }
@@ -76,7 +84,7 @@ export const authOptions: NextAuthOptions = {
 
         if (dbUser) {
           token.id = dbUser.id;
-          token.role = dbUser.role;
+          token.role = normalizeRole(dbUser.role);
         }
       }
 
@@ -85,7 +93,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user) {
         (session.user as any).id = token.id;
-        (session.user as any).role = token.role ?? "DONOR";
+        (session.user as any).role = normalizeRole(token.role);
       }
       return session;
     },
