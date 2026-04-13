@@ -14,7 +14,6 @@ This is a practical reference, not a future-state wishlist.
 ## Purpose
 
 GiveKhair is a UK-focused charity fundraising platform with:
-
 - charities and charity admins
 - appeals, teams, and fundraising pages
 - online and offline donations
@@ -22,6 +21,8 @@ GiveKhair is a UK-focused charity fundraising platform with:
 - contract-led pricing and fee rules
 - payout and finance operations
 - moderation and governance foundations
+- reporting/export audit and finance automation run tracking
+- platform access administration controls
 
 The schema is intentionally broader than the currently shipped UI in some areas. Where that is true, this document calls it out.
 
@@ -33,34 +34,15 @@ At the highest level, the platform works like this:
 
 1. A Charity exists on the platform.
 2. A charity creates one or more Appeals.
-3. An appeal can contain:
-- Teams
-- Fundraising Pages
+3. An appeal can contain Teams and Fundraising Pages.
 4. Donors give against a Fundraising Page, which rolls up into an appeal and charity.
-5. A donation may have:
-- a Payment
-- a FeeSet
-- a GiftAidDeclaration
-- Refunds
-- JournalEntries
-6. Charities are governed commercially by:
-- CommercialPlan
-- FeeSchedule
-- FeeRule
-- CharityContract
-7. Funds are operationally managed through:
-- PayoutBatch
-- BankAccount
-- GiftAidClaim
-- GiftAidClaimItem
-- ledger entries
-8. Offline fundraising is captured through:
-- OfflineDonation
-- OfflineUploadBatch
-9. Moderation and governance are supported through:
-- ModerationItem
-- ModerationLog
-- terms and acceptance records
+5. A donation may have a Payment, FeeSet, GiftAidDeclaration, Refunds, Disputes, PayoutBatchItems, and JournalEntries.
+6. Commercial behavior is contract-led via CommercialPlan, FeeSchedule, FeeRule, and CharityContract.
+7. Funds are managed through BankAccount, PayoutBatch, PayoutBatchItem, GiftAidClaim, GiftAidClaimItem, and ledger entries.
+8. Offline fundraising is captured through OfflineDonation and OfflineUploadBatch.
+9. Moderation and governance are supported through ModerationItem and ModerationLog.
+10. Reporting and finance operations are tracked through ReportExportLog, ReportExportArtifact, and FinanceAutomationRun.
+11. Platform access changes are controlled and audited through UserAccessToken and UserAccessAuditLog.
 
 ---
 
@@ -69,14 +51,16 @@ At the highest level, the platform works like this:
 The schema can be read in these domains:
 
 1. Auth and user accounts
-2. Charity structure
-3. Appeals, teams, and fundraising pages
-4. Donations and payments
-5. Offline donations
-6. Gift Aid
-7. Fees, plans, and contracts
-8. Payouts and finance
-9. Moderation and governance
+2. Access administration
+3. Charity structure
+4. Appeals, teams, and fundraising pages
+5. Donations, payments, refunds, and disputes
+6. Offline donations
+7. Gift Aid
+8. Fees, plans, and contracts
+9. Payouts and finance ledger
+10. Moderation and governance
+11. Reporting, export audit, and finance automation
 
 ---
 
@@ -96,10 +80,15 @@ This includes:
 ### Key fields
 - `id`
 - `email`
+- `emailVerified`
 - `name`
 - `image`
 - `passwordHash`
 - `role`
+- `invitedAt`
+- `suspendedAt`
+- `suspendedReason`
+- `lastAccessChangeAt`
 - `twoFactorEnabled`
 - `createdAt`
 - `updatedAt`
@@ -115,11 +104,14 @@ A user can be related to:
 - `CharityAdmin[]`
 - `TeamMember[]`
 - `OfflineUploadBatch[]`
+- `ReportExportLog[]`
+- `FinanceAutomationRun[]`
+- access-token and access-audit relations
 
 ### Notes
 - The role model is central to platform permissions.
 - Email/password and Google sign-in are both supported.
-- Some governance and user-management workflows may still be expanding in the UI.
+- Invitation/suspension metadata is now first-class on the user record.
 
 ## `Account`
 OAuth/provider account linkage for Auth.js / NextAuth.
@@ -130,18 +122,50 @@ OAuth/provider account linkage for Auth.js / NextAuth.
 - `providerAccountId`
 - token fields
 
-### Notes
-- Used for provider-authenticated login such as Google.
-
 ## `Session`
 Active user sessions.
 
 ## `VerificationToken`
-Verification / auth token support for Auth.js flows.
+Verification/auth token support for Auth.js flows.
 
 ---
 
-# 2. Charity structure
+# 2. Access administration
+
+## `UserAccessToken`
+Stores one-time hashed tokens for invite and password setup/reset workflows.
+
+### Key fields
+- `userId`
+- `tokenType`
+- `tokenHash`
+- `expiresAt`
+- `usedAt`
+- `createdById`
+- `createdAt`
+
+### Notes
+- Raw token values are not stored.
+- Used for `INVITE`, `PASSWORD_SETUP`, and `PASSWORD_RESET`.
+
+## `UserAccessAuditLog`
+Immutable access-control audit history for user administration actions.
+
+### Key fields
+- `actorUserId`
+- `targetUserId`
+- `action`
+- `reason`
+- `beforeJson`
+- `afterJson`
+- `createdAt`
+
+### Notes
+- Captures role changes, suspension changes, invites, and password access operations.
+
+---
+
+# 3. Charity structure
 
 ## `Charity`
 Represents a charity onboarded to the platform.
@@ -176,11 +200,9 @@ A charity can have:
 - `feeSchedules`
 - `contracts`
 - `termsAcceptances`
+- `commercialAuditLogs`
 - `moderationItems`
-
-### Notes
-- This is the root operational entity for fundraising, finance, and contracts.
-- Charity-level visibility, verification, and admin scoping are important across the app.
+- `reportExports`
 
 ## `CharityAdmin`
 Join model linking users to charities they administer.
@@ -189,16 +211,12 @@ Join model linking users to charities they administer.
 - `userId`
 - `charityId`
 
-### Notes
-- A single user can administer more than one charity if needed.
-- Charity scoping in admin uses this relationship.
-
 ---
 
-# 3. Appeals, teams, and fundraising pages
+# 4. Appeals, teams, and fundraising pages
 
 ## `Category`
-Appeal category used for public browsing and appeal classification.
+Appeal category used for public browsing and classification.
 
 ### Key fields
 - `name`
@@ -206,7 +224,7 @@ Appeal category used for public browsing and appeal classification.
 - `iconUrl`
 
 ## `Appeal`
-The main fundraising campaign container for a charity.
+The fundraising campaign container for a charity.
 
 ### Key fields
 - `charityId`
@@ -221,6 +239,8 @@ The main fundraising campaign container for a charity.
 - `endsAt`
 - `bannerUrl`
 - `mediaGallery`
+- `donorSupportOverride`
+- `isFeaturedHomepage`
 - `visibility`
 - `status`
 
@@ -232,9 +252,8 @@ An appeal belongs to a charity and can have:
 - `moderationItems`
 
 ### Notes
-- Appeals are central to public fundraising discovery.
-- Public homepage and campaign surfaces pull from active/public appeals.
-- Teams and fundraiser pages are grouped under appeals.
+- `isFeaturedHomepage` supports admin-controlled homepage featuring.
+- `donorSupportOverride` allows appeal-level donor-support behavior override.
 
 ## `Team`
 A group inside an appeal.
@@ -254,10 +273,6 @@ A team has:
 - `pages`
 - `moderationItems`
 
-### Notes
-- Teams support group fundraising and campaign structure.
-- Analytics/leaderboards may continue to expand around this model.
-
 ## `TeamMember`
 Join model linking users to teams.
 
@@ -266,9 +281,6 @@ Join model linking users to teams.
 - `userId`
 - `isLead`
 - `joinedAt`
-
-### Notes
-- Used for team membership and lead designation.
 
 ## `FundraisingPage`
 A personal or team-linked fundraising page created under an appeal.
@@ -295,10 +307,6 @@ A page has:
 - `updates`
 - `moderationItems`
 
-### Notes
-- This is the main donor-facing fundraising unit under an appeal.
-- Public fundraiser pages, updates, media, and owner-side management all use this model.
-
 ## `PageMedia`
 Media attached to a fundraising page.
 
@@ -318,41 +326,35 @@ Owner-authored updates published to a fundraising page.
 
 ---
 
-# 4. Donations and payments
+# 5. Donations, payments, refunds, and disputes
 
 ## `Donation`
-Represents an online donation attempt/record against a fundraising page.
+Represents an online donation record against a fundraising page.
 
 ### Key fields
-- `pageId`
-- `userId`
-- `amount`
-- `currency`
-- `status`
-- `isAnonymous`
-- `isRecurring`
-- `donorName`
-- `donorEmail`
-- `receiptIssuedAt`
-- `message`
-- `externalRef`
-- `idempotencyKey`
-- `riskScore`
-- `riskReasons`
-- `holdState`
+- core:
+`pageId`, `userId`, `amount`, `currency`, `status`, `isAnonymous`, `isRecurring`, `donorName`, `donorEmail`, `receiptIssuedAt`, `message`, `externalRef`, `idempotencyKey`
+- contract-led pricing:
+`contractId`, `donationAmount`, `donorSupportAmount`, `grossCheckoutTotal`, `feeChargedToCharity`, `charityNetAmount`, `resolvedChargingMode`, `feeBreakdownSnapshot`, `donationKind`
+- Gift Aid donation-level amounts:
+`giftAidExpectedAmount`, `giftAidReceivedAmount`
+- risk/ops:
+`riskScore`, `riskReasons`, `holdState`
 
 ### Relationships
 A donation can have:
 - `feeSet`
 - `payment`
 - `giftAidDeclaration`
-- `journalEntries`
 - `refunds`
+- `disputes`
+- `payoutItems`
+- `journalEntries`
+- optional `contract`
 
 ### Notes
-- Donation is the operational center of the online giving flow.
-- In current product terms, donations also connect into fee snapshots, payouts, refunds, disputes, and Gift Aid.
-- Newer pricing behavior is contract-led, with donation pricing fields/snapshots preserved for audit and finance operations.
+- `amount` is retained for backward compatibility.
+- New pricing writes are contract-led and capture richer financial fields.
 
 ## `Payment`
 Provider-side payment record linked 1:1 with a donation.
@@ -366,31 +368,47 @@ Provider-side payment record linked 1:1 with a donation.
 - `settledAt`
 - `failureReason`
 
-### Notes
-- Supports provider settlement and payment lifecycle tracking.
-
 ## `Refund`
 Refund record linked to a donation.
 
 ### Key fields
 - `donationId`
 - `amount`
+- `status`
 - `reason`
 - `providerRef`
 - `initiatedBy`
 - `processedAt`
 - `createdAt`
 
+## `Dispute`
+Dispute/chargeback record linked to a donation.
+
+### Key fields
+- `donationId`
+- `providerRef`
+- `status`
+- `amount`
+- `currency`
+- `reason`
+- `evidenceDueAt`
+- `openedAt`
+- `closedAt`
+- `outcome`
+- `notes`
+- `metadataJson`
+- `recordedById`
+- `financialImpactRecordedAt`
+
 ### Notes
-- Refund and dispute operations now exist operationally in admin.
-- Recovery and provider automation may still be evolving.
+- Designed as a practical operational layer, not a full correspondence/case-management system.
 
 ---
 
-# 5. Offline donations
+# 6. Offline donations
 
 ## `OfflineDonation`
-Represents a donation recorded outside the online checkout flow.
+Donation recorded outside online checkout.
 
 ### Key fields
 - `pageId`
@@ -404,16 +422,12 @@ Represents a donation recorded outside the online checkout flow.
 - `createdById`
 
 ### Relationships
-An offline donation can have:
-- `giftAidDeclaration`
-
-### Notes
-- Offline donations are included in the platform because real fundraising often happens outside direct checkout.
-- These records can be entered manually or created via CSV import.
-- Only approved offline donations should be treated as part of live fundraising totals.
+- optional `giftAidDeclaration`
+- optional `page`
+- optional `batch`
 
 ## `OfflineUploadBatch`
-Tracks a CSV import batch for offline donations.
+Tracks CSV import batches for offline donations.
 
 ### Key fields
 - `appealId`
@@ -425,43 +439,25 @@ Tracks a CSV import batch for offline donations.
 - `resultJson`
 - `committedAt`
 
-### Notes
-- Supports dry-run validation before commit.
-- Useful for auditability of bulk offline donation ingestion.
-
 ---
 
-# 6. Gift Aid
+# 7. Gift Aid
 
 ## `GiftAidDeclaration`
-Represents the donor's Gift Aid declaration.
+Donor Gift Aid declaration for online or offline donation records.
 
 ### Key fields
-- `userId`
-- `donationId`
-- `offlineDonationId`
-- `donorFullName`
-- address fields
-- `type`
-- `statementVersion`
-- `statementText`
-- `ipAddress`
-- `userAgent`
-- `createdById`
-- `createdAt`
-- `revokedAt`
-
-### Relationships
-A declaration can link to:
-- an online donation
-- an offline donation
-- `GiftAidClaimItem[]`
-
-### Notes
-- This is the legal/audit entity for Gift Aid eligibility and claim support.
+- links:
+`userId`, `donationId`, `offlineDonationId`
+- donor details:
+`donorFullName`, address fields, `donorCountry`
+- declaration:
+`type`, `statementVersion`, `statementText`
+- audit:
+`ipAddress`, `userAgent`, `createdById`, `createdAt`, `revokedAt`
 
 ## `GiftAidClaim`
-Represents a Gift Aid claim batch for a charity.
+Gift Aid claim batch per charity.
 
 ### Key fields
 - `charityId`
@@ -474,14 +470,6 @@ Represents a Gift Aid claim batch for a charity.
 - `paidAt`
 - `hmrcRef`
 
-### Relationships
-- belongs to a charity
-- has `items`
-
-### Notes
-- Supports draft, submission, and paid-state workflow.
-- HMRC automation may still be incomplete even though manual claim lifecycle is present.
-
 ## `GiftAidClaimItem`
 Links a declaration into a specific claim.
 
@@ -491,17 +479,14 @@ Links a declaration into a specific claim.
 - `donationAmount`
 - `reclaimAmount`
 
-### Notes
-- Provides item-level traceability inside a Gift Aid claim.
-
 ---
 
-# 7. Fees, plans, and contracts
+# 8. Fees, plans, and contracts
 
-This is one of the most important parts of the schema because pricing is now contract-led.
+Pricing is contract-led, with schedules/rules still driving fee calculation inputs.
 
 ## `CommercialPlan`
-Represents a reusable commercial package or plan.
+Reusable commercial package.
 
 ### Key fields
 - `name`
@@ -514,19 +499,11 @@ Represents a reusable commercial package or plan.
 - `featureSummary`
 - `status`
 
-### Relationships
-- `feeSchedules`
-- `contracts`
-
-### Notes
-- A plan is a reusable commercial package.
-- Runtime pricing should not rely on plans alone; contracts and fee schedules are more operationally important.
-
 ## `FeeSchedule`
-Represents a versioned schedule of fee rules.
+Versioned fee schedule.
 
 ### Key fields
-- `charityId`
+- `charityId` (nullable for platform-default schedules)
 - `commercialPlanId`
 - `version`
 - `name`
@@ -535,41 +512,21 @@ Represents a versioned schedule of fee rules.
 - `validTo`
 
 ### Relationships
-- belongs optionally to a charity
-- belongs optionally to a commercial plan
-- has `rules`
-- has `feeSets`
-- links to `contracts`
-
-### Notes
-- Fee schedules are versioned pricing inputs.
-- A charity may have a specific schedule, while a null-charity schedule can act as platform default.
+- has `rules`, `feeSets`, `contracts`, `auditLogs`
 
 ## `FeeRule`
-Represents an individual pricing rule inside a fee schedule.
+Individual rule under a fee schedule.
 
 ### Key fields
-- `scheduleId`
-- `countryCode`
-- `fundraisingModel`
-- `paymentMethod`
-- `subscriptionTier`
-- `ruleType`
-- `platformFeePct`
-- `platformFeeFixed`
-- `processingFeePct`
-- `processingFeeFixed`
-- `giftAidFeePct`
-- `capAmount`
-- `promoCode`
-- `sortOrder`
-
-### Notes
-- Fee rules power pricing logic.
-- Newer pricing flows also depend on contract and charging-mode context.
+- targeting:
+`countryCode`, `fundraisingModel`, `paymentMethod`, `subscriptionTier`, `donationKind`, `chargingMode`
+- fee shape:
+`ruleType`, `platformFeePct`, `platformFeeFixed`, `processingFeePct`, `processingFeeFixed`, `giftAidFeePct`, `capAmount`, `promoCode`
+- lifecycle:
+`isActive`, `effectiveFrom`, `effectiveTo`, `sortOrder`
 
 ## `FeeSet`
-Represents a fee snapshot applied to a donation.
+Donation-time fee snapshot.
 
 ### Key fields
 - `scheduleId`
@@ -582,42 +539,24 @@ Represents a fee snapshot applied to a donation.
 - `netToCharity`
 - `snapshotJson`
 
-### Notes
-- This is the audit snapshot of pricing used at donation time.
-- Even as pricing becomes more contract-led, donation-time fee snapshots remain important for audit and reporting.
-
 ## `CharityContract`
-Represents the actual commercial agreement for a charity.
+Operational commercial agreement for a charity.
 
 ### Key fields
-- `charityId`
-- `commercialPlanId`
-- `feeScheduleId`
-- `status`
-- `effectiveFrom`
-- `effectiveTo`
-- `signedAt`
-- `signedByName`
-- `signedByEmail`
-- `termsVersion`
-- `payoutTerms`
-- `reservePolicy`
-- `autoRenew`
-- `notes`
+- linkage/status:
+`charityId`, `commercialPlanId`, `feeScheduleId`, `status`
+- charging and donor support:
+`chargingMode`, `region`, `productType`, `donorSupportEnabled`, `donorSupportPromptStyle`, `donorSupportSuggestedPresets`
+- payout/settlement:
+`payoutFrequency`, `payoutMethod`, `settlementDelayDays`, `reserveRule`, `autoPauseAppealsOnExpiry`, `blockPayoutsOnExpiry`
+- lifecycle/legal:
+`effectiveFrom`, `effectiveTo`, `signedAt`, `signedByName`, `signedByEmail`, `termsVersion`, `payoutTerms`, `reservePolicy`, `autoRenew`, `notes`, `internalNotes`
 
 ### Relationships
-- belongs to a charity
-- belongs to a commercial plan
-- optionally links to a fee schedule
-- has `acceptances`
-
-### Notes
-- Contracts are the operational commercial layer for charities.
-- The platform now uses contract-led pricing for new donation writes.
-- Contract renewal/versioning exists to preserve historic commercial periods.
+- has `acceptances`, `documents`, `donations`, and `auditLogs`
 
 ## `TermsAcceptance`
-Tracks legal/commercial acceptance records.
+Legal/commercial acceptance records.
 
 ### Key fields
 - `contractId`
@@ -629,32 +568,49 @@ Tracks legal/commercial acceptance records.
 - `acceptedAt`
 - `notes`
 
-### Notes
-- Useful for legal traceability.
-- Separate from contracts so history is preserved cleanly.
+## `ContractDocument`
+Uploaded contract-supporting document.
+
+### Key fields
+- `contractId`
+- `name`
+- `fileUrl`
+- `mimeType`
+- `documentType`
+- `uploadedByName`
+- `uploadedByEmail`
+- `createdAt`
+
+## `CommercialAuditLog`
+Audit records for commercial/configuration changes.
+
+### Key fields
+- linkages:
+`contractId`, `feeScheduleId`, `feeRuleId`, `charityId`
+- event:
+`action`, `entityType`, `summary`, `metadata`
+- actor/time:
+`changedByName`, `changedByEmail`, `createdAt`
 
 ---
 
-# 8. Payouts and finance
+# 9. Payouts and finance ledger
 
 ## `BankAccount`
-Represents a charity payout destination.
+Charity payout destination.
 
 ### Key fields
 - `charityId`
 - `accountName`
-- masked account/sort code/IBAN fields
+- masked account fields
 - `currency`
 - `provider`
 - `providerRef`
 - `isDefault`
 - `isVerified`
 
-### Notes
-- Used by payout operations.
-
 ## `PayoutBatch`
-Represents a payout batch for a charity.
+Batch payout run for a charity.
 
 ### Key fields
 - `charityId`
@@ -671,36 +627,33 @@ Represents a payout batch for a charity.
 - `idempotencyKey`
 
 ### Relationships
-- belongs to a charity
-- belongs to a bank account
+- has `items` (`PayoutBatchItem[]`)
 - has `journalEntries`
 
-### Notes
-- Manual payout batch operations exist.
-- Payout readiness respects contract expiry/suspension logic.
-- Donor-support revenue should not be included in charity payout totals.
-- Async provider processing and reconciliation workflows may still be incomplete.
+## `PayoutBatchItem`
+Itemized payout linkage record for donation/Gift Aid allocations.
+
+### Key fields
+- `payoutBatchId`
+- `donationId`
+- `itemType` (`DONATION` or `GIFT_AID`)
+- `grossAmount`
+- `feesAmount`
+- `netAmount`
+- `notes`
 
 ## `JournalEntry`
-Represents a ledger journal entry.
+Double-entry journal header.
 
 ### Key fields
 - `correlationId`
-- `donationId`
-- `refundId`
-- `payoutBatchId`
+- optional links:
+`donationId`, `refundId`, `disputeId`, `payoutBatchId`
 - `description`
 - `createdAt`
 
-### Relationships
-- has `lines`
-
-### Notes
-- Used for accounting-style financial traceability.
-- GL export is based on this ledger direction.
-
 ## `LedgerLine`
-A debit/credit line inside a journal entry.
+Debit/credit line under a journal entry.
 
 ### Key fields
 - `entryId`
@@ -710,17 +663,14 @@ A debit/credit line inside a journal entry.
 - `currency`
 - `fxRate`
 - `description`
-
-### Notes
-- This is the line-level accounting representation.
-- Useful for finance exports and reconciliation work.
+- `createdAt`
 
 ---
 
-# 9. Moderation and governance
+# 10. Moderation and governance
 
 ## `ModerationItem`
-Represents a moderation review item.
+Moderation queue item.
 
 ### Key fields
 - `entityType`
@@ -738,9 +688,6 @@ Represents a moderation review item.
 - `createdAt`
 - `reviewedAt`
 
-### Notes
-- Used to support moderation and content review workflows.
-
 ## `ModerationLog`
 Immutable moderation action log.
 
@@ -752,9 +699,50 @@ Immutable moderation action log.
 - `actorId`
 - `createdAt`
 
+---
+
+# 11. Reporting, export audit, and finance automation
+
+## `ReportExportLog`
+Audit row for report/export generation.
+
+### Key fields
+- `reportType`
+- `status`
+- `exportedById`
+- `charityId`
+- `requestedCharityId`
+- `filtersJson`
+- `fileName`
+- `contentType`
+- `checksumSha256`
+- `byteSize`
+- `rowCount`
+- `errorMessage`
+- `createdAt`
+
 ### Notes
-- Supports governance and risk/moderation traceability.
-- Broader risk/hold-state workflows may still be evolving.
+- Captures operational visibility for export attempts and results.
+
+## `ReportExportArtifact`
+Stores immutable generated export content linked 1:1 to an export log.
+
+### Key fields
+- `exportLogId`
+- `content`
+- `createdAt`
+
+## `FinanceAutomationRun`
+Records finance automation runs (dry-run, executed, failed).
+
+### Key fields
+- `runType`
+- `status`
+- `requestedById`
+- `summary`
+- `detailsJson`
+- `startedAt`
+- `finishedAt`
 
 ---
 
@@ -768,6 +756,20 @@ Immutable moderation action log.
 - `CHARITY_ADMIN`
 - `FINANCE`
 - `PLATFORM_ADMIN`
+
+## Access administration
+`UserAccessTokenType`
+- `INVITE`
+- `PASSWORD_SETUP`
+- `PASSWORD_RESET`
+
+`UserAccessAuditAction`
+- `USER_INVITED`
+- `USER_ROLE_CHANGED`
+- `USER_SUSPENDED`
+- `USER_UNSUSPENDED`
+- `PASSWORD_SETUP_TRIGGERED`
+- `PASSWORD_RESET_TRIGGERED`
 
 ## Charity
 `CharityVerificationStatus`
@@ -816,6 +818,21 @@ Immutable moderation action log.
 - `UNLISTED`
 - `HIDDEN`
 
+## Moderation
+`ModerationEntityType`
+- `CHARITY`
+- `APPEAL`
+- `TEAM`
+- `FUNDRAISING_PAGE`
+- `REPORTED_CONTENT`
+
+`ModerationReviewStatus`
+- `PENDING`
+- `APPROVED`
+- `REJECTED`
+- `HIDDEN`
+- `BANNED`
+
 ## Fees and contracts
 `FundrasingModel`
 - `CHARITY`
@@ -825,6 +842,15 @@ Immutable moderation action log.
 - `PERCENTAGE`
 - `FIXED`
 - `TIERED`
+
+`ChargingMode`
+- `CHARITY_PAID`
+- `DONOR_SUPPORTED`
+- `HYBRID`
+
+`DonationKind`
+- `ONE_OFF`
+- `RECURRING`
 
 `BillingInterval`
 - `MONTHLY`
@@ -844,6 +870,23 @@ Immutable moderation action log.
 - `EXPIRED`
 - `TERMINATED`
 
+`DonorSupportPromptStyle`
+- `TOGGLE`
+- `CHECKBOX`
+- `PRESET`
+
+`PayoutFrequency`
+- `DAILY`
+- `WEEKLY`
+- `MONTHLY`
+- `MANUAL`
+
+`PayoutMethod`
+- `STRIPE_CONNECT`
+- `GOCARDLESS`
+- `BACS`
+- `MANUAL`
+
 `TermsDocumentType`
 - `MASTER_SERVICE_AGREEMENT`
 - `FEE_SCHEDULE`
@@ -852,7 +895,7 @@ Immutable moderation action log.
 - `GIFT_AID_TERMS`
 - `PLATFORM_TERMS`
 
-## Donations
+## Donations and exceptions
 `DonationStatus`
 - `PENDING`
 - `AUTHORISED`
@@ -867,6 +910,25 @@ Immutable moderation action log.
 - `NONE`
 - `SOFT_HOLD`
 - `HARD_HOLD`
+
+`RefundStatus`
+- `REQUESTED`
+- `PROCESSING`
+- `SUCCEEDED`
+- `FAILED`
+- `CANCELLED`
+
+`DisputeStatus`
+- `OPEN`
+- `UNDER_REVIEW`
+- `WON`
+- `LOST`
+- `CLOSED`
+
+`DisputeOutcome`
+- `WON`
+- `LOST`
+- `WRITTEN_OFF`
 
 ## Offline donations
 `OfflineDonationStatus`
@@ -893,20 +955,34 @@ Immutable moderation action log.
 - `PAID`
 - `FAILED`
 
-## Moderation
-`ModerationEntityType`
-- `CHARITY`
-- `APPEAL`
-- `TEAM`
-- `FUNDRAISING_PAGE`
-- `REPORTED_CONTENT`
+`PayoutBatchItemType`
+- `DONATION`
+- `GIFT_AID`
 
-`ModerationReviewStatus`
-- `PENDING`
-- `APPROVED`
-- `REJECTED`
-- `HIDDEN`
-- `BANNED`
+## Reporting and automation
+`ReportExportType`
+- `DONATIONS`
+- `OFFLINE`
+- `PAYOUTS`
+- `GIFT_AID`
+- `GL`
+- `PAYOUT_RECONCILIATION`
+- `GIFT_AID_RECONCILIATION`
+- `FINANCE_EXCEPTIONS`
+
+`ReportExportStatus`
+- `SUCCEEDED`
+- `FAILED`
+
+`FinanceAutomationRunType`
+- `AUTO_RECONCILIATION`
+- `PAYOUT_PROVIDER_SYNC`
+- `HMRC_CLAIM_SYNC`
+
+`FinanceAutomationRunStatus`
+- `DRY_RUN`
+- `EXECUTED`
+- `FAILED`
 
 ---
 
@@ -916,31 +992,21 @@ Immutable moderation action log.
 Some parts of the schema are broader than the currently delivered UI. This is intentional.
 
 Examples:
-- the ledger layer exists and supports exports, but finance/reconciliation UI may still be expanding
-- Gift Aid claim lifecycle exists, while some automation may still be partial
-- some moderation and governance foundations exist ahead of full operational tooling
+- ledger and reconciliation entities are present with growing operational UI
+- Gift Aid and payout lifecycle models support more automation than currently wired
+- access-admin, reporting-artifact, and automation-run models are in place for safe operations and auditability
 
 ## 2. Pricing is contract-led, but snapshots still matter
-The product now uses contract-led pricing for new donation writes, but fee snapshot entities remain important for:
+The system resolves pricing from active contracts and fee rules for new donation writes, while fee snapshots remain critical for:
 - audit
-- reporting
-- finance review
+- finance reporting
 - historical consistency
 
-## 3. Offline donations are first-class operational records
-Offline donations are not just notes or manual totals. They are modeled records with:
-- approval status
-- batch import support
-- optional Gift Aid declaration linkage
+## 3. Offline donations are first-class records
+Offline donations are modeled entities with approval status, optional Gift Aid linkage, and bulk import batch tracking.
 
-## 4. Payouts depend on finance and contract state
-Payout readiness is not just a balance calculation. It depends on:
-- charity contract state
-- payout logic
-- linked donation and Gift Aid allocations
-
-## 5. Risk/governance can grow further
-The schema already includes moderation log and hold-state concepts, but broader risk workflows may still be incomplete in the operational UI.
+## 4. Payout readiness is policy-aware
+Payout behavior depends on donation/payment state, contract terms, and payout-item allocation logic rather than simple balance arithmetic.
 
 ---
 
@@ -960,5 +1026,5 @@ Update this document when:
 - a major model is added or removed
 - important relationships change
 - enum values change
-- contract/fee/payout/Gift Aid logic changes materially
+- contract/fee/payout/Gift Aid/reporting/access flows change materially
 - a previously partial workflow becomes fully operational
