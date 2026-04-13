@@ -96,7 +96,7 @@ export default async function DashboardPage() {
   const role = normalizeRole(user?.role);
   const isAdmin = ADMIN_ROLES.includes(role);
 
-  const [appealCount, managedCharity, recentAppeals] = await Promise.all([
+  const [appealCount, managedCharity, recentAppeals, myPages] = await Promise.all([
     db.appeal.count({ where: { status: "ACTIVE", visibility: "PUBLIC" } }),
     isAdmin && user?.id
       ? db.charityAdmin.findFirst({
@@ -119,6 +119,23 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       take: 3,
     }),
+    user?.id
+      ? db.fundraisingPage.findMany({
+          where: { userId: user.id },
+          select: {
+            id: true,
+            title: true,
+            shortName: true,
+            status: true,
+            visibility: true,
+            targetAmount: true,
+            currency: true,
+            appeal: { select: { title: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 4,
+        })
+      : Promise.resolve([]),
   ]);
 
   const charityName =
@@ -189,6 +206,12 @@ export default async function DashboardPage() {
                 description="See the live public experience with featured appeals, role-aware CTAs, and the current fundraising shell."
                 href="/"
                 cta="Open homepage"
+              />
+              <ActionCard
+                title="Create fundraiser page"
+                description="Start a new fundraiser linked to an active appeal, with moderation-aware publishing and a dedicated public route."
+                href="/fundraise/new"
+                cta="Create fundraiser"
               />
               <ActionCard
                 title="Appeal detail page"
@@ -281,6 +304,67 @@ export default async function DashboardPage() {
                 {recentAppeals.length === 0 ? (
                   <p className="text-sm" style={{ color: "#8A9E94" }}>
                     No active appeals yet.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div
+              className="mt-5"
+              style={{
+                background: "white",
+                borderRadius: "1rem",
+                padding: "1.25rem",
+                boxShadow: "0 2px 12px rgba(18,78,64,0.07)",
+              }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-base font-semibold" style={{ color: "#233029" }}>
+                  Your fundraiser pages
+                </h2>
+                <Link href="/fundraise/new" className="btn-outline" style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}>
+                  New page
+                </Link>
+              </div>
+              <div className="mt-4 space-y-3">
+                {myPages.map((page) => (
+                  <div
+                    key={page.id}
+                    className="rounded-2xl border px-4 py-3"
+                    style={{ borderColor: "rgba(18,78,64,0.12)", background: "#FCFBF7" }}
+                  >
+                    <p className="text-sm font-semibold" style={{ color: "#233029" }}>
+                      {page.title}
+                    </p>
+                    <p className="mt-1 text-xs" style={{ color: "#8A9E94" }}>
+                      {page.appeal.title} · /fundraise/{page.shortName}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs" style={{ color: "#3A4A42" }}>
+                      <span>{page.status}</span>
+                      <span>·</span>
+                      <span>{page.visibility}</span>
+                      {page.targetAmount ? (
+                        <>
+                          <span>·</span>
+                          <span>
+                            Target {formatCurrency(parseFloat(page.targetAmount.toString()), page.currency)}
+                          </span>
+                        </>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <Link href={`/fundraise/${page.shortName}`} className="btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
+                        View
+                      </Link>
+                      <Link href={`/fundraise/${page.shortName}/edit`} className="btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
+                        Edit
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+                {myPages.length === 0 ? (
+                  <p className="text-sm" style={{ color: "#8A9E94" }}>
+                    You haven&apos;t created a fundraiser page yet.
                   </p>
                 ) : null}
               </div>

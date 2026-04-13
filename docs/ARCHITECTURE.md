@@ -104,6 +104,16 @@ The public site now has a dedicated token layer and reusable component classes i
 4. Visibility and moderation states are enforced server-side before rendering
 5. The page reuses the shared donation widget and public design system
 
+### Fundraiser creation and edit flow
+
+1. Authenticated users can create pages at `/fundraise/new`
+2. Existing page owners can edit at `/fundraise/[shortName]/edit`
+3. The shared `FundraisingPageForm` component is used for both routes
+4. Server actions validate appeal/team relationships, short-name uniqueness, and target amount rules
+5. New pages are created as `PENDING_APPROVAL` and `UNLISTED`
+6. Creation writes a `ModerationItem` so charity/admin moderation has a review trail
+7. Dashboard now surfaces the user’s fundraiser pages and links to create/edit routes
+
 ### Donation flow
 
 1. User opens donation widget on an appeal page
@@ -187,13 +197,13 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 
 ## Known architectural gaps
 
-### 1. Public fundraiser management UI is still missing
-
-The public fundraiser page route now exists, but create/edit/manage flows for fundraisers are still missing.
-
-### 2. Public charity profiles are still shallow
+### 1. Public charity profiles are still shallow
 
 The public directory exists, but individual charity profile pages and richer trust/impact storytelling are not yet implemented.
+
+### 2. Fundraiser self-serve tooling is still shallow
+
+The core create/edit routes now exist, but richer tools such as media management, update publishing, analytics, and moderation-state messaging still need to be layered on top.
 
 ### 3. Admin workflows are still uneven
 

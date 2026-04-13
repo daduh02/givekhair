@@ -243,6 +243,23 @@ Access rules:
 - hidden, banned, rejected, suspended, draft, and pending-approval pages do not render publicly
 - middleware now reserves `/fundraise/new` for future authenticated creation, while `/fundraise/[shortName]` stays public
 
+## Fundraiser creation and editing
+
+Implementation:
+
+- `src/app/fundraise/new/page.tsx`
+- `src/app/fundraise/[shortName]/edit/page.tsx`
+- `src/components/fundraise/FundraisingPageForm.tsx`
+
+Current behavior:
+
+- authenticated users can create a fundraiser linked to an active appeal
+- optional team selection is supported
+- short name and target validation are enforced server-side
+- new pages are created as `PENDING_APPROVAL` and `UNLISTED`
+- page edits are restricted to the page owner or platform admin
+- dashboard surfaces the user’s fundraiser pages with create/edit links
+
 ## Extension guidance
 
 When adding new public-facing pages:

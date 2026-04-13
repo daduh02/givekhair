@@ -47,6 +47,9 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Centralized public theme tokens, button styles, chips, cards, and progress bar patterns
 - `Done` Appeal detail page with totals, teams, fundraiser list, and donation widget on every appeal page
 - `Done` Dedicated public fundraiser page route at `/fundraise/[shortName]` with story, progress, updates, donor feed, and donation widget
+- `Done` Protected fundraiser creation flow at `/fundraise/new`
+- `Done` Protected fundraiser edit flow at `/fundraise/[shortName]/edit`
+- `Done` Dashboard entry points for creating and managing your fundraiser pages
 - `Done` Fee preview in donation widget
 - `Done` Donation intent creation flow in tRPC
 - `Done` Gift Aid capture fields in donation intent flow
@@ -77,7 +80,8 @@ This file tracks the current delivery state of the product against the working g
 - `Partial` Page data model exists
 - `Partial` Page create and update tRPC mutations exist
 - `Done` Public fundraiser page detail route exists
-- `Partial` Dedicated fundraiser page creation/edit UI is still missing
+- `Done` Dedicated fundraiser page creation/edit UI exists
+- `Partial` Ongoing page-update tools like media management and richer update publishing are still missing
 
 ### Donations
 
@@ -150,7 +154,8 @@ This file tracks the current delivery state of the product against the working g
 
 - `Partial` schema and mutations
 - `Partial` moderation controls exist in admin appeal flows
-- `Not started` dedicated fundraiser page management UI
+- `Done` protected create/edit routes for fundraiser owners
+- `Partial` richer fundraiser self-serve management remains limited to the current core form
 
 ### 5.4 Donations
 
