@@ -7,25 +7,19 @@ import { DonationCheckout } from "@/components/donation/DonationCheckout";
 import { TRPCProvider } from "@/components/providers";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { TrustChip } from "@/components/ui/TrustChip";
+import {
+  decimalToNumber,
+  formatCurrency,
+  formatDate,
+  getGoalProgress,
+} from "@/lib/fundraiser-management";
 
 interface Props {
   params: { shortName: string };
 }
 
-function formatCurrency(amount: number, currency = "GBP") {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+function isDirectVideoUrl(url: string) {
+  return /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -40,7 +34,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
   });
 
-  if (!page || page.visibility === "HIDDEN" || ["BANNED", "REJECTED", "SUSPENDED", "DRAFT", "PENDING_APPROVAL"].includes(page.status)) {
+  if (
+    !page ||
+    page.visibility === "HIDDEN" ||
+    ["BANNED", "REJECTED", "SUSPENDED", "DRAFT", "PENDING_APPROVAL"].includes(page.status)
+  ) {
     return { title: "Fundraiser page" };
   }
 
@@ -102,13 +100,13 @@ export default async function FundraisingPage({ params }: Props) {
         take: 8,
       },
       mediaItems: {
-        orderBy: { sortOrder: "asc" },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       },
     },
   });
 
-  // Public fundraiser pages should only render when moderation and visibility
-  // states imply the page is intentionally accessible.
+  // Public fundraiser pages only render when moderation and visibility imply the
+  // route is intentionally available to supporters.
   if (
     !page ||
     page.visibility === "HIDDEN" ||
@@ -130,11 +128,11 @@ export default async function FundraisingPage({ params }: Props) {
     }),
   ]);
 
-  const raised =
-    parseFloat(onlineAgg._sum.amount?.toString() ?? "0") +
-    parseFloat(offlineAgg._sum.amount?.toString() ?? "0");
-  const target = page.targetAmount ? parseFloat(page.targetAmount.toString()) : 0;
-  const progress = target > 0 ? Math.min(Math.round((raised / target) * 100), 100) : 0;
+  const onlineRaised = decimalToNumber(onlineAgg._sum.amount);
+  const offlineRaised = decimalToNumber(offlineAgg._sum.amount);
+  const raised = onlineRaised + offlineRaised;
+  const target = decimalToNumber(page.targetAmount);
+  const progress = getGoalProgress(raised, target);
   const donorCount = onlineAgg._count + offlineAgg._count;
 
   const donorFeed = [
@@ -143,7 +141,7 @@ export default async function FundraisingPage({ params }: Props) {
       kind: "ONLINE" as const,
       name: donation.isAnonymous ? "Anonymous donor" : donation.donorName ?? "Supporter",
       message: donation.message ?? null,
-      amount: parseFloat(donation.amount.toString()),
+      amount: decimalToNumber(donation.amount),
       currency: donation.currency,
       createdAt: donation.createdAt,
     })),
@@ -152,7 +150,7 @@ export default async function FundraisingPage({ params }: Props) {
       kind: "OFFLINE" as const,
       name: donation.donorName ?? "Offline donor",
       message: donation.notes ?? null,
-      amount: parseFloat(donation.amount.toString()),
+      amount: decimalToNumber(donation.amount),
       currency: donation.currency,
       createdAt: donation.receivedDate,
     })),
@@ -168,11 +166,17 @@ export default async function FundraisingPage({ params }: Props) {
         <section>
           <div className="hero-frame p-6 sm:p-8">
             <div className="relative z-10">
+              {page.coverImageUrl ? (
+                <div className="relative mb-6 h-56 overflow-hidden rounded-[1.7rem] border border-white/60 bg-[color:var(--color-primary-soft)] shadow-[var(--shadow-card-soft)] sm:h-72">
+                  <Image src={page.coverImageUrl} alt={page.title} fill className="object-cover" />
+                </div>
+              ) : null}
+
               <div className="flex flex-wrap gap-3">
                 <TrustChip>{page.appeal.charity.name}</TrustChip>
                 {page.appeal.charity.isVerified ? <TrustChip tone="gold">Verified charity</TrustChip> : null}
                 {page.team ? <TrustChip>{page.team.name}</TrustChip> : <TrustChip>Solo fundraiser</TrustChip>}
-                {page.visibility === "UNLISTED" ? <TrustChip>Unlisted page</TrustChip> : null}
+                {page.visibility === "UNLISTED" ? <TrustChip>Shared by direct link</TrustChip> : null}
               </div>
 
               <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -234,19 +238,47 @@ export default async function FundraisingPage({ params }: Props) {
 
           {page.story ? (
             <section className="surface-card mt-8 p-7 sm:p-8">
-              <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">Why I&apos;m fundraising</h2>
-              <p className="mt-5 whitespace-pre-line text-base leading-8 text-[color:var(--color-ink-soft)]">{page.story}</p>
+              <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">
+                Why I&apos;m fundraising
+              </h2>
+              <p className="mt-5 whitespace-pre-line text-base leading-8 text-[color:var(--color-ink-soft)]">
+                {page.story}
+              </p>
             </section>
           ) : null}
 
           {page.mediaItems.length > 0 ? (
             <section className="mt-8">
-              <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">Photos & media</h2>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">
+                    Photos & media
+                  </h2>
+                  <p className="mt-2 text-sm text-[color:var(--color-ink-soft)]">
+                    A few visual moments from the fundraiser and the cause behind it.
+                  </p>
+                </div>
+              </div>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 {page.mediaItems.map((item) => (
                   <div key={item.id} className="surface-card overflow-hidden">
                     <div className="relative h-56 w-full bg-[color:var(--color-primary-soft)]">
-                      <Image src={item.url} alt={page.title} fill className="object-cover" />
+                      {item.type === "video" ? (
+                        isDirectVideoUrl(item.url) ? (
+                          <video src={item.url} controls className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="grid h-full place-items-center p-6 text-center text-sm leading-7 text-[color:var(--color-primary-dark)]">
+                            <div>
+                              <p className="font-semibold">Video link</p>
+                              <a href={item.url} target="_blank" rel="noreferrer" className="mt-2 inline-block underline">
+                                Open video
+                              </a>
+                            </div>
+                          </div>
+                        )
+                      ) : (
+                        <Image src={item.url} alt={page.title} fill className="object-cover" />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -256,7 +288,16 @@ export default async function FundraisingPage({ params }: Props) {
 
           {page.updates.length > 0 ? (
             <section className="mt-8">
-              <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">Latest updates</h2>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">
+                    Updates from the fundraiser
+                  </h2>
+                  <p className="mt-2 text-sm text-[color:var(--color-ink-soft)]">
+                    Progress notes shared directly by the fundraiser owner.
+                  </p>
+                </div>
+              </div>
               <div className="mt-5 grid gap-4">
                 {page.updates.map((update) => (
                   <article key={update.id} className="trust-card">
@@ -273,29 +314,33 @@ export default async function FundraisingPage({ params }: Props) {
           ) : null}
 
           <section className="mt-8">
-            <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">Recent supporters</h2>
+            <h2 className="text-2xl font-bold tracking-[-0.03em] text-[color:var(--color-ink)]">
+              Recent supporters
+            </h2>
             <div className="mt-5 grid gap-4">
-              {donorFeed.length > 0 ? donorFeed.map((entry) => (
-                <article key={`${entry.kind}-${entry.id}`} className="surface-card p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-[color:var(--color-ink)]">{entry.name}</p>
-                      <p className="mt-1 text-sm text-[color:var(--color-ink-muted)]">{formatDate(entry.createdAt)}</p>
+              {donorFeed.length > 0 ? (
+                donorFeed.map((entry) => (
+                  <article key={`${entry.kind}-${entry.id}`} className="surface-card p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-[color:var(--color-ink)]">{entry.name}</p>
+                        <p className="mt-1 text-sm text-[color:var(--color-ink-muted)]">{formatDate(entry.createdAt)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold tracking-[-0.03em] text-[color:var(--color-primary-dark)]">
+                          {formatCurrency(entry.amount, entry.currency)}
+                        </p>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--color-ink-muted)]">
+                          {entry.kind === "OFFLINE" ? "Offline gift" : "Online donation"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold tracking-[-0.03em] text-[color:var(--color-primary-dark)]">
-                        {formatCurrency(entry.amount, entry.currency)}
-                      </p>
-                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--color-ink-muted)]">
-                        {entry.kind === "OFFLINE" ? "Offline gift" : "Online donation"}
-                      </p>
-                    </div>
-                  </div>
-                  {entry.message ? (
-                    <p className="mt-4 text-sm leading-7 text-[color:var(--color-ink-soft)]">{entry.message}</p>
-                  ) : null}
-                </article>
-              )) : (
+                    {entry.message ? (
+                      <p className="mt-4 text-sm leading-7 text-[color:var(--color-ink-soft)]">{entry.message}</p>
+                    ) : null}
+                  </article>
+                ))
+              ) : (
                 <div className="surface-card p-6 text-sm text-[color:var(--color-ink-soft)]">
                   This fundraiser has no public donor messages yet.
                 </div>

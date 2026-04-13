@@ -3,6 +3,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  decimalToNumber,
+  formatCurrency,
+  getFundraiserStateSummary,
+  getGoalProgress,
+  getStateToneStyles,
+} from "@/lib/fundraiser-management";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -10,14 +17,6 @@ const ADMIN_ROLES = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"];
 
 function normalizeRole(value: unknown) {
   return typeof value === "string" && value.length > 0 ? value : "DONOR";
-}
-
-function formatCurrency(value: number, currency = "GBP") {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 function StatCard({
@@ -96,7 +95,7 @@ export default async function DashboardPage() {
   const role = normalizeRole(user?.role);
   const isAdmin = ADMIN_ROLES.includes(role);
 
-  const [appealCount, managedCharity, recentAppeals, myPages] = await Promise.all([
+  const [appealCount, managedCharity, recentAppeals, myPagesBase] = await Promise.all([
     db.appeal.count({ where: { status: "ACTIVE", visibility: "PUBLIC" } }),
     isAdmin && user?.id
       ? db.charityAdmin.findFirst({
@@ -131,12 +130,77 @@ export default async function DashboardPage() {
             targetAmount: true,
             currency: true,
             appeal: { select: { title: true } },
+            moderationItems: {
+              orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
+              take: 1,
+              select: { reviewNotes: true },
+            },
+            _count: {
+              select: {
+                updates: true,
+                mediaItems: true,
+              },
+            },
           },
           orderBy: { createdAt: "desc" },
           take: 4,
         })
       : Promise.resolve([]),
   ]);
+
+  /*
+    The dashboard only needs a lightweight owner summary, so we reuse aggregate
+    queries and enrich the existing page cards instead of adding a separate
+    analytics subsystem.
+  */
+  const myPages = await Promise.all(
+    myPagesBase.map(async (page) => {
+      const [onlineAgg, offlineAgg, recentDonationsCount] = await Promise.all([
+        db.donation.aggregate({
+          where: { pageId: page.id, status: "CAPTURED" },
+          _sum: { amount: true },
+          _count: true,
+        }),
+        db.offlineDonation.aggregate({
+          where: { pageId: page.id, status: "APPROVED" },
+          _sum: { amount: true },
+          _count: true,
+        }),
+        db.donation.count({
+          where: {
+            pageId: page.id,
+            status: "CAPTURED",
+            createdAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30) },
+          },
+        }),
+      ]);
+
+      const onlineRaised = decimalToNumber(onlineAgg._sum.amount);
+      const offlineRaised = decimalToNumber(offlineAgg._sum.amount);
+      const totalRaised = onlineRaised + offlineRaised;
+      const donorCount = onlineAgg._count + offlineAgg._count;
+      const targetAmount = decimalToNumber(page.targetAmount);
+      const progress = getGoalProgress(totalRaised, targetAmount);
+      const stateSummary = getFundraiserStateSummary({
+        status: page.status,
+        visibility: page.visibility,
+        reviewNotes: page.moderationItems[0]?.reviewNotes ?? null,
+      });
+
+      return {
+        ...page,
+        onlineRaised,
+        offlineRaised,
+        totalRaised,
+        donorCount,
+        targetAmount,
+        progress,
+        recentDonationsCount,
+        stateSummary,
+        toneStyles: getStateToneStyles(stateSummary.tone),
+      };
+    }),
+  );
 
   const charityName =
     managedCharity?.charity.name ??
@@ -158,8 +222,7 @@ export default async function DashboardPage() {
           </p>
           <h1 className="mt-2 text-3xl font-bold md:text-4xl">Your GiveKhair dashboard</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 md:text-base" style={{ color: "rgba(246,241,232,0.84)" }}>
-            This is now the main signed-in hub for exploring the platform. From here you can open the
-            admin experience, browse live appeals, and move into the next product areas as we build them out.
+            Use this space to move between the public journey, your fundraiser pages, and any admin tools your role unlocks.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             {isAdmin ? (
@@ -171,8 +234,8 @@ export default async function DashboardPage() {
                 Browse appeals
               </Link>
             )}
-            <Link href="/" className="btn-outline" style={{ borderColor: "rgba(246,241,232,0.4)", color: "#F6F1E8" }}>
-              View homepage
+            <Link href="/fundraise/new" className="btn-outline" style={{ borderColor: "rgba(246,241,232,0.4)", color: "#F6F1E8" }}>
+              Start a fundraiser
             </Link>
           </div>
         </section>
@@ -181,9 +244,9 @@ export default async function DashboardPage() {
           <StatCard label="Role" value={role.replaceAll("_", " ")} subtext={charityName ?? "Supporter access"} />
           <StatCard label="Active appeals" value={`${appealCount}`} subtext="currently visible on the platform" />
           <StatCard
-            label="Admin access"
-            value={isAdmin ? "Enabled" : "Not enabled"}
-            subtext={isAdmin ? "You can review the new admin UI now." : "Admin tools are restricted by role."}
+            label="Your pages"
+            value={`${myPages.length}`}
+            subtext={myPages.length > 0 ? "quick links and owner tools below" : "create your first fundraiser page"}
           />
         </section>
 
@@ -203,19 +266,19 @@ export default async function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <ActionCard
                 title="Public homepage"
-                description="See the live public experience with featured appeals, role-aware CTAs, and the current fundraising shell."
+                description="See the live public experience with featured appeals, trending appeals, and role-aware calls to action."
                 href="/"
                 cta="Open homepage"
               />
               <ActionCard
                 title="Create fundraiser page"
-                description="Start a new fundraiser linked to an active appeal, with moderation-aware publishing and a dedicated public route."
+                description="Start a new fundraiser linked to an active appeal, then manage updates, media, and status from one owner view."
                 href="/fundraise/new"
                 cta="Create fundraiser"
               />
               <ActionCard
                 title="Appeal detail page"
-                description="View a public appeal with progress, teams, fundraisers, and the donation checkout panel."
+                description="View a public appeal with progress, teams, fundraiser pages, and the donation checkout panel."
                 href={recentAppeals[0] ? `/appeals/${recentAppeals[0].slug}` : "/"}
                 cta={recentAppeals[0] ? "Open latest appeal" : "Open homepage"}
               />
@@ -229,25 +292,19 @@ export default async function DashboardPage() {
                   />
                   <ActionCard
                     title="Appeals management"
-                    description="Review the new admin appeals list and create additional appeals from the live UI."
+                    description="Review the appeals list, edit campaigns, and control the homepage featured appeal."
                     href="/admin/appeals"
                     cta="Manage appeals"
                   />
                   <ActionCard
-                    title="Charity setup"
-                    description="Edit the charity profile, verification state, contact details, and default settings used across appeals."
-                    href="/admin/charities"
-                    cta="Open charity setup"
-                  />
-                  <ActionCard
-                    title="Create a new appeal"
-                    description="Jump straight into the appeal form to add a new campaign without digging through the admin panel first."
-                    href="/admin/appeals/new"
-                    cta="Add appeal"
+                    title="Reports and exports"
+                    description="Download donations, offline, payout, Gift Aid, and general ledger exports from the reporting workspace."
+                    href="/admin/reports"
+                    cta="Open reports"
                   />
                   <ActionCard
                     title="Moderation queue"
-                    description="Review charity updates, reported content, team changes, and fundraiser page moderation from one queue."
+                    description="Review fundraiser pages, team changes, and reported content from one moderation surface."
                     href="/admin/moderation"
                     cta="Open moderation"
                   />
@@ -255,16 +312,16 @@ export default async function DashboardPage() {
               ) : (
                 <>
                   <ActionCard
+                    title="Fundraiser management"
+                    description="Open your fundraiser owner tools to update the story, post updates, and curate a gallery for supporters."
+                    href={myPages[0] ? `/fundraise/${myPages[0].shortName}/edit` : "/fundraise/new"}
+                    cta={myPages[0] ? "Manage a fundraiser" : "Create a fundraiser"}
+                  />
+                  <ActionCard
                     title="Sign in options"
                     description="Credentials and Google sign-in are both active, with dashboard-first routing after authentication."
                     href="/auth/signin?callbackUrl=%2Fdashboard"
                     cta="Open sign-in"
-                  />
-                  <ActionCard
-                    title="Fundraising journey"
-                    description="The fundraising creation flow is the next product slice to deepen, but the public appeal path is ready to inspect now."
-                    href="/"
-                    cta="See current flow"
                   />
                 </>
               )}
@@ -296,8 +353,7 @@ export default async function DashboardPage() {
                       {appeal.charity.name}
                     </p>
                     <p className="mt-2 text-xs" style={{ color: "#3A4A42" }}>
-                      Goal {formatCurrency(parseFloat(appeal.goalAmount.toString()), appeal.currency)} ·{" "}
-                      {appeal._count.fundraisingPages} pages
+                      Goal {formatCurrency(decimalToNumber(appeal.goalAmount), appeal.currency)} · {appeal._count.fundraisingPages} pages
                     </p>
                   </Link>
                 ))}
@@ -330,34 +386,68 @@ export default async function DashboardPage() {
                 {myPages.map((page) => (
                   <div
                     key={page.id}
-                    className="rounded-2xl border px-4 py-3"
-                    style={{ borderColor: "rgba(18,78,64,0.12)", background: "#FCFBF7" }}
+                    className="rounded-2xl border px-4 py-4"
+                    style={{ borderColor: page.toneStyles.borderColor, background: "#FCFBF7" }}
                   >
-                    <p className="text-sm font-semibold" style={{ color: "#233029" }}>
-                      {page.title}
-                    </p>
-                    <p className="mt-1 text-xs" style={{ color: "#8A9E94" }}>
-                      {page.appeal.title} · /fundraise/{page.shortName}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs" style={{ color: "#3A4A42" }}>
-                      <span>{page.status}</span>
-                      <span>·</span>
-                      <span>{page.visibility}</span>
-                      {page.targetAmount ? (
-                        <>
-                          <span>·</span>
-                          <span>
-                            Target {formatCurrency(parseFloat(page.targetAmount.toString()), page.currency)}
-                          </span>
-                        </>
-                      ) : null}
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: "#233029" }}>
+                          {page.title}
+                        </p>
+                        <p className="mt-1 text-xs" style={{ color: "#8A9E94" }}>
+                          {page.appeal.title} · /fundraise/{page.shortName}
+                        </p>
+                      </div>
+                      <span
+                        className="rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em]"
+                        style={{
+                          background: page.toneStyles.badgeBackground,
+                          color: page.toneStyles.badgeColor,
+                        }}
+                      >
+                        {page.stateSummary.label}
+                      </span>
                     </div>
-                    <div className="mt-3 flex gap-2">
+
+                    <p className="mt-3 text-xs leading-6" style={{ color: "#3A4A42" }}>
+                      {page.stateSummary.description}
+                    </p>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs" style={{ color: "#3A4A42" }}>
+                      <span>Raised {formatCurrency(page.totalRaised, page.currency)}</span>
+                      <span>{page.donorCount} supporters</span>
+                      <span>{page._count.updates} updates</span>
+                      <span>{page.recentDonationsCount} gifts in 30 days</span>
+                    </div>
+
+                    {page.targetAmount > 0 ? (
+                      <div className="mt-3 rounded-2xl px-3 py-3" style={{ background: "rgba(255,255,255,0.8)" }}>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: "#8A9E94" }}>
+                            Goal progress
+                          </span>
+                          <span className="text-xs font-semibold" style={{ color: "#115E59" }}>
+                            {page.progress}%
+                          </span>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-[rgba(15,23,42,0.08)]">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${page.progress}%`,
+                              background: "linear-gradient(90deg, #0F766E 0%, #14B8A6 100%)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <Link href={`/fundraise/${page.shortName}`} className="btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
                         View
                       </Link>
                       <Link href={`/fundraise/${page.shortName}/edit`} className="btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
-                        Edit
+                        Manage
                       </Link>
                     </div>
                   </div>

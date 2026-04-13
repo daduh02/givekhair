@@ -104,7 +104,8 @@ The public site now has a dedicated token layer and reusable component classes i
 2. Middleware protects only `/fundraise/new`, allowing fundraiser detail pages to stay publicly accessible
 3. The page loads fundraiser owner, team, appeal, donations, offline donations, updates, and media from Prisma
 4. Visibility and moderation states are enforced server-side before rendering
-5. The page reuses the shared donation widget and public design system
+5. Owner-managed updates now render in chronological order and optional gallery items are presented as a lightweight public strip/grid
+6. The page reuses the shared donation widget and public design system
 
 ### Fundraiser creation and edit flow
 
@@ -114,7 +115,9 @@ The public site now has a dedicated token layer and reusable component classes i
 4. Server actions validate appeal/team relationships, short-name uniqueness, and target amount rules
 5. New pages are created as `PENDING_APPROVAL` and `UNLISTED`
 6. Creation writes a `ModerationItem` so charity/admin moderation has a review trail
-7. Dashboard now surfaces the user’s fundraiser pages and links to create/edit routes
+7. The owner management route now also handles update publishing, media gallery changes, and moderation-state messaging
+8. Media management intentionally stays lightweight by using URL-backed page media plus reorder/remove server actions instead of a separate upload studio
+9. Dashboard now surfaces the user’s fundraiser pages with status guidance, lightweight analytics, and direct management links
 
 ### Donation flow
 
@@ -253,9 +256,9 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 
 ## Known architectural gaps
 
-### 1. Fundraiser self-serve tooling is still shallow
+### 1. Fundraiser self-serve tooling is still intentionally lightweight
 
-The core create/edit routes now exist, but richer tools such as media management, update publishing, analytics, and moderation-state messaging still need to be layered on top.
+The first real self-serve layer now exists for updates, media, moderation guidance, and lightweight analytics, but richer collaboration, notifications, and milestone tooling still need future work.
 
 ### 2. Admin workflows are still uneven
 

@@ -242,8 +242,9 @@ Current sections:
 - owner/team/charity context
 - progress and supporter stats
 - fundraiser story
+- optional cover image hero treatment
 - optional media gallery
-- updates
+- fundraiser-authored updates
 - donor feed combining online and offline support
 - shared donation widget
 
@@ -268,6 +269,9 @@ Current behavior:
 - short name and target validation are enforced server-side
 - new pages are created as `PENDING_APPROVAL` and `UNLISTED`
 - page edits are restricted to the page owner or platform admin
+- the edit route now acts as a lightweight owner management surface, not just a plain content form
+- owners can publish updates, add/remove/reorder media URLs, and see moderation-state guidance plus lightweight fundraising analytics
+- rejected pages can be updated and resubmitted into review from the same owner flow
 
 ## Public charity directory and profiles
 
@@ -299,7 +303,7 @@ When adding new public-facing pages:
 
 ## Recommended next public-facing work
 
-- build fundraiser creation/edit management on top of the new public fundraiser route
 - replace placeholder policy/info pages with approved content
-- create richer public charity profile pages
+- deepen fundraiser storytelling with milestones or supporter comments if the product wants community features later
+- add richer public team pages and appeal/team leaderboards
 - add a shared content-page template component if static informational pages keep growing

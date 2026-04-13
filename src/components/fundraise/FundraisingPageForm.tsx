@@ -53,6 +53,9 @@ export function FundraisingPageForm({
       }}
       className="space-y-6"
     >
+      {/* The core form stays focused on permanent page settings so richer
+          self-serve tools like updates and media management can live alongside
+          it without crowding the basic fundraiser setup flow. */}
       <div>
         <p className="text-sm leading-7" style={{ color: "#3A4A42" }}>
           {intro}
@@ -159,7 +162,7 @@ export function FundraisingPageForm({
       </Field>
 
       <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: "#F8F5EF", color: "#3A4A42" }}>
-        New pages are submitted for moderation before they go live publicly. Use clear fundraising copy, accurate imagery, and a short name you are happy to share publicly.
+        New pages are submitted for moderation before they go live publicly. Use clear fundraising copy, accurate imagery, and a short name you are happy to share publicly. The cover image appears at the top of the public fundraiser page.
       </div>
 
       <div className="flex gap-3">

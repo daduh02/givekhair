@@ -53,8 +53,12 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Appeal detail page with totals, teams, fundraiser list, and donation widget on every appeal page
 - `Done` Dedicated public fundraiser page route at `/fundraise/[shortName]` with story, progress, updates, donor feed, and donation widget
 - `Done` Protected fundraiser creation flow at `/fundraise/new`
-- `Done` Protected fundraiser edit flow at `/fundraise/[shortName]/edit`
+- `Done` Protected fundraiser management flow at `/fundraise/[shortName]/edit`
 - `Done` Dashboard entry points for creating and managing your fundraiser pages
+- `Done` Owner-side fundraiser updates publishing
+- `Done` Owner-side fundraiser media gallery management with reorder/remove controls
+- `Done` Fundraiser moderation-state messaging for owners
+- `Done` Lightweight fundraiser analytics in dashboard and owner management
 - `Done` Fee preview in donation widget
 - `Done` Donation intent creation flow in tRPC
 - `Done` Gift Aid capture fields in donation intent flow
@@ -89,7 +93,7 @@ This file tracks the current delivery state of the product against the working g
 - `Partial` Page create and update tRPC mutations exist
 - `Done` Public fundraiser page detail route exists
 - `Done` Dedicated fundraiser page creation/edit UI exists
-- `Partial` Ongoing page-update tools like media management and richer update publishing are still missing
+- `Done` Ongoing page-update tools now include owner-side media management and richer update publishing
 
 ### Donations
 
@@ -173,7 +177,7 @@ This file tracks the current delivery state of the product against the working g
 - `Partial` moderation controls exist in admin appeal flows
 - `Done` protected create/edit routes for fundraiser owners
 - `Done` public fundraiser detail route
-- `Partial` richer fundraiser self-serve management remains limited to the current core form
+- `Done` richer fundraiser self-serve management now supports updates, media, moderation guidance, and lightweight analytics
 
 ### 5.4 Donations
 
@@ -238,8 +242,8 @@ This file tracks the current delivery state of the product against the working g
 
 ## Immediate Next Recommendations
 
-1. Build `Richer fundraiser self-serve tools` such as updates, media management, and moderation-state messaging.
-2. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
-3. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.
-4. Build `Reconciliation-specific exports` and finance exception reporting on top of the new GL export.
-5. Build `Async finance automation` for payout processing and HMRC submission flows.
+1. Build `Refunds, disputes, and chargeback handling` on top of the new donation operations foundation.
+2. Build `Team analytics and leaderboards` to strengthen the appeal/team fundraising side of the product.
+3. Build `Reconciliation-specific exports` and finance exception reporting on top of the new GL export.
+4. Build `Async finance automation` for payout processing and HMRC submission flows.
+5. Build `Commercial approval/signature workflow` on top of the shipped contract management foundation.

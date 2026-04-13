@@ -33,6 +33,7 @@ Prioritise slices that:
 - Contract-led pricing foundation with donor-supported, charity-paid, and hybrid charging modes
 - Manual payout batch operations with linked payout items and contract-aware payout gating
 - Manual Gift Aid claim queue and settlement flow
+- First real fundraiser self-serve layer with owner updates, media management, moderation-state messaging, and lightweight analytics
 
 ### Remaining in this phase
 
@@ -44,11 +45,11 @@ Prioritise slices that:
 
 ### Recommended next
 
-1. Richer fundraiser self-serve tools
-2. Appeal/team analytics and leaderboards
+1. Appeal/team analytics and leaderboards
+2. Refunds and disputes
 3. Accounting-oriented reconciliation exports
-4. Refunds and disputes
-5. Commercial approval/signature workflow
+4. Commercial approval/signature workflow
+5. Async finance automation
 
 ### Why this phase matters
 
@@ -78,38 +79,31 @@ This is the shortest path to matching the operational needs in the spec for real
 
 ## Candidate next tickets
 
-### Ticket 1: Richer fundraiser self-serve tools
-
-- Add media management
-- Add fundraiser-authored updates publishing
-- Add status messaging for pending/rejected pages
-- Add lightweight fundraiser analytics
-
-### Ticket 2: Finance workflows
+### Ticket 1: Finance workflows
 
 - Add HMRC-facing claim automation on top of the manual Gift Aid workflow
 - Add automatic payout queue processing on top of manual payout batches
 - Add finance summaries and reconciliation hooks
 - Add provider submission and failure handling for payout batches
 
-### Ticket 3: Accounting exports and reconciliation
+### Ticket 2: Accounting exports and reconciliation
 
 - Extend the shipped GL export with reconciliation-oriented CSV exports beyond the current admin report set
 - Add export history or audit trail if finance needs evidence of generated files
 
-### Ticket 4: Commercial ops hardening
+### Ticket 3: Commercial ops hardening
 
 - Add approval/signature workflow for contracts
 - Add explicit contract renewal history/timeline
 - Add safer document storage and download handling
 
-### Ticket 5: Refunds and disputes
+### Ticket 4: Refunds and disputes
 
 - Add refund records and admin actions from the donations workflow
 - Add dispute ingestion and case visibility
 - Show reversal/recovery state alongside donation status
 
-### Ticket 6: Team analytics and leaderboards
+### Ticket 5: Team analytics and leaderboards
 
 - Build team-level public and admin summaries
 - Add ranking/leaderboard views for appeals and teams
