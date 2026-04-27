@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { forCharitiesNavLinks } from "@/lib/charity-products";
 import { AccountMenu } from "@/components/layout/AccountMenu";
 
-const NAV_LINKS = [
+const PRIMARY_NAV_LINKS = [
   { href: "/#appeals", label: "Appeals" },
   { href: "/charities", label: "Charities" },
   { href: "/how-it-works", label: "How it works" },
@@ -38,11 +39,34 @@ export async function Navbar() {
           {/* Desktop nav stays compact, while the mobile nav is rendered as a
               separate scroll row below so small screens still expose the public IA. */}
           <nav className="hidden items-center gap-1 lg:flex">
-            {NAV_LINKS.map((link) => (
+            {PRIMARY_NAV_LINKS.map((link) => (
               <Link key={link.href} href={link.href} className="btn-ghost">
                 {link.label}
               </Link>
             ))}
+
+            <details className="group relative">
+              <summary className="btn-ghost list-none cursor-pointer [&::-webkit-details-marker]:hidden">
+                For charities
+                <svg viewBox="0 0 20 20" className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="m5 8 5 5 5-5" />
+                </svg>
+              </summary>
+
+              <div className="absolute left-0 top-full z-30 mt-3 w-[18rem] rounded-[1.5rem] border border-[color:var(--color-line)] bg-[rgba(255,255,255,0.97)] p-3 shadow-[0_24px_48px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+                <div className="grid gap-2">
+                  {forCharitiesNavLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="rounded-[1rem] border border-transparent px-4 py-3 text-sm font-semibold text-[color:var(--color-ink-soft)] transition hover:border-[rgba(15,118,110,0.14)] hover:bg-[rgba(204,251,241,0.36)] hover:text-[color:var(--color-primary-dark)]"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </details>
           </nav>
         </div>
 
@@ -71,11 +95,20 @@ export async function Navbar() {
 
       <div className="border-t border-[rgba(15,23,42,0.04)] lg:hidden">
         <nav className="site-shell flex gap-2 overflow-x-auto py-3 [scrollbar-width:none]">
-          {NAV_LINKS.map((link) => (
+          {PRIMARY_NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               className="trust-chip whitespace-nowrap bg-white text-[color:var(--color-ink-soft)]"
+            >
+              {link.label}
+            </Link>
+          ))}
+          {forCharitiesNavLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="trust-chip whitespace-nowrap bg-[rgba(204,251,241,0.72)] text-[color:var(--color-primary-dark)]"
             >
               {link.label}
             </Link>

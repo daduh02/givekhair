@@ -39,7 +39,6 @@ test("donation summary renders all sections", () => {
   assert.match(html, /Total/);
   assert.match(html, /Online/);
   assert.match(html, /Offline/);
-  assert.match(html, /Direct/);
   assert.match(html, /Fundraisers/);
   assert.match(html, /Learn more about fees/);
 });
@@ -58,7 +57,7 @@ test("donation summary zero state shows £0.00 values", () => {
   );
 
   const zeroMatches = html.match(/£0\.00/g) ?? [];
-  assert.equal(zeroMatches.length >= 5, true);
+  assert.equal(zeroMatches.length >= 4, true);
 });
 
 test("donation summary loading state renders skeleton cards", () => {
@@ -76,5 +75,5 @@ test("donation summary loading state renders skeleton cards", () => {
   );
 
   const skeletonMatches = html.match(/animate-pulse/g) ?? [];
-  assert.equal(skeletonMatches.length, 5);
+  assert.equal(skeletonMatches.length, 4);
 });

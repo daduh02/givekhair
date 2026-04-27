@@ -14,6 +14,8 @@ const FOOTER_COLUMNS = [
     title: "Company",
     links: [
       { href: "/about", label: "About" },
+      { href: "/for-charities/products", label: "Products" },
+      { href: "/pricing", label: "Pricing" },
       { href: "/how-it-works", label: "How it works" },
       { href: "/fees", label: "Fees" },
       { href: "/contact", label: "Contact" },

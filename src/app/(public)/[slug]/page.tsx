@@ -18,6 +18,14 @@ const CONTENT: Record<string, { title: string; intro: string; body: string[] }> 
       "As fee schedules become more advanced, this page can expand into a fuller explanation of pricing, tiers, and donor fee coverage logic.",
     ],
   },
+  pricing: {
+    title: "Pricing",
+    intro: "GiveKhair's pricing approach is built around transparency, so charities can understand the platform model before they launch campaigns.",
+    body: [
+      "The current product surface already explains fee behaviour inside appeal and checkout experiences, while the Fees page goes deeper into what donors pay and what charities receive.",
+      "As the charity products surface expands, this route can develop into a fuller pricing destination covering onboarding, white-label options, reporting support, and tailored charity setups.",
+    ],
+  },
   contact: {
     title: "Contact",
     intro: "For support, partnerships, or charity onboarding questions, the GiveKhair team can be reached through the main support channels.",

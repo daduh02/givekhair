@@ -107,7 +107,7 @@ export async function getAppealLeaderboard(input: {
     }),
   ]);
 
-  const [onlineByPage, offlineByPage] = await Promise.all([
+  const [onlineByPage, offlineByPage, directOnlineTotals, directOfflineTotals] = await Promise.all([
     db.donation.groupBy({
       by: ["pageId"],
       where: {
@@ -128,6 +128,38 @@ export async function getAppealLeaderboard(input: {
       _sum: { amount: true },
       _count: { _all: true },
     }),
+    input.publicOnly
+      ? db.donation.aggregate({
+          where: {
+            status: "CAPTURED",
+            createdAt: periodFilter.donationCreatedAt,
+            page: {
+              appealId: input.appealId,
+              status: "ACTIVE",
+              visibility: "HIDDEN",
+              teamId: null,
+            },
+          },
+          _sum: { amount: true },
+          _count: { _all: true },
+        })
+      : Promise.resolve({ _sum: { amount: 0 }, _count: { _all: 0 } }),
+    input.publicOnly
+      ? db.offlineDonation.aggregate({
+          where: {
+            status: "APPROVED",
+            receivedDate: periodFilter.offlineReceivedDate,
+            page: {
+              appealId: input.appealId,
+              status: "ACTIVE",
+              visibility: "HIDDEN",
+              teamId: null,
+            },
+          },
+          _sum: { amount: true },
+          _count: { _all: true },
+        })
+      : Promise.resolve({ _sum: { amount: 0 }, _count: { _all: 0 } }),
   ]);
 
   const onlineMap = new Map(
@@ -148,6 +180,10 @@ export async function getAppealLeaderboard(input: {
       },
     ]),
   );
+
+  const directOnlineAmount = decimalToNumber(directOnlineTotals._sum.amount);
+  const directOfflineAmount = decimalToNumber(directOfflineTotals._sum.amount);
+  const directDonorCount = directOnlineTotals._count._all + directOfflineTotals._count._all;
 
   const pagePerformance = pages.map<PageLeaderboardRow>((page) => {
     const online = onlineMap.get(page.id) ?? { amount: 0, count: 0 };
@@ -223,9 +259,9 @@ export async function getAppealLeaderboard(input: {
     rankedPages,
     rankedTeams,
     totals: {
-      online: rankedPages.reduce((sum, row) => sum + row.onlineTotal, 0),
-      offline: rankedPages.reduce((sum, row) => sum + row.offlineTotal, 0),
-      donorCount: rankedPages.reduce((sum, row) => sum + row.donorCount, 0),
+      online: rankedPages.reduce((sum, row) => sum + row.onlineTotal, 0) + directOnlineAmount,
+      offline: rankedPages.reduce((sum, row) => sum + row.offlineTotal, 0) + directOfflineAmount,
+      donorCount: rankedPages.reduce((sum, row) => sum + row.donorCount, 0) + directDonorCount,
       fundraiserPageCount: rankedPages.length,
       teamCount: rankedTeams.length,
     },
