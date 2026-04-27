@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { previewFees } from "@/server/lib/fee-engine";
 import { recordDonationAuthorised, recordFeesRecognised } from "@/server/lib/ledger";
 import { donationsApi } from "@/server/lib/donations-api-stub";
+import { isFundraisingPageDonationEligible } from "@/server/lib/public-access";
 
 const GIFT_AID_STATEMENT =
   "I am a UK taxpayer and understand that if I pay less Income Tax and/or Capital Gains Tax than the amount of Gift Aid claimed on all my donations in that tax year it is my responsibility to pay any difference.";
@@ -163,11 +164,32 @@ async function resolvePreviewForIntent(input: {
 export async function createDonationIntent(input: CreateDonationIntentInput) {
   const page = await db.fundraisingPage.findUnique({
     where: { id: input.pageId },
-    include: { appeal: true },
+    include: {
+      appeal: {
+        include: {
+          charity: {
+            select: {
+              isActive: true,
+              status: true,
+            },
+          },
+        },
+      },
+      team: {
+        select: {
+          status: true,
+          visibility: true,
+        },
+      },
+    },
   });
 
   if (!page) {
     throw new Error("Fundraiser page not found.");
+  }
+
+  if (!isFundraisingPageDonationEligible(page)) {
+    throw new Error("This donation page is not currently available.");
   }
 
   const feePreview = await resolvePreviewForIntent({

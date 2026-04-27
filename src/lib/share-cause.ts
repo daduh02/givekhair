@@ -4,119 +4,139 @@ export type ShareCauseInput = {
   description?: string | null;
 };
 
-export type ShareTarget = {
-  key: string;
-  label: string;
-  href: string;
-  iconLabel: string;
-};
+export type ShareChannelId =
+  | "whatsapp"
+  | "facebook"
+  | "messenger"
+  | "x"
+  | "linkedin"
+  | "email"
+  | "print"
+  | "copy"
+  | "youtube"
+  | "slack"
+  | "teams"
+  | "linktree"
+  | "reddit"
+  | "twitch";
 
-export type SecondaryShareTarget = {
-  key: string;
+export type ShareChannel = {
+  id: ShareChannelId;
   label: string;
+  icon: ShareChannelId;
+  action: "open" | "copy" | "print";
   href?: string;
-  action: "open" | "copy";
-  iconLabel: string;
 };
 
 function textWithUrl(input: ShareCauseInput) {
   return `${input.title} ${input.url}`.trim();
 }
 
-export function buildPrimaryShareTargets(input: ShareCauseInput): ShareTarget[] {
+export function buildPrimaryShareChannels(input: ShareCauseInput): ShareChannel[] {
   const encodedUrl = encodeURIComponent(input.url);
   const encodedTitle = encodeURIComponent(input.title);
-  const encodedDescription = encodeURIComponent(input.description ?? input.title);
   const encodedEmailBody = encodeURIComponent(`${input.title}\n\n${input.description ?? ""}\n\n${input.url}`.trim());
 
   return [
     {
-      key: "whatsapp",
+      id: "whatsapp",
       label: "WhatsApp",
+      icon: "whatsapp",
+      action: "open",
       href: `https://wa.me/?text=${encodeURIComponent(textWithUrl(input))}`,
-      iconLabel: "WA",
     },
     {
-      key: "facebook",
+      id: "facebook",
       label: "Facebook",
+      icon: "facebook",
+      action: "open",
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-      iconLabel: "f",
     },
     {
-      key: "messenger",
+      id: "messenger",
       label: "Messenger",
-      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-      iconLabel: "M",
+      icon: "messenger",
+      action: "open",
+      href: `fb-messenger://share/?link=${encodedUrl}`,
     },
     {
-      key: "linkedin",
-      label: "LinkedIn",
-      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
-      iconLabel: "in",
-    },
-    {
-      key: "x",
+      id: "x",
       label: "X",
+      icon: "x",
+      action: "open",
       href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`,
-      iconLabel: "X",
     },
     {
-      key: "email",
+      id: "linkedin",
+      label: "LinkedIn",
+      icon: "linkedin",
+      action: "open",
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+    },
+    {
+      id: "email",
       label: "Email",
+      icon: "email",
+      action: "open",
       href: `mailto:?subject=${encodedTitle}&body=${encodedEmailBody}`,
-      iconLabel: "@",
     },
     {
-      key: "print",
+      id: "print",
       label: "Print",
-      href: input.url,
-      iconLabel: "P",
+      icon: "print",
+      action: "print",
+    },
+    {
+      id: "copy",
+      label: "Copy link",
+      icon: "copy",
+      action: "copy",
     },
   ];
 }
 
-export function buildSecondaryShareTargets(input: ShareCauseInput): SecondaryShareTarget[] {
+export function buildSecondaryShareChannels(input: ShareCauseInput): ShareChannel[] {
   const encodedUrl = encodeURIComponent(input.url);
   const encodedTitle = encodeURIComponent(input.title);
 
   return [
     {
-      key: "youtube",
+      id: "youtube",
       label: "YouTube",
+      icon: "youtube",
       action: "copy",
-      iconLabel: "YT",
     },
     {
-      key: "slack",
+      id: "slack",
       label: "Slack",
+      icon: "slack",
       action: "copy",
-      iconLabel: "S",
     },
     {
-      key: "teams",
+      id: "teams",
       label: "Microsoft Teams",
+      icon: "teams",
       action: "open",
       href: `https://teams.microsoft.com/share?href=${encodedUrl}&msgText=${encodedTitle}`,
-      iconLabel: "T",
     },
     {
-      key: "linktree",
+      id: "linktree",
       label: "Linktree",
+      icon: "linktree",
       action: "copy",
-      iconLabel: "L",
     },
     {
-      key: "reddit",
+      id: "reddit",
       label: "Reddit",
+      icon: "reddit",
       action: "open",
       href: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}`,
-      iconLabel: "R",
     },
     {
-      key: "twitch",
+      id: "twitch",
       label: "Twitch",
+      icon: "twitch",
       action: "copy",
-      iconLabel: "Tw",
     },
   ];
 }

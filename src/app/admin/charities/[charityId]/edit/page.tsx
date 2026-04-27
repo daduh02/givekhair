@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
-import { getAdminContext } from "@/lib/admin";
+import { requireAdminCharityAccess } from "@/lib/admin";
 import { CharityForm } from "@/components/admin/CharityForm";
 import {
   parseOptionalString,
@@ -20,13 +20,10 @@ export default async function EditCharityPage({
   params: { charityId: string };
   searchParams: { error?: string };
 }) {
-  const { role, managedCharity } = await getAdminContext();
+  await requireAdminCharityAccess(params.charityId);
 
   const charity = await db.charity.findFirst({
-    where: {
-      id: params.charityId,
-      ...(role === "PLATFORM_ADMIN" ? {} : { id: managedCharity?.id }),
-    },
+    where: { id: params.charityId },
   });
 
   if (!charity) {
@@ -36,19 +33,7 @@ export default async function EditCharityPage({
   async function updateCharity(formData: FormData) {
     "use server";
 
-    const { role: currentRole, userId: currentUserId, managedCharity: currentManagedCharity } = await getAdminContext();
-
-    const editableCharity = await db.charity.findFirst({
-      where: {
-        id: params.charityId,
-        ...(currentRole === "PLATFORM_ADMIN" ? {} : { id: currentManagedCharity?.id }),
-      },
-      select: { id: true },
-    });
-
-    if (!editableCharity) {
-      redirect("/admin/charities");
-    }
+    const { userId: currentUserId } = await requireAdminCharityAccess(params.charityId);
 
     const name = String(formData.get("name") ?? "").trim();
     const slugInput = String(formData.get("slug") ?? "").trim();

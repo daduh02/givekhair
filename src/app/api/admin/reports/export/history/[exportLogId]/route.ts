@@ -45,6 +45,10 @@ export async function GET(
 
   const fileName = log.fileName ?? `report-export-${log.id}.csv`;
 
+  // TODO: There is no dedicated download-audit model yet. If production use of
+  // stored CSV artifacts expands, add explicit download logging plus encryption
+  // / retention controls because these artifacts can contain donor PII.
+
   return new NextResponse(log.artifact.content, {
     headers: {
       "Content-Type": log.contentType ?? "text/csv; charset=utf-8",

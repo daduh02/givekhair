@@ -1,22 +1,35 @@
 import { type NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { markDonationCaptured, markDonationFailed } from "@/server/lib/donation-processing";
 import { createDisputeRecord } from "@/server/lib/donation-exceptions";
 
-// Stub: replace with `import Stripe from 'stripe'` once key is set
-async function constructStripeEvent(req: NextRequest) {
-  const body = await req.text();
-  const sig = req.headers.get("stripe-signature") ?? "";
-  // TODO: Stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
-  return JSON.parse(body) as { type: string; data: { object: Record<string, unknown> } };
+function getStripeClient() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("Missing STRIPE_SECRET_KEY.");
+  }
+
+  return new Stripe(secretKey);
 }
 
 export async function POST(req: NextRequest) {
-  let event: Awaited<ReturnType<typeof constructStripeEvent>>;
+  const signature = req.headers.get("stripe-signature");
+  if (!signature) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    return NextResponse.json({ error: "Webhook misconfigured" }, { status: 500 });
+  }
+
+  let event: Stripe.Event;
 
   try {
-    event = await constructStripeEvent(req);
-  } catch (err) {
+    const body = await req.text();
+    event = getStripeClient().webhooks.constructEvent(body, signature, webhookSecret);
+  } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 

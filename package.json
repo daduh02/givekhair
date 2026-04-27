@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "test": "node --test --import tsx tests/share-cause.test.tsx tests/donation-summary.test.tsx",
+    "test": "node --test --import tsx tests/share-cause.test.tsx tests/donation-summary.test.tsx tests/security-hardening.test.ts",
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
@@ -42,7 +42,9 @@
     "next-auth": "^4.24.7",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "react-icons": "^5.6.0",
     "resend": "^3.3.0",
+    "stripe": "^22.1.0",
     "superjson": "^2.2.1",
     "uploadthing": "^6.11.0",
     "zod": "^3.23.0"

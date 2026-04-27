@@ -13,6 +13,7 @@ import {
   formatDate,
   getGoalProgress,
 } from "@/lib/fundraiser-management";
+import { isFundraisingPagePubliclyAccessible } from "@/server/lib/public-access";
 
 interface Props {
   params: { shortName: string };
@@ -30,15 +31,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       story: true,
       status: true,
       visibility: true,
-      appeal: { select: { title: true, charity: { select: { name: true } } } },
+      teamId: true,
+      team: { select: { status: true, visibility: true } },
+      appeal: {
+        select: {
+          title: true,
+          status: true,
+          visibility: true,
+          charity: { select: { name: true, isActive: true, status: true } },
+        },
+      },
     },
   });
 
-  if (
-    !page ||
-    page.visibility === "HIDDEN" ||
-    ["BANNED", "REJECTED", "SUSPENDED", "DRAFT", "PENDING_APPROVAL"].includes(page.status)
-  ) {
+  if (!page || !isFundraisingPagePubliclyAccessible(page)) {
     return { title: "Fundraiser page" };
   }
 
@@ -107,11 +113,7 @@ export default async function FundraisingPage({ params }: Props) {
 
   // Public fundraiser pages only render when moderation and visibility imply the
   // route is intentionally available to supporters.
-  if (
-    !page ||
-    page.visibility === "HIDDEN" ||
-    ["BANNED", "REJECTED", "SUSPENDED", "DRAFT", "PENDING_APPROVAL"].includes(page.status)
-  ) {
+  if (!page || !isFundraisingPagePubliclyAccessible(page)) {
     notFound();
   }
 

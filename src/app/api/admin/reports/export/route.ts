@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { enforceRateLimitResponse } from "@/server/lib/rate-limit";
 import {
   getDonationsReportRows,
   getGeneralLedgerReportRows,
@@ -74,6 +75,9 @@ async function writeExportAudit(input: {
         artifact: input.csvContent
           ? {
               create: {
+                // TODO: CSV export artifacts can include donor PII. Encrypt at
+                // rest or enforce stricter retention before relying on this in
+                // production environments with real donor data.
                 content: input.csvContent,
               },
             }
@@ -132,6 +136,20 @@ export async function GET(request: Request) {
 
   if (!reportType) {
     return NextResponse.json({ error: "Unknown report type." }, { status: 400 });
+  }
+
+  const exportRateLimit = await enforceRateLimitResponse(
+    {
+      namespace: "reports:export",
+      key: `${userId}:${reportType}`,
+      limit: 10,
+      windowSec: 10 * 60,
+    },
+    "Too many requests. Please try again later.",
+  );
+
+  if (exportRateLimit) {
+    return exportRateLimit;
   }
 
   try {

@@ -4,24 +4,25 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ShareCause } from "@/components/appeal/ShareCause";
 import {
-  buildPrimaryShareTargets,
-  buildSecondaryShareTargets,
+  buildPrimaryShareChannels,
+  buildSecondaryShareChannels,
   copyShareUrl,
   runPrint,
 } from "@/lib/share-cause";
 
 test("share helpers build real share urls", () => {
-  const targets = buildPrimaryShareTargets({
+  const targets = buildPrimaryShareChannels({
     title: "Trek 4 Africa 2026",
     url: "https://givekhair.vercel.app/appeals/trek-4-africa-2026",
     description: "Support the appeal",
   });
 
-  assert.equal(targets.find((item) => item.key === "whatsapp")?.href.includes("wa.me"), true);
-  assert.equal(targets.find((item) => item.key === "facebook")?.href.includes("facebook.com"), true);
-  assert.equal(targets.find((item) => item.key === "linkedin")?.href.includes("linkedin.com"), true);
-  assert.equal(targets.find((item) => item.key === "x")?.href.includes("twitter.com"), true);
-  assert.equal(targets.find((item) => item.key === "email")?.href.startsWith("mailto:"), true);
+  assert.equal(targets.find((item) => item.id === "whatsapp")?.href?.includes("wa.me"), true);
+  assert.equal(targets.find((item) => item.id === "facebook")?.href?.includes("facebook.com"), true);
+  assert.equal(targets.find((item) => item.id === "linkedin")?.href?.includes("linkedin.com"), true);
+  assert.equal(targets.find((item) => item.id === "x")?.href?.includes("twitter.com"), true);
+  assert.equal(targets.find((item) => item.id === "email")?.href?.startsWith("mailto:"), true);
+  assert.equal(targets.find((item) => item.id === "copy")?.action, "copy");
 });
 
 test("share component renders core buttons and copy field", () => {
@@ -66,12 +67,12 @@ test("print helper calls print", () => {
 });
 
 test("secondary share targets fallback or open safely", () => {
-  const targets = buildSecondaryShareTargets({
+  const targets = buildSecondaryShareChannels({
     title: "Trek 4 Africa 2026",
     url: "https://givekhair.vercel.app/appeals/trek-4-africa-2026",
   });
 
-  assert.equal(targets.find((item) => item.key === "reddit")?.action, "open");
-  assert.equal(targets.find((item) => item.key === "slack")?.action, "copy");
-  assert.equal(targets.find((item) => item.key === "teams")?.href?.includes("teams.microsoft.com/share"), true);
+  assert.equal(targets.find((item) => item.id === "reddit")?.action, "open");
+  assert.equal(targets.find((item) => item.id === "slack")?.action, "copy");
+  assert.equal(targets.find((item) => item.id === "teams")?.href?.includes("teams.microsoft.com/share"), true);
 });

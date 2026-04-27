@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { assertCanAccessCharity } from "@/server/lib/access-control";
 
 const ADMIN_ROLES = ["CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"] as const;
 
@@ -41,4 +42,16 @@ export async function getAdminContext() {
     role,
     managedCharity,
   };
+}
+
+export async function requireAdminCharityAccess(charityId: string) {
+  const context = await getAdminContext();
+
+  try {
+    await assertCanAccessCharity(context.userId, context.role, charityId);
+  } catch {
+    redirect("/admin/charities");
+  }
+
+  return context;
 }

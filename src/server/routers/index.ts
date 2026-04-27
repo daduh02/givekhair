@@ -17,6 +17,10 @@ import { createDonationIntent, markDonationCaptured } from "@/server/lib/donatio
 import { TRPCError } from "@trpc/server";
 import Decimal from "decimal.js";
 import { randomUUID } from "crypto";
+import { assertCanAccessCharity } from "@/server/lib/access-control";
+import { isFundraisingPagePubliclyAccessible } from "@/server/lib/public-access";
+import { enforceRateLimitTrpc } from "@/server/lib/rate-limit";
+import { getClientIp } from "@/server/lib/request-identity";
 
 // ── Fees router ───────────────────────────────────────────────────────────────
 
@@ -173,7 +177,9 @@ export const pagesRouter = createTRPCRouter({
           mediaItems: { orderBy: { sortOrder: "asc" } },
         },
       });
-      if (!page) throw new TRPCError({ code: "NOT_FOUND" });
+      if (!page || !isFundraisingPagePubliclyAccessible(page)) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
       return page;
     }),
 
@@ -255,6 +261,12 @@ export const donationsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         const sessionUserId = (ctx.session?.user as { id?: string } | undefined)?.id;
+        await enforceRateLimitTrpc({
+          namespace: "donations:intent",
+          key: `${getClientIp(ctx.req.headers)}:${input.pageId}`,
+          limit: 8,
+          windowSec: 5 * 60,
+        });
         return await createDonationIntent({
           pageId: input.pageId,
           amount: input.amount,
@@ -302,6 +314,15 @@ export const adminRouter = createTRPCRouter({
   charityStats: charityAdminProcedure
     .input(z.object({ charityId: z.string() }))
     .query(async ({ ctx, input }) => {
+      const sessionUser = ctx.session.user as { id?: string; role?: string } | undefined;
+      if (!sessionUser?.id || !sessionUser.role) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+      try {
+        await assertCanAccessCharity(sessionUser.id, sessionUser.role, input.charityId);
+      } catch {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
       const [onlineTotal, offlineTotal, donationCount, pendingPayout] =
         await Promise.all([
           ctx.db.donation.aggregate({
@@ -339,6 +360,15 @@ export const adminRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
+      const sessionUser = ctx.session.user as { id?: string; role?: string } | undefined;
+      if (!sessionUser?.id || !sessionUser.role) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+      try {
+        await assertCanAccessCharity(sessionUser.id, sessionUser.role, input.charityId);
+      } catch {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
       return ctx.db.donation.findMany({
         where: { page: { appeal: { charityId: input.charityId } } },
         include: {

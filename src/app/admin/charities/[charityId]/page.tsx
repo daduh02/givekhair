@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
-import { getAdminContext } from "@/lib/admin";
+import { requireAdminCharityAccess } from "@/lib/admin";
 
 export const metadata: Metadata = { title: "Admin - Charity Overview" };
 
@@ -13,13 +13,10 @@ export default async function CharityDetailPage({
   params: { charityId: string };
   searchParams: { error?: string };
 }) {
-  const { role, managedCharity } = await getAdminContext();
+  await requireAdminCharityAccess(params.charityId);
 
   const charity = await db.charity.findFirst({
-    where: {
-      id: params.charityId,
-      ...(role === "PLATFORM_ADMIN" ? {} : { id: managedCharity?.id }),
-    },
+    where: { id: params.charityId },
     include: {
       _count: { select: { appeals: true, admins: true } },
       appeals: {
