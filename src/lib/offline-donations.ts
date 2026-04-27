@@ -260,6 +260,10 @@ export async function createOfflineDonationsFromDryRun(input: {
   const result = batch.resultJson as unknown as OfflineDryRunResult;
   const validRows = result.rows.filter((row) => row.errors.length === 0 && row.normalized);
 
+  if (validRows.length === 0) {
+    throw new Error("No valid offline donation rows were available to import.");
+  }
+
   const createdIds: string[] = [];
 
   await db.$transaction(async (tx) => {
@@ -311,6 +315,9 @@ export async function createOfflineDonationsFromDryRun(input: {
   });
 
   return {
+    appealId: batch.appealId,
+    validRowCount: validRows.length,
+    skippedRowCount: result.rows.length - validRows.length,
     createdCount: createdIds.length,
     createdIds,
   };

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getAdminContext } from "@/lib/admin";
-import { revalidateAdminSurfaces } from "@/lib/admin-management";
+import { revalidateAdminSurfaces, revalidateOfflineDonationSurfaces } from "@/lib/admin-management";
 import {
   createOfflineDonationsFromDryRun,
   dryRunOfflineCsv,
@@ -51,7 +51,7 @@ function statusPill(status: string) {
 export default async function OfflinePage({
   searchParams,
 }: {
-  searchParams: { batchId?: string; error?: string; ok?: string };
+  searchParams: { batchId?: string; error?: string; ok?: string; created?: string; skipped?: string };
 }) {
   const { role, userId, managedCharity } = await getAdminContext();
   const accessibleAppeals = await getAccessibleAppeals(role, managedCharity?.id);
@@ -169,6 +169,7 @@ export default async function OfflinePage({
     }
 
     revalidateAdminSurfaces(["/admin/offline", `/admin/appeals/${page.appeal.id}`]);
+    await revalidateOfflineDonationSurfaces({ pageId: page.id, appealId: page.appeal.id });
     redirect("/admin/offline?ok=created");
   }
 
@@ -217,13 +218,21 @@ export default async function OfflinePage({
       redirect("/admin/offline");
     }
 
-    await createOfflineDonationsFromDryRun({
-      batchId,
-      createdById: currentUserId,
-    });
+    let result;
+    try {
+      result = await createOfflineDonationsFromDryRun({
+        batchId,
+        createdById: currentUserId,
+      });
+    } catch {
+      redirect("/admin/offline?error=commit");
+    }
 
     revalidateAdminSurfaces(["/admin/offline"]);
-    redirect("/admin/offline?ok=committed");
+    if (result.appealId) {
+      await revalidateOfflineDonationSurfaces({ appealId: result.appealId });
+    }
+    redirect(`/admin/offline?ok=committed&created=${result.createdCount}&skipped=${result.skippedRowCount}`);
   }
 
   async function updateOfflineStatus(formData: FormData) {
@@ -237,12 +246,17 @@ export default async function OfflinePage({
       redirect("/admin/offline");
     }
 
-    await db.offlineDonation.update({
+    const updated = await db.offlineDonation.update({
       where: { id },
       data: { status },
+      select: {
+        pageId: true,
+        page: { select: { appealId: true } },
+      },
     });
 
     revalidateAdminSurfaces(["/admin/offline"]);
+    await revalidateOfflineDonationSurfaces({ pageId: updated.pageId, appealId: updated.page?.appealId });
     redirect("/admin/offline?ok=status");
   }
 
@@ -261,13 +275,15 @@ export default async function OfflinePage({
         ? "Gift Aid rows need donor name and a full UK address."
         : searchParams.error === "upload"
           ? "Please choose an appeal and a CSV file."
+          : searchParams.error === "commit"
+            ? "This batch had no valid rows to import. Open the dry-run preview, fix the row errors, and try again."
           : "";
 
   const successMessage =
     searchParams.ok === "created"
       ? "Offline donation saved."
       : searchParams.ok === "committed"
-        ? "Dry-run batch committed to offline donations."
+        ? `Imported ${searchParams.created ?? "0"} offline donation row(s)${searchParams.skipped ? ` and skipped ${searchParams.skipped} invalid row(s)` : ""}.`
         : searchParams.ok === "status"
           ? "Offline donation status updated."
           : "";
@@ -437,11 +453,11 @@ export default async function OfflinePage({
                     <Link href={`/admin/offline?batchId=${batch.id}`} className="btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
                       View dry-run
                     </Link>
-                    {batch.status === "DRY_RUN" ? (
+                    {batch.status === "DRY_RUN" && ((batch.resultJson as OfflineDryRunResult | null)?.validCount ?? 0) > 0 ? (
                       <form action={commitBatch}>
                         <input type="hidden" name="batchId" value={batch.id} />
                         <button type="submit" className="btn-primary" style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}>
-                          Commit
+                          Commit {((batch.resultJson as OfflineDryRunResult | null)?.validCount ?? 0)} valid row(s)
                         </button>
                       </form>
                     ) : null}
@@ -465,11 +481,11 @@ export default async function OfflinePage({
                 {selectedDryRun.fileName} · {selectedDryRun.validCount}/{selectedDryRun.rowCount} valid rows
               </p>
             </div>
-            {selectedBatch?.status === "DRY_RUN" && selectedDryRun.errorCount === 0 ? (
+            {selectedBatch?.status === "DRY_RUN" && selectedDryRun.validCount > 0 ? (
               <form action={commitBatch}>
                 <input type="hidden" name="batchId" value={selectedBatch.id} />
                 <button type="submit" className="btn-primary" style={{ padding: "0.6rem 1rem" }}>
-                  Commit valid rows
+                  Commit {selectedDryRun.validCount} valid row(s)
                 </button>
               </form>
             ) : null}

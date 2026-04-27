@@ -114,6 +114,73 @@ export function revalidateAdminSurfaces(extraPaths: string[] = []) {
   }
 }
 
+export async function revalidateOfflineDonationSurfaces(input: {
+  pageId?: string | null;
+  appealId?: string | null;
+}) {
+  let appeal:
+    | {
+        slug: string;
+        charity: { slug: string };
+        fundraisingPages: Array<{ shortName: string }>;
+      }
+    | null = null;
+
+  if (input.pageId) {
+    const page = await db.fundraisingPage.findUnique({
+      where: { id: input.pageId },
+      select: {
+        shortName: true,
+        appeal: {
+          select: {
+            id: true,
+            slug: true,
+            charity: { select: { slug: true } },
+            fundraisingPages: { select: { shortName: true } },
+          },
+        },
+      },
+    });
+
+    if (page?.appeal) {
+      appeal = {
+        slug: page.appeal.slug,
+        charity: page.appeal.charity,
+        fundraisingPages: page.appeal.fundraisingPages,
+      };
+
+      revalidatePath(`/fundraise/${page.shortName}`);
+      revalidatePath(`/fundraise/${page.shortName}/edit`);
+    }
+  } else if (input.appealId) {
+    const appealRecord = await db.appeal.findUnique({
+      where: { id: input.appealId },
+      select: {
+        slug: true,
+        charity: { select: { slug: true } },
+        fundraisingPages: { select: { shortName: true } },
+      },
+    });
+
+    if (appealRecord) {
+      appeal = appealRecord;
+    }
+  }
+
+  if (!appeal) {
+    return;
+  }
+
+  revalidatePath(`/appeals/${appeal.slug}`);
+  revalidatePath(`/appeals/${appeal.slug}/leaderboard`);
+  revalidatePath(`/charities/${appeal.charity.slug}`);
+  revalidatePath("/charities");
+
+  for (const page of appeal.fundraisingPages) {
+    revalidatePath(`/fundraise/${page.shortName}`);
+  }
+}
+
 export type CharityFormValues = {
   name: string;
   slug: string;

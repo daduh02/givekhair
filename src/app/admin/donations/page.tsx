@@ -92,6 +92,7 @@ export default async function AdminDonationsPage({
     status?: string;
     charityId?: string;
     giftAid?: string;
+    source?: string;
     error?: string;
   };
 }) {
@@ -100,6 +101,7 @@ export default async function AdminDonationsPage({
   const status = (searchParams.status ?? "").trim();
   const charityIdFilter = (searchParams.charityId ?? "").trim();
   const giftAidFilter = (searchParams.giftAid ?? "").trim();
+  const sourceFilter = (searchParams.source ?? "").trim();
   const errorCode = (searchParams.error ?? "").trim();
 
   const charities = await db.charity.findMany({
@@ -290,49 +292,110 @@ export default async function AdminDonationsPage({
       : {}),
   };
 
-  const [donations, capturedAgg, pendingCount, recurringCount, disputeCount] = await Promise.all([
-    db.donation.findMany({
-      where,
-      include: {
-        feeSet: true,
-        payment: true,
-        giftAidDeclaration: { select: { id: true } },
-        refunds: { orderBy: [{ createdAt: "desc" }] },
-        disputes: { orderBy: [{ openedAt: "desc" }] },
-        payoutItems: {
-          select: {
-            payoutBatchId: true,
-            itemType: true,
-            payoutBatch: { select: { status: true, processedAt: true } },
-          },
+  const offlineWhere = {
+    page: {
+      appeal: {
+        charityId: {
+          in: scopedCharityIds.length > 0 ? scopedCharityIds : ["__none__"],
         },
-        journalEntries: {
-          select: {
-            id: true,
-            refundId: true,
-            disputeId: true,
-          },
-        },
-        page: {
-          select: {
-            title: true,
-            shortName: true,
-            appeal: {
+      },
+    },
+    ...(status
+      ? { status: status as "PENDING_APPROVAL" | "APPROVED" | "REJECTED" }
+      : {}),
+    ...(giftAidFilter === "yes"
+      ? { giftAidDeclaration: { isNot: null } }
+      : giftAidFilter === "no"
+        ? { giftAidDeclaration: { is: null } }
+        : {}),
+    ...(query
+      ? {
+          OR: [
+            { donorName: { contains: query, mode: "insensitive" as const } },
+            { page: { title: { contains: query, mode: "insensitive" as const } } },
+            { page: { appeal: { title: { contains: query, mode: "insensitive" as const } } } },
+            { batch: { fileName: { contains: query, mode: "insensitive" as const } } },
+          ],
+        }
+      : {}),
+  };
+
+  const [donations, offlineDonations, capturedAgg, approvedOfflineAgg, pendingCount, recurringCount, disputeCount] = await Promise.all([
+    sourceFilter === "offline"
+      ? Promise.resolve([])
+      : db.donation.findMany({
+          where,
+          include: {
+            feeSet: true,
+            payment: true,
+            giftAidDeclaration: { select: { id: true } },
+            refunds: { orderBy: [{ createdAt: "desc" }] },
+            disputes: { orderBy: [{ openedAt: "desc" }] },
+            payoutItems: {
+              select: {
+                payoutBatchId: true,
+                itemType: true,
+                payoutBatch: { select: { status: true, processedAt: true } },
+              },
+            },
+            journalEntries: {
               select: {
                 id: true,
+                refundId: true,
+                disputeId: true,
+              },
+            },
+            page: {
+              select: {
                 title: true,
-                slug: true,
-                charity: { select: { id: true, name: true } },
+                shortName: true,
+                appeal: {
+                  select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    charity: { select: { id: true, name: true } },
+                  },
+                },
               },
             },
           },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    }),
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        }),
+    sourceFilter === "online"
+      ? Promise.resolve([])
+      : db.offlineDonation.findMany({
+          where: offlineWhere,
+          include: {
+            batch: { select: { id: true, fileName: true, status: true } },
+            giftAidDeclaration: { select: { id: true } },
+            page: {
+              select: {
+                id: true,
+                title: true,
+                shortName: true,
+                appeal: {
+                  select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    charity: { select: { id: true, name: true } },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: [{ createdAt: "desc" }],
+          take: 100,
+        }),
     db.donation.aggregate({
       where: { ...where, status: "CAPTURED" },
+      _sum: { amount: true },
+      _count: true,
+    }),
+    db.offlineDonation.aggregate({
+      where: { ...offlineWhere, status: "APPROVED" },
       _sum: { amount: true },
       _count: true,
     }),
@@ -359,6 +422,23 @@ export default async function AdminDonationsPage({
   ]);
 
   const totalRefundedAmount = donations.reduce((sum, donation) => sum.plus(getRefundedAmount(donation.refunds)), new Decimal(0));
+  const onlineCapturedValue = toDecimal(capturedAgg._sum.amount);
+  const offlineApprovedValue = toDecimal(approvedOfflineAgg._sum.amount);
+  const combinedVisibleValue = onlineCapturedValue.plus(offlineApprovedValue);
+  const combinedRecords = [
+    ...donations.map((donation) => ({
+      id: donation.id,
+      createdAt: donation.createdAt,
+      source: "ONLINE" as const,
+      donation,
+    })),
+    ...offlineDonations.map((offlineDonation) => ({
+      id: offlineDonation.id,
+      createdAt: offlineDonation.createdAt,
+      source: "OFFLINE" as const,
+      offlineDonation,
+    })),
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   const errorMessage =
     errorCode === "refund"
       ? "We couldn't record that refund. Check that the donation is refundable and that the amount does not exceed the remaining refundable amount."
@@ -374,7 +454,7 @@ export default async function AdminDonationsPage({
         <div>
           <h1 className="text-xl font-bold" style={{ color: "#233029" }}>Donations</h1>
           <p className="text-sm" style={{ color: "#8A9E94" }}>
-            Monitor payment state, record refunds, track disputes, and see whether payouts or ledger reversals are affected.
+            Monitor online and offline donation records, record refunds, track disputes, and see whether payouts or ledger reversals are affected.
           </p>
         </div>
         <div className="flex gap-3">
@@ -387,15 +467,18 @@ export default async function AdminDonationsPage({
         </div>
       </div>
 
-      <form className="grid gap-3 rounded-[1.25rem] bg-white p-4 shadow-[0_2px_12px_rgba(18,78,64,0.07)] md:grid-cols-4">
+      <form className="grid gap-3 rounded-[1.25rem] bg-white p-4 shadow-[0_2px_12px_rgba(18,78,64,0.07)] md:grid-cols-5">
         <input
           name="q"
           defaultValue={query}
-          placeholder="Search donor, appeal, page, or provider ref"
+          placeholder="Search donor, appeal, page, upload, or provider ref"
           className="input"
         />
         <select name="status" defaultValue={status} className="input">
           <option value="">All statuses</option>
+          <option value="APPROVED">Approved offline</option>
+          <option value="PENDING_APPROVAL">Pending approval offline</option>
+          <option value="REJECTED">Rejected offline</option>
           <option value="PENDING">Pending</option>
           <option value="CAPTURED">Captured</option>
           <option value="FAILED">Failed</option>
@@ -408,6 +491,11 @@ export default async function AdminDonationsPage({
           <option value="">All Gift Aid states</option>
           <option value="yes">Gift Aid declared</option>
           <option value="no">No Gift Aid</option>
+        </select>
+        <select name="source" defaultValue={sourceFilter} className="input">
+          <option value="">All sources</option>
+          <option value="online">Online only</option>
+          <option value="offline">Offline only</option>
         </select>
         <div className="flex gap-3">
           {role === "PLATFORM_ADMIN" || role === "FINANCE" ? (
@@ -434,15 +522,86 @@ export default async function AdminDonationsPage({
         </div>
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <StatCard label="Visible donations" value={String(donations.length)} sub="latest matching records" />
-        <StatCard label="Captured value" value={fmt(capturedAgg._sum.amount?.toString())} sub={`${capturedAgg._count} captured donations`} />
+      <div className="grid gap-3 md:grid-cols-5">
+        <StatCard label="Visible records" value={String(combinedRecords.length)} sub={`${donations.length} online · ${offlineDonations.length} offline`} />
+        <StatCard label="Combined value" value={fmt(combinedVisibleValue)} sub={`${capturedAgg._count + approvedOfflineAgg._count} captured or approved records`} />
+        <StatCard label="Online value" value={fmt(onlineCapturedValue)} sub={`${capturedAgg._count} captured online donations`} />
+        <StatCard label="Offline value" value={fmt(offlineApprovedValue)} sub={`${approvedOfflineAgg._count} approved offline donations`} />
         <StatCard label="Refunded / open disputes" value={`${fmt(totalRefundedAmount)} / ${disputeCount}`} sub="succeeded refunds and active dispute cases" />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
         <StatCard label="Pending / recurring" value={`${pendingCount} / ${recurringCount}`} sub="still awaiting payment confirmation and recurring gifts" />
+        <StatCard label="Source mix" value={`${donations.length}:${offlineDonations.length}`} sub="online to offline records in current results" />
       </div>
 
       <div className="space-y-4">
-        {donations.map((donation) => {
+        {combinedRecords.map((record) => {
+          if (record.source === "OFFLINE") {
+            const donation = record.offlineDonation;
+            return (
+              <section key={`offline-${donation.id}`} style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", overflow: "hidden" }}>
+                <div className="flex flex-wrap items-start justify-between gap-4 p-6">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="badge-blue">Offline</span>
+                      {pill(donation.status)}
+                    </div>
+                    <h2 className="mt-3 text-lg font-semibold" style={{ color: "#233029" }}>
+                      {donation.donorName ?? "Anonymous / collection"}
+                    </h2>
+                    <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+                      {donation.page?.appeal.charity.name ?? "Unknown charity"} · {donation.page?.appeal.title ?? "Unlinked appeal"} · {donation.page?.shortName ? `/fundraise/${donation.page.shortName}` : "No fundraiser page"}
+                    </p>
+                    <p className="mt-2 text-sm" style={{ color: "#3A4A42" }}>
+                      Imported {new Date(donation.createdAt).toLocaleString("en-GB")} · Received {new Date(donation.receivedDate).toLocaleDateString("en-GB")}
+                      {donation.batch?.fileName ? ` · Batch: ${donation.batch.fileName}` : " · Manual offline entry"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl px-4 py-4 text-sm" style={{ background: "#FCFBF7", color: "#3A4A42", minWidth: "16rem" }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Donation amount</span>
+                      <strong>{fmt(donation.amount, donation.currency)}</strong>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span>Source</span>
+                      <strong>Offline upload</strong>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span>Gift Aid</span>
+                      <strong>{donation.giftAidDeclaration ? "Declared" : "No"}</strong>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span>Batch status</span>
+                      <strong>{donation.batch?.status ?? "Manual"}</strong>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-4 px-6 pb-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                  <div className="rounded-2xl border p-4" style={{ borderColor: "rgba(18,78,64,0.08)", background: "#FCFBF7" }}>
+                    <h3 className="text-sm font-semibold" style={{ color: "#233029" }}>Offline record details</h3>
+                    <div className="mt-3 grid gap-2 text-sm" style={{ color: "#3A4A42" }}>
+                      <div>Appeal: {donation.page?.appeal.title ?? "Not linked"}</div>
+                      <div>Fundraiser page: {donation.page?.title ?? "Not linked"}</div>
+                      <div>Gift Aid: {donation.giftAidDeclaration ? "Declaration saved" : "Not declared"}</div>
+                      <div>Status: {donation.status.replaceAll("_", " ")}</div>
+                      <div>Notes: {donation.notes ?? "No notes recorded"}</div>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border p-4 text-sm" style={{ borderColor: "rgba(18,78,64,0.08)", background: "#FCFBF7", color: "#3A4A42" }}>
+                    <h3 className="text-sm font-semibold" style={{ color: "#233029" }}>Availability</h3>
+                    <ul className="mt-3 space-y-2">
+                      <li>Offline records count toward public totals only when status is `APPROVED`.</li>
+                      <li>Offline records appear on public appeal and fundraiser totals after import revalidation.</li>
+                      <li>Refund and dispute tools apply to online checkout donations only.</li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
+            );
+          }
+
+          const donation = record.donation;
           const grossCheckoutTotal = donation.grossCheckoutTotal
             ? toDecimal(donation.grossCheckoutTotal)
             : donation.feeSet?.donorCoversFees
@@ -462,6 +621,7 @@ export default async function AdminDonationsPage({
               <div className="flex flex-wrap items-start justify-between gap-4 p-6 pb-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <span className="badge-green">Online</span>
                     {pill(donation.status)}
                     {latestDispute ? pill(latestDispute.status) : null}
                   </div>
@@ -689,9 +849,9 @@ export default async function AdminDonationsPage({
           );
         })}
 
-        {donations.length === 0 ? (
+        {combinedRecords.length === 0 ? (
           <section style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", padding: "2rem", textAlign: "center", color: "#8A9E94" }}>
-            No donations match the current filters.
+            No donation records match the current filters.
           </section>
         ) : null}
       </div>
