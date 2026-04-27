@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { getServerSession } from "next-auth/next";
 import type { NextAuthOptions, Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 
@@ -120,30 +121,19 @@ export const authOptions: NextAuthOptions = {
 };
 
 // v4 compatibility: export auth() as a drop-in for server components
-export async function auth() {
+export const auth = cache(async function auth() {
   if (!authSecret) {
     return null;
   }
+
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return session;
   }
 
-  const userId = (session.user as { id?: string } | undefined)?.id;
-  if (!userId) {
-    return session;
-  }
-
-  const dbUser = await db.user.findUnique({
-    where: { id: userId },
-    select: { role: true, suspendedAt: true },
-  });
-
-  if (!dbUser || dbUser.suspendedAt) {
+  if ((session.user as { suspended?: boolean } | undefined)?.suspended) {
     return null;
   }
 
-  (session.user as any).role = normalizeRole(dbUser.role);
-  (session.user as any).suspended = false;
   return session;
-}
+});

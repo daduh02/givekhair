@@ -79,7 +79,7 @@ export async function getAppealLeaderboard(input: {
     ...(input.publicOnly ? { status: "ACTIVE" as const, visibility: "PUBLIC" as const } : {}),
   };
 
-  const [pages, teams, onlineByPage, offlineByPage] = await Promise.all([
+  const [pages, teams] = await Promise.all([
     db.fundraisingPage.findMany({
       where: wherePage,
       select: {
@@ -105,6 +105,9 @@ export async function getAppealLeaderboard(input: {
         goalAmount: true,
       },
     }),
+  ]);
+
+  const [onlineByPage, offlineByPage] = await Promise.all([
     db.donation.groupBy({
       by: ["pageId"],
       where: {
@@ -239,7 +242,7 @@ export async function getAdminCampaignLeaderboard(input: {
   const period = resolveLeaderboardPeriod(input.period);
   const periodFilter = buildPeriodFilter(period);
 
-  const [appeals, pages, onlineByPage, offlineByPage] = await Promise.all([
+  const [appeals, pages] = await Promise.all([
     db.appeal.findMany({
       where: { charityId: { in: charityScope } },
       select: {
@@ -285,6 +288,9 @@ export async function getAdminCampaignLeaderboard(input: {
         },
       },
     }),
+  ]);
+
+  const [onlineByPage, offlineByPage] = await Promise.all([
     db.donation.groupBy({
       by: ["pageId"],
       where: {

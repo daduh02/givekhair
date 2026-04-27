@@ -92,23 +92,28 @@ export default async function AdminOverviewPage({ searchParams }: AdminOverviewP
       },
     });
 
-    const [onlineAgg, offlineAgg, pendingPayoutAgg, giftAidAgg, recentDonations, campaignLeaderboard] = await Promise.all([
+    const [onlineAgg, offlineAgg] = await Promise.all([
       db.donation.aggregate({ where: { status: "CAPTURED" }, _sum: { amount: true }, _count: true }),
       db.offlineDonation.aggregate({ where: { status: "APPROVED" }, _sum: { amount: true }, _count: true }),
+    ]);
+
+    const [pendingPayoutAgg, giftAidAgg] = await Promise.all([
       db.payoutBatch.aggregate({ where: { status: { in: ["SCHEDULED", "PROCESSING"] } }, _sum: { netAmount: true } }),
       db.giftAidClaim.aggregate({ where: { status: { in: ["DRAFT", "SUBMITTED"] } }, _sum: { reclaimAmount: true } }),
-      db.donation.findMany({
-        include: {
-          page: { select: { title: true, appeal: { select: { title: true, charity: { select: { name: true } } } } } },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      }),
-      getAdminCampaignLeaderboard({
-        scopedCharityIds: charities.map((charity) => charity.id),
-        period,
-      }),
     ]);
+
+    const recentDonations = await db.donation.findMany({
+      include: {
+        page: { select: { title: true, appeal: { select: { title: true, charity: { select: { name: true } } } } } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+
+    const campaignLeaderboard = await getAdminCampaignLeaderboard({
+      scopedCharityIds: charities.map((charity) => charity.id),
+      period,
+    });
 
     const platformRaised = campaignLeaderboard.totals.online + campaignLeaderboard.totals.offline;
 
@@ -140,8 +145,8 @@ export default async function AdminOverviewPage({ searchParams }: AdminOverviewP
               <h2 className="font-semibold" style={{ color: "#233029" }}>Charity overview</h2>
               <Link href="/admin/charities" className="text-xs font-medium" style={{ color: "#1E8C6E" }}>View all →</Link>
             </div>
-            <div style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
+            <div style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", overflowX: "auto", overflowY: "hidden" }}>
+              <table style={{ width: "100%", minWidth: "40rem", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
                 <thead>
                   <tr style={{ background: "#F6F1E8" }}>
                     {["Charity", "Appeals", "Admins", "Currency", "Status", "Action"].map((h) => (
@@ -266,24 +271,30 @@ export default async function AdminOverviewPage({ searchParams }: AdminOverviewP
     );
   }
 
-  const [onlineAgg, offlineAgg, pendingPayoutAgg, giftAidAgg, recentDonations, appeals, payouts, campaignLeaderboard] =
-    await Promise.all([
-      db.donation.aggregate({ where: { page: { appeal: { charityId } }, status: "CAPTURED" }, _sum: { amount: true }, _count: true }),
-      db.offlineDonation.aggregate({ where: { page: { appeal: { charityId } }, status: "APPROVED" }, _sum: { amount: true }, _count: true }),
-      db.payoutBatch.aggregate({ where: { charityId, status: { in: ["SCHEDULED", "PROCESSING"] } }, _sum: { netAmount: true } }),
-      db.giftAidClaim.aggregate({ where: { charityId, status: { in: ["DRAFT", "SUBMITTED"] } }, _sum: { reclaimAmount: true } }),
-      db.donation.findMany({
-        where: { page: { appeal: { charityId } } },
-        include: { feeSet: { select: { donorCoversFees: true } }, giftAidDeclaration: { select: { id: true } }, page: { select: { shortName: true, title: true } } },
-        orderBy: { createdAt: "desc" }, take: 10,
-      }),
-      db.appeal.findMany({ where: { charityId }, include: { _count: { select: { fundraisingPages: true } } }, orderBy: { createdAt: "desc" }, take: 5 }),
-      db.payoutBatch.findMany({ where: { charityId }, orderBy: { createdAt: "desc" }, take: 5 }),
-      getAdminCampaignLeaderboard({
-        scopedCharityIds: [charityId],
-        period,
-      }),
-    ]);
+  const [onlineAgg, offlineAgg] = await Promise.all([
+    db.donation.aggregate({ where: { page: { appeal: { charityId } }, status: "CAPTURED" }, _sum: { amount: true }, _count: true }),
+    db.offlineDonation.aggregate({ where: { page: { appeal: { charityId } }, status: "APPROVED" }, _sum: { amount: true }, _count: true }),
+  ]);
+
+  const [pendingPayoutAgg, giftAidAgg] = await Promise.all([
+    db.payoutBatch.aggregate({ where: { charityId, status: { in: ["SCHEDULED", "PROCESSING"] } }, _sum: { netAmount: true } }),
+    db.giftAidClaim.aggregate({ where: { charityId, status: { in: ["DRAFT", "SUBMITTED"] } }, _sum: { reclaimAmount: true } }),
+  ]);
+
+  const [recentDonations, appeals, payouts] = await Promise.all([
+    db.donation.findMany({
+      where: { page: { appeal: { charityId } } },
+      include: { feeSet: { select: { donorCoversFees: true } }, giftAidDeclaration: { select: { id: true } }, page: { select: { shortName: true, title: true } } },
+      orderBy: { createdAt: "desc" }, take: 10,
+    }),
+    db.appeal.findMany({ where: { charityId }, include: { _count: { select: { fundraisingPages: true } } }, orderBy: { createdAt: "desc" }, take: 5 }),
+    db.payoutBatch.findMany({ where: { charityId }, orderBy: { createdAt: "desc" }, take: 5 }),
+  ]);
+
+  const campaignLeaderboard = await getAdminCampaignLeaderboard({
+    scopedCharityIds: [charityId],
+    period,
+  });
 
   const onlineTotal = parseFloat(onlineAgg._sum.amount?.toString() ?? "0");
   const offlineTotal = parseFloat(offlineAgg._sum.amount?.toString() ?? "0");
@@ -322,8 +333,8 @@ export default async function AdminOverviewPage({ searchParams }: AdminOverviewP
             <h2 className="font-semibold" style={{ color: "#233029" }}>Recent donations</h2>
             <Link href="/admin/donations" className="text-xs font-medium" style={{ color: "#1E8C6E" }}>View all →</Link>
           </div>
-          <div style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
+          <div style={{ background: "white", borderRadius: "1rem", boxShadow: "0 2px 12px rgba(18,78,64,0.07)", overflowX: "auto", overflowY: "hidden" }}>
+            <table style={{ width: "100%", minWidth: "36rem", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
               <thead>
                 <tr style={{ background: "#F6F1E8" }}>
                   {["Donor", "Amount", "Gift Aid", "Page", "Status"].map((h) => (

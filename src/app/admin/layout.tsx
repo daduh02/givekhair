@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { AdminNavigation } from "@/components/admin/AdminNavigation";
 
 export const metadata: Metadata = { title: "Admin" };
 
@@ -34,10 +35,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div style={{ minHeight: "100vh", background: "#F6F1E8", display: "flex", flexDirection: "column" }}>
-      {/* Top bar */}
-      <header style={{ background: "#124E40", color: "#F6F1E8" }} className="sticky top-0 z-50">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-3">
+      <header style={{ background: "#124E40", color: "#F6F1E8" }} className="sticky top-0 z-50 shadow-[0_14px_36px_rgba(15,23,42,0.16)]">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             <Link href="/" className="flex items-center gap-2 no-underline">
               <span className="grid h-8 w-8 place-items-center rounded-lg" style={{ background: "rgba(246,241,232,0.15)" }}>
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="#F6F1E8" strokeWidth="2">
@@ -46,12 +46,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </span>
               <span className="font-bold text-base" style={{ color: "#F6F1E8" }}>GiveKhair</span>
             </Link>
-            <span style={{ color: "rgba(246,241,232,0.4)" }}>|</span>
-            <span className="text-sm font-medium" style={{ color: "rgba(246,241,232,0.8)" }}>Admin</span>
+            <span className="hidden sm:block" style={{ color: "rgba(246,241,232,0.4)" }}>|</span>
+            <span className="text-sm font-medium" style={{ color: "rgba(246,241,232,0.8)" }}>Admin panel</span>
           </div>
-          <div className="flex items-center gap-3 text-sm" style={{ color: "rgba(246,241,232,0.8)" }}>
-            <span>{session.user?.name ?? session.user?.email ?? "Admin user"}</span>
-            <Link href="/api/auth/signout" className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end" style={{ color: "rgba(246,241,232,0.8)" }}>
+            <span className="min-w-0 truncate text-sm">{session.user?.name ?? session.user?.email ?? "Admin user"}</span>
+            <Link href="/api/auth/signout" className="rounded-lg px-3 py-2 text-xs font-medium transition-colors whitespace-nowrap"
               style={{ background: "rgba(246,241,232,0.12)", color: "#F6F1E8" }}>
               Sign out
             </Link>
@@ -59,34 +59,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-0 px-6 py-6">
-        {/* Sidebar */}
-        <aside className="w-52 flex-shrink-0 pr-4">
-          <nav className="sticky top-20 space-y-0.5">
-            {navItems.map((item) => (
-              <AdminNavLink key={item.href} href={item.href} icon={item.icon} label={item.label} />
-            ))}
-          </nav>
-        </aside>
-
-        {/* Main content */}
-        <main className="flex-1 min-w-0">
-          {children}
-        </main>
+      <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-6">
+        <AdminNavigation items={navItems} />
+        <div className="lg:flex lg:gap-6">
+          <AdminNavigation items={navItems} desktop />
+          <main className="min-w-0 flex-1">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
-  );
-}
-
-function AdminNavLink({ href, icon, label }: { href: string; icon: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
-      style={{ color: "#3A4A42" }}
-    >
-      <span className="text-base w-5 text-center">{icon}</span>
-      {label}
-    </Link>
   );
 }
