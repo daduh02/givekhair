@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Last updated: 2026-04-13
+Last updated: 2026-04-27
 
 This file tracks the current delivery state of the product against the working giveKhair specification.
 
@@ -21,6 +21,9 @@ This file tracks the current delivery state of the product against the working g
 - Major reconciliation and advanced recovery workflows are still incomplete, but refunds, disputes, and finance/accounting exports now have a real operational starting point.
 - Appeal and team leaderboard analytics are now live across public appeal pages and admin overview reporting.
 - Reconciliation exports and finance exception reporting are now live across admin reports and a dedicated reconciliation queue.
+- Public charity discovery no longer relies on per-charity aggregate fan-out that can exhaust database session limits.
+- Queue imports no longer open Redis connections eagerly during build or unrelated route rendering.
+- ESLint now runs non-interactively through `npm run lint`.
 
 ## Completed
 
@@ -31,6 +34,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Vercel production deployment working on Node 20
 - `Done` Production hardening so public pages do not crash on missing env or transient DB failures
 - `Done` Public route-group layout for shared public navigation and footer
+- `Done` Queue helper imports no longer require Redis connectivity at module-load time
 
 ### Authentication and access
 
@@ -53,6 +57,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Trending appeal section now pages horizontally in grouped sets instead of a fixed small grid
 - `Done` Global public footer applied through shared layout rather than copied into individual pages
 - `Done` Public information architecture for charities, how-it-works, Zakat/Gift Aid, and policy/support placeholder pages
+- `Done` Public charity directory batching now avoids per-charity query bursts during `/charities` rendering
 - `Done` Centralized public theme tokens, button styles, chips, cards, and progress bar patterns
 - `Done` Signed-in public navbar account menu with role-aware actions for admin, dashboard, fundraising, and logout
 - `Done` Homepage tone refinement so the public landing experience reads more product-specific and less generic
@@ -215,6 +220,11 @@ This file tracks the current delivery state of the product against the working g
 - `Done` contract renewal/versioning flow for creating a fresh commercial period without mutating historic records
 - `Partial` starter admin fee configuration UX now exists in `/admin/settings`
 - `Partial` richer rule editing and final legal/commercial workflows still need expansion
+
+### Developer workflow
+
+- `Done` Non-interactive ESLint setup via `npm run lint`
+- `Done` Playwright browser smoke verification via `npm run verify:browsers`
 
 ### 5.6 Bank Accounts & Payouts
 

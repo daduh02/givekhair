@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 interface Props {
@@ -31,7 +32,15 @@ export function AppealCard({ appeal, raisedAmount = 0 }: Props) {
       <div className="relative h-36 flex items-center justify-center text-4xl"
         style={{ background: "linear-gradient(135deg,#D4EDE5,#F6F1E8)" }}>
         {appeal.bannerUrl
-          ? <img src={appeal.bannerUrl} alt={appeal.title} className="h-full w-full object-cover" />
+          ? (
+            <Image
+              src={appeal.bannerUrl}
+              alt={appeal.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover"
+            />
+          )
           : <span>🌿</span>}
         {appeal.charity.isVerified && (
           <span className="absolute right-2 top-2 rounded-full px-2 py-0.5 text-xs font-semibold"

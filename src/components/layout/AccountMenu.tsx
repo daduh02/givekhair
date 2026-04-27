@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
@@ -133,7 +134,9 @@ export function AccountMenu({ name, email, image, isAdmin }: AccountMenuProps) {
         {image ? (
           // We deliberately keep the avatar optional so the menu still feels
           // finished even when providers do not supply profile images.
-          <img src={image} alt="" className="account-avatar" />
+          <span className="account-avatar">
+            <Image src={image} alt="" fill sizes="2.2rem" className="object-cover" />
+          </span>
         ) : (
           <span className="account-avatar account-avatar-fallback">{initials}</span>
         )}

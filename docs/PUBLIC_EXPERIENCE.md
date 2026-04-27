@@ -313,6 +313,7 @@ Current behavior:
 - the public charity profile shows trust and registration context, raised totals, live appeal inventory, and recent fundraiser pages
 - active appeals on the profile reuse the same appeal-card presentation used elsewhere in the public experience
 - dashboard surfaces the user’s fundraiser pages with create/edit links
+- directory summary metrics are now loaded through batched data reads so the page stays stable as more charities appear
 
 ## Extension guidance
 

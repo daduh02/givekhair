@@ -98,6 +98,7 @@ npm run dev
 - Set `NEXTAUTH_SECRET` to a long random value
 - Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` before enabling Google sign-in
 - Run Prisma migrations or `prisma db push` against the production database before expecting the public site to load data
+- Queue clients are initialized lazily now, so build-time rendering and non-queue routes do not require Redis to be reachable just to import queue helpers
 
 ## Architecture notes
 
@@ -133,6 +134,13 @@ Three BullMQ queues:
 - `payouts` — batch creation, provider submission
 - `gift-aid` — HMRC claim building and submission
 
+Queue and Redis clients are created lazily now, which keeps builds and unrelated public routes from opening Redis connections unless they actually enqueue work or start workers.
+
+### Public charity discovery (`src/lib/public-charities.ts`)
+- `/charities` now resolves raised totals and fundraiser counts through batched reads
+- This avoids the per-charity query fan-out that could previously exhaust Postgres session limits on larger directory renders
+- Individual charity profile pages still use targeted reads for single-charity detail views
+
 ### Donations API stub (`src/server/lib/donations-api-stub.ts`)
 All external API calls return stub data by default.
 Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch to live.
@@ -148,6 +156,10 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 
 ## Verification helpers
 
+- `npm run lint`
+- Runs the repo's non-interactive Next.js/ESLint checks
+- `npm run verify:browsers`
+- Runs a Playwright smoke matrix across desktop Chrome, Firefox, Safari-equivalent WebKit, plus iPhone and Pixel mobile emulations
 - `npm run verify:contract-pricing`
 - Verifies donor-supported, charity-paid, hybrid, recurring, payout-blocking, and appeal-override pricing cases against the current database
 - `npm run verify:leaderboards`

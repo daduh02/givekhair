@@ -9,15 +9,46 @@
 import { Queue, Worker, type Job } from "bullmq";
 import IORedis from "ioredis";
 
-const connection = new IORedis(process.env.REDIS_URL ?? "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-});
+let connection: IORedis | null = null;
+let emailQueue: Queue<EmailJobData> | null = null;
+let payoutsQueue: Queue<PayoutsJobData> | null = null;
+let giftAidQueue: Queue<GiftAidJobData> | null = null;
+
+function getRedisConnection() {
+  if (!connection) {
+    connection = new IORedis(process.env.REDIS_URL ?? "redis://localhost:6379", {
+      maxRetriesPerRequest: null,
+    });
+  }
+
+  return connection;
+}
 
 // ── Queue definitions ─────────────────────────────────────────────────────────
 
-export const emailQueue = new Queue("email", { connection });
-export const payoutsQueue = new Queue("payouts", { connection });
-export const giftAidQueue = new Queue("gift-aid", { connection });
+function getEmailQueue() {
+  if (!emailQueue) {
+    emailQueue = new Queue("email", { connection: getRedisConnection() });
+  }
+
+  return emailQueue;
+}
+
+function getPayoutsQueue() {
+  if (!payoutsQueue) {
+    payoutsQueue = new Queue("payouts", { connection: getRedisConnection() });
+  }
+
+  return payoutsQueue;
+}
+
+function getGiftAidQueue() {
+  if (!giftAidQueue) {
+    giftAidQueue = new Queue("gift-aid", { connection: getRedisConnection() });
+  }
+
+  return giftAidQueue;
+}
 
 // ── Job type definitions ──────────────────────────────────────────────────────
 
@@ -38,7 +69,7 @@ export type GiftAidJobData =
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export async function enqueueEmail(data: EmailJobData) {
-  return emailQueue.add(data.type, data, {
+  return getEmailQueue().add(data.type, data, {
     attempts: 5,
     backoff: { type: "exponential", delay: 2000 },
     removeOnComplete: { count: 100 },
@@ -58,7 +89,7 @@ export async function enqueueFinanceExceptionAlert(input: {
 }
 
 export async function enqueuePayoutBatch(charityId: string) {
-  return payoutsQueue.add("SCHEDULE_BATCH", { type: "SCHEDULE_BATCH", charityId } satisfies PayoutsJobData, {
+  return getPayoutsQueue().add("SCHEDULE_BATCH", { type: "SCHEDULE_BATCH", charityId } satisfies PayoutsJobData, {
     attempts: 3,
     backoff: { type: "exponential", delay: 5000 },
   });
@@ -69,7 +100,7 @@ export async function enqueueGiftAidClaim(
   periodStart: Date,
   periodEnd: Date
 ) {
-  return giftAidQueue.add(
+  return getGiftAidQueue().add(
     "BUILD_CLAIM",
     {
       type: "BUILD_CLAIM",
@@ -84,6 +115,8 @@ export async function enqueueGiftAidClaim(
 // ── Workers (run in a separate process in production) ─────────────────────────
 
 export function startWorkers() {
+  const workerConnection = getRedisConnection();
+
   const emailWorker = new Worker<EmailJobData>(
     "email",
     async (job: Job<EmailJobData>) => {
@@ -101,7 +134,7 @@ export function startWorkers() {
           break;
       }
     },
-    { connection }
+    { connection: workerConnection }
   );
 
   const payoutsWorker = new Worker<PayoutsJobData>(
@@ -110,7 +143,7 @@ export function startWorkers() {
       console.log(`[payouts worker] processing ${job.data.type}`, job.data);
       // TODO: Implement payout batch creation and provider submission
     },
-    { connection }
+    { connection: workerConnection }
   );
 
   const giftAidWorker = new Worker<GiftAidJobData>(
@@ -119,7 +152,7 @@ export function startWorkers() {
       console.log(`[gift-aid worker] processing ${job.data.type}`, job.data);
       // TODO: Implement HMRC claim building and submission
     },
-    { connection }
+    { connection: workerConnection }
   );
 
   return { emailWorker, payoutsWorker, giftAidWorker };

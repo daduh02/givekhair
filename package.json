@@ -16,6 +16,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx scripts/seed.ts",
     "db:set-demo-passwords": "tsx scripts/set-demo-passwords.ts",
+    "verify:browsers": "node --import tsx scripts/verify-browsers.ts",
     "verify:contract-pricing": "tsx scripts/verify-contract-pricing.ts",
     "verify:leaderboards": "node --import tsx scripts/verify-leaderboards.ts",
     "reconciliation:alerts": "node --import tsx scripts/reconciliation-alerts.ts"
@@ -49,6 +50,9 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
+    "playwright": "^1.59.1",
     "prisma": "^5.14.0",
     "tsx": "^4.11.0",
     "typescript": "^5"

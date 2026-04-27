@@ -177,6 +177,7 @@ The public site now has a dedicated token layer and reusable component classes i
 2. Directory cards combine profile data, live raised totals, fundraiser counts, and active appeal previews
 3. `/charities/[slug]` provides a dedicated public charity profile with trust context, summary metrics, recent fundraiser pages, and active appeals
 4. Charity discovery and profile pages both reuse the shared public shell and card primitives
+5. Directory totals are now resolved through batched reads instead of per-charity nested aggregate calls, which reduces database session pressure on larger renders
 
 ### Offline donations flow
 
@@ -219,6 +220,12 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 - extend the homepage without duplicating patterns
 - keep appeal, auth, and content pages visually coherent
 - apply future marketing or charity-profile work through a known design system
+
+## Queue initialization
+
+1. Queue helper modules can now be imported without immediately opening Redis connections
+2. Redis and BullMQ clients are created only when a queue is actually used or workers are started
+3. This keeps build-time rendering and unrelated public routes from failing due to eager queue initialization
 
 ### Donations operations flow
 

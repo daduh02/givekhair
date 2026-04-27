@@ -35,6 +35,107 @@ async function getCharityRaisedTotal(charityId: string) {
   return decimalToNumber(online._sum.amount) + decimalToNumber(offline._sum.amount);
 }
 
+async function getCharityRaisedTotalsMap(charityIds: string[]) {
+  if (charityIds.length === 0) {
+    return new Map<string, number>();
+  }
+
+  const [donations, offlineDonations] = await Promise.all([
+    db.donation.findMany({
+      where: {
+        status: "CAPTURED",
+        page: { appeal: { charityId: { in: charityIds } } },
+      },
+      select: {
+        amount: true,
+        page: {
+          select: {
+            appeal: {
+              select: {
+                charityId: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+    db.offlineDonation.findMany({
+      where: {
+        status: "APPROVED",
+        page: { appeal: { charityId: { in: charityIds } } },
+      },
+      select: {
+        amount: true,
+        page: {
+          select: {
+            appeal: {
+              select: {
+                charityId: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+  ]);
+
+  const totals = new Map<string, number>();
+
+  for (const charityId of charityIds) {
+    totals.set(charityId, 0);
+  }
+
+  for (const donation of donations) {
+    const charityId = donation.page.appeal.charityId;
+    totals.set(charityId, (totals.get(charityId) ?? 0) + decimalToNumber(donation.amount));
+  }
+
+  for (const donation of offlineDonations) {
+    const charityId = donation.page?.appeal.charityId;
+    if (!charityId) {
+      continue;
+    }
+
+    totals.set(charityId, (totals.get(charityId) ?? 0) + decimalToNumber(donation.amount));
+  }
+
+  return totals;
+}
+
+async function getFundraiserCountsMap(charityIds: string[]) {
+  if (charityIds.length === 0) {
+    return new Map<string, number>();
+  }
+
+  const fundraisingPages = await db.fundraisingPage.findMany({
+    where: {
+      appeal: { charityId: { in: charityIds } },
+      status: "ACTIVE",
+      visibility: "PUBLIC",
+    },
+    select: {
+      appeal: {
+        select: {
+          charityId: true,
+        },
+      },
+    },
+  });
+
+  const counts = new Map<string, number>();
+
+  for (const charityId of charityIds) {
+    counts.set(charityId, 0);
+  }
+
+  for (const page of fundraisingPages) {
+    const charityId = page.appeal.charityId;
+    counts.set(charityId, (counts.get(charityId) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
 export async function getPublicCharityDirectory() {
   const charities = await db.charity.findMany({
     where: { status: "ACTIVE" },
@@ -57,26 +158,17 @@ export async function getPublicCharityDirectory() {
     },
   });
 
-  return Promise.all(
-    charities.map(async (charity) => {
-      const [raisedTotal, fundraiserCount] = await Promise.all([
-        getCharityRaisedTotal(charity.id),
-        db.fundraisingPage.count({
-          where: {
-            appeal: { charityId: charity.id },
-            status: "ACTIVE",
-            visibility: "PUBLIC",
-          },
-        }),
-      ]);
+  const charityIds = charities.map((charity) => charity.id);
+  const [raisedTotalsByCharity, fundraiserCountsByCharity] = await Promise.all([
+    getCharityRaisedTotalsMap(charityIds),
+    getFundraiserCountsMap(charityIds),
+  ]);
 
-      return {
-        ...charity,
-        raisedTotal,
-        fundraiserCount,
-      };
-    })
-  );
+  return charities.map((charity) => ({
+    ...charity,
+    raisedTotal: raisedTotalsByCharity.get(charity.id) ?? 0,
+    fundraiserCount: fundraiserCountsByCharity.get(charity.id) ?? 0,
+  }));
 }
 
 export async function getPublicCharityProfile(slug: string) {
