@@ -2,13 +2,18 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { DonationCheckout } from "@/components/donation/DonationCheckout";
 import { TRPCProvider } from "@/components/providers";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { TrustChip } from "@/components/ui/TrustChip";
+import { ShareCause } from "@/components/appeal/ShareCause";
+import { DonationSummary } from "@/components/appeal/DonationSummary";
 import { getOrCreateAppealCheckoutPage } from "@/lib/appeal-checkout";
+import { getAppealDonationSummary } from "@/lib/appeal-donation-summary";
 import { getAppealLeaderboard, getGoalProgress } from "@/lib/leaderboards";
+import { buildAbsoluteUrl } from "@/lib/public-url";
 
 interface Props {
   params: { slug: string };
@@ -25,6 +30,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: appeal?.title ?? "Appeal",
     description: appeal?.story ?? "Support this GiveKhair appeal with a secure, transparent donation.",
   };
+}
+
+async function AppealDonationSummarySection({
+  appealId,
+  directPageId,
+}: {
+  appealId: string;
+  directPageId: string;
+}) {
+  const summary = await getAppealDonationSummary({ appealId, directPageId });
+  return <DonationSummary summary={summary} />;
 }
 
 function formatCurrency(amount: number, currency = "GBP") {
@@ -71,15 +87,19 @@ export default async function AppealPage({ params, searchParams }: Props) {
   const goal = parseFloat(appeal.goalAmount.toString());
   const progress = getGoalProgress(raised, goal);
 
-  const checkoutPage =
-    appeal.fundraisingPages[0] ??
-    (await getOrCreateAppealCheckoutPage({
-      appealId: appeal.id,
-      appealTitle: appeal.title,
-      appealSlug: appeal.slug,
-      charityId: appeal.charityId,
-      currency: appeal.currency,
-    }));
+  const checkoutPage = await getOrCreateAppealCheckoutPage({
+    appealId: appeal.id,
+    appealTitle: appeal.title,
+    appealSlug: appeal.slug,
+    charityId: appeal.charityId,
+    currency: appeal.currency,
+  });
+
+  if (!checkoutPage) {
+    notFound();
+  }
+
+  const appealUrl = buildAbsoluteUrl(`/appeals/${appeal.slug}`);
 
   return (
     <main className="section-shell">
@@ -97,7 +117,7 @@ export default async function AppealPage({ params, searchParams }: Props) {
             </div>
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
             <TrustChip>
               <span className="inline-block h-2 w-2 rounded-full bg-[color:var(--color-primary)]" />
               {appeal.charity.name}
@@ -105,6 +125,9 @@ export default async function AppealPage({ params, searchParams }: Props) {
             {appeal.charity.isVerified ? <TrustChip tone="gold">Verified charity</TrustChip> : null}
             {appeal.category?.name ? <TrustChip>{appeal.category.name}</TrustChip> : null}
             {appeal.status === "ENDED" ? <TrustChip>Campaign ended</TrustChip> : null}
+            <a href="#share-this-cause" className="btn-outline" style={{ padding: "0.55rem 0.9rem" }}>
+              Share
+            </a>
           </div>
 
           <h1 className="mt-6 text-4xl font-bold tracking-[-0.04em] text-[color:var(--color-ink)] sm:text-5xl">
@@ -136,6 +159,14 @@ export default async function AppealPage({ params, searchParams }: Props) {
               <p className="mt-5 whitespace-pre-line text-base leading-8 text-[color:var(--color-ink-soft)]">{appeal.story}</p>
             </section>
           ) : null}
+
+          <div className="mt-10">
+            <ShareCause
+              title={appeal.title}
+              description={appeal.story ?? `Support ${appeal.title} on GiveKhair.`}
+              url={appealUrl}
+            />
+          </div>
 
           <section className="mt-10">
             <div className="flex flex-wrap items-end justify-between gap-4">
@@ -259,6 +290,19 @@ export default async function AppealPage({ params, searchParams }: Props) {
               This appeal currently has no active public teams.
             </section>
           )}
+
+          <div className="mt-10">
+            <Suspense
+              fallback={
+                <DonationSummary
+                  loading
+                  summary={{ total: 0, online: 0, offline: 0, direct: 0, fundraisers: 0 }}
+                />
+              }
+            >
+              <AppealDonationSummarySection appealId={appeal.id} directPageId={checkoutPage.id} />
+            </Suspense>
+          </div>
         </section>
 
         <aside className="lg:sticky lg:top-24">

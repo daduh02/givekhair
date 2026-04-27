@@ -63,9 +63,10 @@ export async function getOrCreateAppealCheckoutPage(input: {
     where: {
       appealId: input.appealId,
       status: "ACTIVE",
+      visibility: "HIDDEN",
+      teamId: null,
     },
     orderBy: [
-      { visibility: "asc" },
       { createdAt: "asc" },
     ],
   });
