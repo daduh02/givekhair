@@ -17,6 +17,7 @@ This folder is the working source of truth for delivery status and technical dir
 - Update `ARCHITECTURE.md` when system boundaries, runtime assumptions, or key flows change.
 - Update `FLOW_DIAGRAMS.md` when a role boundary, feature handoff, or route family changes for users, charity admins, or platform admins.
 - Update `PUBLIC_EXPERIENCE.md` when the public shell, design tokens, reusable UI primitives, or information architecture changes.
+- Keep charity-facing marketing routes and product-positioning docs aligned when public navigation, `/for-charities/*` routes, or inclusive brand language change.
 - Keep README verification/setup notes aligned when runtime requirements or quality gates change, such as linting or queue initialization behavior.
 - Add or refresh verification helpers in README when new reproducible checks are introduced, such as browser/device smoke tests.
 - Update `ROADMAP.md` when priorities move or a new delivery phase begins.

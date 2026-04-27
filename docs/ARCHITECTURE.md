@@ -95,14 +95,23 @@ The public site now has a dedicated token layer and reusable component classes i
 
 1. Public routes render through `src/app/(public)/layout.tsx`
 2. Shared navbar and shared footer are applied automatically to all public pages in that route group
-3. The navbar resolves the server session and shows either signed-out auth actions or a signed-in account menu with role-aware destinations
+3. The navbar resolves the server session and shows either signed-out auth actions or a signed-in account menu with role-aware destinations, plus a `For charities` navigation area for Products, Pricing, and Contact
 4. Homepage loads active, public appeals from Prisma
 5. The homepage first attempts to use an explicitly featured appeal selected by platform admin, falling back to the best available active/public appeal if none is set
 6. Trending appeals are loaded in a larger set, then paged client-side in grouped views while preserving the shared appeal card design
 7. Appeal detail page loads teams, fundraiser pages, and donation widget
-8. Appeal detail page now also loads leaderboard aggregates (ranked fundraiser pages and ranked teams) using shared online + approved-offline total rules
-9. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
-10. A dedicated public drill-down route (`/appeals/[slug]/leaderboard`) now exposes full rankings and period filters
+8. Appeal detail pages now also include a reusable share section with route-derived share URLs and a reusable donation summary block
+9. Appeal detail page now also loads leaderboard aggregates (ranked fundraiser pages and ranked teams) using shared online + approved-offline total rules
+10. Hidden direct-checkout donations are included in headline appeal totals and donor counts, without being injected into the public fundraiser leaderboard rows
+11. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
+12. A dedicated public drill-down route (`/appeals/[slug]/leaderboard`) now exposes full rankings and period filters
+
+### Charity products marketing flow
+
+1. The public marketing route `/for-charities/products` renders from a reusable product config in `src/lib/charity-products.ts`
+2. Product cards and feature sections link to existing functional routes where GiveKhair already has a real capability, such as appeals, fundraiser creation, dashboard/reporting, and shared informational pages
+3. Product CTAs fall back to stable contact/pricing destinations rather than broken or speculative routes when a capability is still sales-led or partially implemented
+4. The product-positioning copy keeps the fundraising ethos clearly Islamic, while the route itself is now worded as open to all charities
 
 ### Public fundraiser page flow
 

@@ -25,6 +25,8 @@ This file tracks the current delivery state of the product against the working g
 - Queue imports no longer open Redis connections eagerly during build or unrelated route rendering.
 - ESLint now runs non-interactively through `npm run lint`.
 - Role-separated documentation now includes feature flow diagrams for public users, fundraiser owners, charity admins, platform admins, and finance operations.
+- The public site now includes a dedicated charity products landing page and `For charities` navigation area.
+- Appeal pages now include reusable share tools and a donation summary section, and their headline totals correctly include direct appeal donations.
 
 ## Completed
 
@@ -58,11 +60,16 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Trending appeal section now pages horizontally in grouped sets instead of a fixed small grid
 - `Done` Global public footer applied through shared layout rather than copied into individual pages
 - `Done` Public information architecture for charities, how-it-works, Zakat/Gift Aid, and policy/support placeholder pages
+- `Done` Public `For charities` navigation with `Products`, `Pricing`, and `Contact`
+- `Done` Charity products landing page at `/for-charities/products` rendered from reusable product config
 - `Done` Public charity directory batching now avoids per-charity query bursts during `/charities` rendering
 - `Done` Centralized public theme tokens, button styles, chips, cards, and progress bar patterns
 - `Done` Signed-in public navbar account menu with role-aware actions for admin, dashboard, fundraising, and logout
 - `Done` Homepage tone refinement so the public landing experience reads more product-specific and less generic
 - `Done` Appeal detail page with totals, teams, fundraiser list, and donation widget on every appeal page
+- `Done` Reusable appeal-page share section with route-based share URLs, copy-link support, and print action
+- `Done` Reusable appeal donation summary section showing total, online, offline, and fundraiser totals
+- `Done` Appeal header totals now include hidden direct-checkout donations instead of only public fundraiser-page totals
 - `Done` Dedicated public fundraiser page route at `/fundraise/[shortName]` with story, progress, updates, donor feed, and donation widget
 - `Done` Protected fundraiser creation flow at `/fundraise/new`
 - `Done` Protected fundraiser management flow at `/fundraise/[shortName]/edit`

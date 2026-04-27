@@ -41,6 +41,7 @@ Responsibilities:
 Responsibilities:
 
 - public nav links for appeals, charities, how it works, and Zakat/Gift Aid
+- desktop and mobile `For charities` navigation to Products, Pricing, and Contact
 - signed-out login plus fundraiser CTA
 - signed-in account chip with name/email context
 - role-aware account menu (`Admin` for admin-capable users, `Dashboard`, `Fundraise`, `Log out`)
@@ -159,6 +160,7 @@ The donation widget was restyled to match the premium public shell while preserv
 
 - `/`
 - `/appeals/[slug]`
+- `/for-charities/products`
 - `/fundraise/[shortName]`
 - `/charities`
 - `/charities/[slug]`
@@ -181,6 +183,7 @@ This dynamic content page currently provides stable destinations for:
 
 - `/about`
 - `/fees`
+- `/pricing`
 - `/contact`
 - `/help`
 - `/accessibility`
@@ -260,22 +263,42 @@ Implementation:
 
 - `src/app/(public)/appeals/[slug]/page.tsx`
 - `src/lib/leaderboards.ts`
+- `src/components/appeal/ShareCause.tsx`
+- `src/components/appeal/DonationSummary.tsx`
 
 Current behavior:
 
 - each appeal page now includes a fundraiser leaderboard ranked by total raised
 - where teams exist, the same page includes team standings and top fundraiser pages per team
 - totals combine successful online donations with approved offline donations
+- headline appeal totals now also include direct appeal donations routed through the hidden checkout page, so the raised amount and donor-count summary do not stay at zero when direct giving exists
 - period filters are available for `30d`, `90d`, and `all-time`
 - tied totals render as `Tied #N` for clearer ranking context
 - empty-state handling keeps the page usable when no fundraiser/team data exists yet
 - full ranking drill-down is available at `/appeals/[slug]/leaderboard`
+- each appeal page now includes a reusable `Share this cause` section with real route-based share URLs, copy-link support, print, and safe fallbacks for secondary channels
+- each appeal page now includes a reusable donation summary section that surfaces `Total`, `Online`, `Offline`, and `Fundraisers`
 
 Aggregation rules:
 
 - online totals use `Donation.status = CAPTURED`
 - offline totals use `OfflineDonation.status = APPROVED`
 - donor count is a practical record count proxy (online donation rows + approved offline rows)
+- public fundraiser rankings still only list public fundraiser pages, while hidden direct-checkout totals are included only in the headline appeal totals and summary figures
+
+## Charity products and marketing route
+
+Implementation:
+
+- `src/app/(public)/for-charities/products/page.tsx`
+- `src/lib/charity-products.ts`
+
+Current behavior:
+
+- the public site now has a dedicated `/for-charities/products` landing page rendered from a reusable product config
+- the page includes a hero, product cards, alternating feature sections, a comparison grid, and a closing charity CTA
+- product links point to real GiveKhair routes where functionality already exists, and fall back to stable contact/pricing destinations where a sales or onboarding conversation is more appropriate
+- the copy keeps the fundraising ethos clearly Islamic while positioning the platform as open to all charities
 
 ## Fundraiser creation and editing
 

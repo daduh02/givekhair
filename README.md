@@ -75,6 +75,7 @@ npm run dev
 | `/charities` | Public charity directory |
 | `/charities/[slug]` | Public charity profile page |
 | `/how-it-works` | Public explainer page |
+| `/for-charities/products` | Public charity products landing page |
 | `/zakat-gift-aid` | Public giving guidance page |
 | `/fundraise/[shortName]` | Public fundraising page route with updates, gallery, and donation widget |
 | `/fundraise/[shortName]/edit` | Owner-side fundraiser management for story, updates, gallery, and status guidance |
@@ -91,6 +92,14 @@ npm run dev
 | `/api/admin/reports/export` | Access-controlled CSV export endpoint for admin and accounting reports |
 | `/api/admin/reports/export/history/[exportLogId]` | Access-controlled download for immutable historical CSV artifacts |
 | `/api/auth/[...nextauth]` | Auth.js handlers |
+
+## Public marketing and appeal updates
+
+- The public navbar now includes a `For charities` area with `Products`, `Pricing`, and `Contact`
+- Appeal detail pages now include a reusable `Share this cause` section with real route-based share URLs and copy-link support
+- Appeal donation summaries now show `Total`, `Online`, `Offline`, and `Fundraisers`
+- Appeal header totals now include direct appeal donations routed through the hidden checkout page, so the headline amount and donor count stay aligned with real donation data
+- The products landing page is positioned around Islamic fundraising needs and values, while remaining open to all charities
 
 ## Production deploy notes
 

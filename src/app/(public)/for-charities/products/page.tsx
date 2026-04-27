@@ -12,7 +12,7 @@ import { TrustChip } from "@/components/ui/TrustChip";
 export const metadata: Metadata = {
   title: "Charity Fundraising Products",
   description:
-    "Explore GiveKhair’s fundraising products for Muslim charities, including campaign pages, donation checkout, QR giving, Ramadan tools, team fundraising and reporting.",
+    "Explore GiveKhair’s fundraising products for charities, including campaign pages, donation checkout, QR giving, Ramadan tools, team fundraising and reporting.",
 };
 
 const MUSLIM_CHARITY_BENEFITS = [
@@ -29,7 +29,7 @@ const MUSLIM_CHARITY_BENEFITS = [
   {
     title: "Designed for trust on every screen",
     copy:
-      "Mobile-first donation journeys, warm presentation, and clear trust cues help Muslim charities meet supporters where they are, from mosque posters to event stages to personal fundraiser pages.",
+      "Mobile-first donation journeys, warm presentation, and clear trust cues help charities meet supporters where they are, from mosque posters to event stages to personal fundraiser pages.",
   },
 ];
 
@@ -246,7 +246,7 @@ export default function CharityProductsPage() {
               <div className="relative z-[1]">
                 <span className="section-kicker">For charities</span>
                 <h1 className="mt-6 font-serif text-5xl font-semibold tracking-[-0.05em] text-[color:var(--color-ink)] sm:text-6xl">
-                  Everything Muslim charities need to raise more with GiveKhair
+                  Everything charities need to raise more with GiveKhair
                 </h1>
                 <p className="mt-6 max-w-3xl text-lg leading-8 text-[color:var(--color-ink-soft)]">
                   Campaign pages, donation checkout, QR giving, team fundraising, Ramadan tools and reporting —
@@ -296,7 +296,7 @@ export default function CharityProductsPage() {
         <div className="site-shell">
           <SectionIntro
             eyebrow="Product suite"
-            title="A connected product stack for Muslim charities"
+            title="A connected product stack for charities"
             description="Every product below is designed to work with the giving surfaces GiveKhair already offers today, or to route interested charities safely to the right conversation when a tailored setup makes more sense."
           />
 
@@ -311,9 +311,9 @@ export default function CharityProductsPage() {
       <section className="section-shell section-sandband">
         <div className="site-shell">
           <SectionIntro
-            eyebrow="Built for Muslim charities"
+            eyebrow="Built for modern charities"
             title="Designed around how Islamic fundraising actually happens"
-            description="From Ramadan calendars and Jummah collections to emergency appeals and community challenge events, GiveKhair is shaped around the fundraising realities Muslim charities face every year."
+            description="From Ramadan calendars and Jummah collections to emergency appeals and community challenge events, GiveKhair is shaped around the fundraising realities charities face every year."
           />
 
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
@@ -407,7 +407,7 @@ export default function CharityProductsPage() {
                   Ready to grow your charity&apos;s giving?
                 </h2>
                 <p className="mt-5 text-base leading-8 text-[color:var(--color-ink-soft)]">
-                  GiveKhair brings together the tools Muslim charities need to raise more, manage campaigns and build
+                  GiveKhair brings together the tools charities need to raise more, manage campaigns and build
                   lasting donor relationships.
                 </p>
               </div>
