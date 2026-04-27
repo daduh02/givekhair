@@ -1,5 +1,7 @@
 # Documentation Hub
 
+Last updated: 2026-04-27
+
 This folder is the working source of truth for delivery status and technical direction.
 
 ## Documents
@@ -20,5 +22,7 @@ This folder is the working source of truth for delivery status and technical dir
 - Keep charity-facing marketing routes and product-positioning docs aligned when public navigation, `/for-charities/*` routes, or inclusive brand language change.
 - Keep README verification/setup notes aligned when runtime requirements or quality gates change, such as linting or queue initialization behavior.
 - Add or refresh verification helpers in README when new reproducible checks are introduced, such as browser/device smoke tests.
+- Update README, `ARCHITECTURE.md`, and `PROGRESS.md` together when security posture changes, including webhook verification, authorization scope rules, public-visibility gating, rate limiting, or response headers.
+- Keep appeal-page documentation aligned when sharing UX, donation-summary cards, or headline total-calculation rules change.
 - Update `ROADMAP.md` when priorities move or a new delivery phase begins.
 - Update `DATABASE_SCHEMA.md` when models, important relationships, enums, or finance/commercial flows materially change.

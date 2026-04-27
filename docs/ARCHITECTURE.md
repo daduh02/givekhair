@@ -23,6 +23,7 @@ One important structural change is now in place: public pages are no longer a lo
 - Auth uses NextAuth v4
 - Route handlers exist for auth, webhooks, and debug endpoints
 - Business logic currently lives in `src/server/lib` and `src/server/routers`
+- Stripe webhook verification now runs through the official Stripe SDK using raw request bodies and signature validation
 
 ### Data layer
 
@@ -79,6 +80,10 @@ Recent production fixes showed that shared providers in the root layout can crea
 
 The public site now has a dedicated token layer and reusable component classes in `src/app/globals.css`. New public pages should extend that system instead of introducing new inline-style islands.
 
+### 6. Keep security controls centralized
+
+Authorization, public-visibility checks, rate limiting, and webhook verification should stay in shared server helpers or route boundaries rather than being reimplemented ad hoc inside page components.
+
 ## Core flows
 
 ### Authentication flow
@@ -86,10 +91,11 @@ The public site now has a dedicated token layer and reusable component classes i
 1. User signs in with credentials or Google
 2. NextAuth creates session/JWT
 3. JWT callback enriches token with `id`, `role`, and suspension state from Prisma
-4. Middleware blocks suspended sessions from protected routes before page render
-5. Server `auth()` checks refresh role/suspension from DB so role and suspension updates take effect without stale access
-6. Admin pages and role-aware UI derive authorization from session role
-7. Password setup/reset now uses one-time hashed access tokens via `/auth/set-password`
+4. Credentials sign-in attempts are rate-limited by client IP plus submitted email when available
+5. Middleware blocks suspended sessions from protected routes before page render
+6. Server `auth()` checks refresh role/suspension from DB so role and suspension updates take effect without stale access
+7. Admin pages and role-aware UI derive authorization from session role
+8. Password setup/reset now uses one-time hashed access tokens via `/auth/set-password`
 
 ### Public appeal browsing
 
@@ -100,7 +106,7 @@ The public site now has a dedicated token layer and reusable component classes i
 5. The homepage first attempts to use an explicitly featured appeal selected by platform admin, falling back to the best available active/public appeal if none is set
 6. Trending appeals are loaded in a larger set, then paged client-side in grouped views while preserving the shared appeal card design
 7. Appeal detail page loads teams, fundraiser pages, and donation widget
-8. Appeal detail pages now also include a reusable share section with route-derived share URLs and a reusable donation summary block
+8. Appeal detail pages now also include a reusable share section with route-derived share URLs, branded social icons, copy-link feedback, print, and safe secondary-channel fallbacks
 9. Appeal detail page now also loads leaderboard aggregates (ranked fundraiser pages and ranked teams) using shared online + approved-offline total rules
 10. Hidden direct-checkout donations are included in headline appeal totals and donor counts, without being injected into the public fundraiser leaderboard rows
 11. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
@@ -119,8 +125,9 @@ The public site now has a dedicated token layer and reusable component classes i
 2. Middleware protects only `/fundraise/new`, allowing fundraiser detail pages to stay publicly accessible
 3. The page loads fundraiser owner, team, appeal, donations, offline donations, updates, and media from Prisma
 4. Visibility and moderation states are enforced server-side before rendering
-5. Owner-managed updates now render in chronological order and optional gallery items are presented as a lightweight public strip/grid
-6. The page reuses the shared donation widget and public design system
+5. Public rendering now requires the fundraiser page to be `ACTIVE` and `PUBLIC`, its appeal to be `ACTIVE` and `PUBLIC`, its charity to be active, and any linked team to be active/public as well
+6. Owner-managed updates now render in chronological order and optional gallery items are presented as a lightweight public strip/grid
+7. The page reuses the shared donation widget and public design system
 
 ### Fundraiser creation and edit flow
 
@@ -141,11 +148,13 @@ The public site now has a dedicated token layer and reusable component classes i
 3. Frontend creates donation intent through tRPC
 4. Server resolves the active charity contract, then the applicable fee schedule and fee rules
 5. Donation pricing is calculated under the resolved charging mode (`CHARITY_PAID`, `DONOR_SUPPORTED`, or `HYBRID`)
-6. Server persists the donation intent, contract linkage, pricing snapshot, and optional Gift Aid declaration
-7. `Donation.amount` is still populated for compatibility, while richer pricing fields are stored separately for all new writes
-8. Hosted test checkout route simulates provider completion for development and staging-like testing
-9. Shared donation-processing helpers capture or fail the donation, create payment records, update receipt state, write ledger entries, and attach Gift Aid declarations to a draft claim queue
-10. Stripe webhook route reuses the same donation-processing helpers for provider-driven confirmation
+6. Donation intent creation is rate-limited by client IP plus fundraising page id
+7. Donation intent creation rejects pages that are not donation-eligible, including inactive/hidden public pages, inactive appeals, inactive charities, or ineligible teams
+8. Server persists the donation intent, contract linkage, pricing snapshot, and optional Gift Aid declaration
+9. `Donation.amount` is still populated for compatibility, while richer pricing fields are stored separately for all new writes
+10. Hosted test checkout route simulates provider completion for development and staging-like testing
+11. Shared donation-processing helpers capture or fail the donation, create payment records, update receipt state, write ledger entries, and attach Gift Aid declarations to a draft claim queue
+12. Stripe webhook route reuses the same donation-processing helpers for provider-driven confirmation and now verifies signatures against the configured webhook secret before accepting events
 
 ### Public content and support flow
 
@@ -166,11 +175,12 @@ The public site now has a dedicated token layer and reusable component classes i
 1. `/admin` shows a platform-wide overview for platform admins and a charity-scoped overview for charity admins
 2. `/admin/charities` lists available charities and links into charity-specific overview pages
 3. Charity creation and charity editing live on dedicated routes rather than inline on the list page
-4. Appeal edit routes manage team creation and team membership
-5. Fundraiser page approval, rejection, hide, and ban actions are coordinated from the appeal admin route
-6. `/admin/moderation` provides a queue view across moderation record types
-7. `/admin` now includes campaign-performance leaderboards (top appeals, teams, and fundraiser pages) built from the same aggregation helpers used in public flows
-8. `/admin/analytics` now provides full ranking drill-down views with period scoping for appeals, teams, and fundraiser pages
+4. Central access-control helpers now enforce that charity admins can only access charities they administer, while finance/platform roles keep their allowed wider scope
+5. Appeal edit routes manage team creation and team membership
+6. Fundraiser page approval, rejection, hide, and ban actions are coordinated from the appeal admin route
+7. `/admin/moderation` provides a queue view across moderation record types
+8. `/admin` now includes campaign-performance leaderboards (top appeals, teams, and fundraiser pages) built from the same aggregation helpers used in public flows
+9. `/admin/analytics` now provides full ranking drill-down views with period scoping for appeals, teams, and fundraiser pages
 
 ### Platform user administration flow
 
@@ -265,9 +275,19 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 7. General-ledger export rows are assembled from immutable journal entries plus their ledger lines, with charity scoping inferred through donations, payouts, disputes, and Gift Aid claim correlation IDs
 8. Reconciliation exports now include payout reconciliation, Gift Aid reconciliation, and finance exceptions datasets
 9. A dedicated `/admin/reconciliation` route provides finance exception queue visibility with filters and operational links back to donations, payouts, Gift Aid, and contract settings
-10. CSV exports now write lightweight `ReportExportLog` audit records for generated-at time, scope, filters, row count, and failure reason visibility
-11. Export logs now persist immutable CSV artifacts and checksum metadata for controlled re-download
-12. Reconciliation operations now include stale-age alerting and a gated finance automation runner (dry-run default, execution via env flag)
+10. CSV export creation is rate-limited by user id plus report type
+11. CSV exports now write lightweight `ReportExportLog` audit records for generated-at time, scope, filters, row count, and failure reason visibility
+12. Export logs now persist immutable CSV artifacts and checksum metadata for controlled re-download
+13. Current export routes include explicit TODO notes that stored CSV artifacts can contain donor PII and should be encrypted or retention-limited before broader production use
+14. Reconciliation operations now include stale-age alerting and a gated finance automation runner (dry-run default, execution via env flag)
+
+### Security boundary flow
+
+1. `src/server/lib/access-control.ts` centralizes charity-scope resolution and access assertions
+2. `src/server/lib/public-access.ts` centralizes public fundraiser visibility and donation-eligibility checks
+3. `src/server/lib/rate-limit.ts` provides Redis-backed or in-memory rate limiting for auth, donation intent, and export routes
+4. `src/app/api/webhooks/stripe/route.ts` verifies Stripe signatures before handing events into donation-processing helpers
+5. `next.config.js` applies CSP and related security headers globally, with development allowances kept looser where needed for local usability
 
 ### Fees and contracts flow
 

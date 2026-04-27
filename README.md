@@ -62,7 +62,7 @@ npm run dev
 | charity@givekhair.dev | CHARITY_ADMIN |
 | amina@example.com | FUNDRAISER |
 
-> No passwords set — use OAuth or add passwordHash via Prisma Studio (`npm run db:studio`)
+> Seeded/demo passwords remain intentionally unchanged in this environment.
 > Demo password for seeded accounts in the current environment: `GiveKhair123!`
 
 ## Key routes
@@ -96,16 +96,26 @@ npm run dev
 ## Public marketing and appeal updates
 
 - The public navbar now includes a `For charities` area with `Products`, `Pricing`, and `Contact`
-- Appeal detail pages now include a reusable `Share this cause` section with real route-based share URLs and copy-link support
+- Appeal detail pages now include a reusable `Share this cause` section with branded social icons, real route-based share URLs, copy-link support, print, and safe secondary-channel fallbacks
 - Appeal donation summaries now show `Total`, `Online`, `Offline`, and `Fundraisers`
 - Appeal header totals now include direct appeal donations routed through the hidden checkout page, so the headline amount and donor count stay aligned with real donation data
 - The products landing page is positioned around Islamic fundraising needs and values, while remaining open to all charities
+
+## Security hardening updates
+
+- Stripe webhooks now use real signature verification with `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`
+- Charity-admin access to charity-scoped admin data is enforced through central server-side scope checks
+- Public fundraiser rendering and donation intent creation now enforce active/public eligibility checks across the fundraiser page, appeal, charity, and team
+- Credentials sign-in, donation intent creation, and report CSV exports are rate-limited server-side, using Redis when configured and an in-memory fallback in development
+- Global security headers are now set in `next.config.js`, including CSP, `nosniff`, referrer policy, permissions policy, and frame protections
+- Report-export routes now include explicit PII handling notes around stored CSV artifacts and retention/encryption expectations before production scale
 
 ## Production deploy notes
 
 - Set `DATABASE_URL` to the production Postgres database used by Prisma
 - Set `NEXTAUTH_URL` to the deployed app URL, for example `https://givekhair.vercel.app`
 - Set `NEXTAUTH_SECRET` to a long random value
+- Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` before enabling live Stripe webhook processing
 - Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` before enabling Google sign-in
 - Run Prisma migrations or `prisma db push` against the production database before expecting the public site to load data
 - Queue clients are initialized lazily now, so build-time rendering and non-queue routes do not require Redis to be reachable just to import queue helpers
@@ -157,7 +167,7 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 
 ## Next steps (build order)
 
-1. **Wire Stripe** — add `STRIPE_SECRET_KEY`, implement `createCheckout` in donations router
+1. **Live Stripe checkout** — replace the hosted test checkout handoff with real provider session creation on donation intent completion
 2. **Payout batch processor** — async queue worker and reconciliation automation on top of the new manual payout-batch operations
 3. **Commercial approvals** — richer signature/approval workflow for contracts
 4. **Risk engine** — velocity, device fingerprint, IP reputation signals
@@ -174,6 +184,8 @@ Set `DONATIONS_API_REAL=1` + `DONATIONS_API_URL` + `DONATIONS_API_KEY` to switch
 - Verifies donor-supported, charity-paid, hybrid, recurring, payout-blocking, and appeal-override pricing cases against the current database
 - `npm run verify:leaderboards`
 - Verifies leaderboard period resolution, rank/tie behavior, and progress helper logic
+- `npm test`
+- Runs the current test suite, including share-panel and security-hardening coverage
 - `npm run reconciliation:alerts`
 - Queues finance alert notifications for charities with stale reconciliation exceptions (14+ days)
 

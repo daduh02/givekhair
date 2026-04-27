@@ -26,7 +26,8 @@ This file tracks the current delivery state of the product against the working g
 - ESLint now runs non-interactively through `npm run lint`.
 - Role-separated documentation now includes feature flow diagrams for public users, fundraiser owners, charity admins, platform admins, and finance operations.
 - The public site now includes a dedicated charity products landing page and `For charities` navigation area.
-- Appeal pages now include reusable share tools and a donation summary section, and their headline totals correctly include direct appeal donations.
+- Appeal pages now include reusable share tools with branded social icons and a donation summary section, and their headline totals correctly include direct appeal donations.
+- Stripe webhooks, admin charity scoping, public fundraiser visibility checks, and core rate-limited endpoints now have a first production-safe security hardening pass.
 
 ## Completed
 
@@ -67,7 +68,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Signed-in public navbar account menu with role-aware actions for admin, dashboard, fundraising, and logout
 - `Done` Homepage tone refinement so the public landing experience reads more product-specific and less generic
 - `Done` Appeal detail page with totals, teams, fundraiser list, and donation widget on every appeal page
-- `Done` Reusable appeal-page share section with route-based share URLs, copy-link support, and print action
+- `Done` Reusable appeal-page share section with branded icons, route-based share URLs, copy-link support, print action, and secondary-channel fallbacks
 - `Done` Reusable appeal donation summary section showing total, online, offline, and fundraiser totals
 - `Done` Appeal header totals now include hidden direct-checkout donations instead of only public fundraiser-page totals
 - `Done` Dedicated public fundraiser page route at `/fundraise/[shortName]` with story, progress, updates, donor feed, and donation widget
@@ -115,6 +116,17 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Full leaderboard drill-down pages for public appeals and admin analytics
 - `Done` Shared admin context helper for resolving current charity/admin scope
 - `Done` Platform-admin appeal visibility across all charities
+- `Done` Mixed online/offline donation visibility in the admin donations view
+
+### Security and resilience
+
+- `Done` Real Stripe webhook signature verification with configured webhook secret
+- `Done` Centralized charity-scope authorization helper for admin access checks
+- `Done` Public fundraiser visibility and donation-eligibility guards across fundraiser page, appeal, charity, and team state
+- `Done` Server-side rate limiting for credentials sign-in, donation intent creation, and report CSV exports
+- `Done` Global response security headers in Next.js config
+- `Done` Export-route PII handling notes for stored CSV artifacts
+- `Done` Focused security smoke tests for webhook rejection, admin scoping, donation eligibility, and rate limiting
 
 ## Partially Implemented
 
@@ -164,7 +176,7 @@ This file tracks the current delivery state of the product against the working g
 - `Done` Admin manual offline donation workflow
 - `Done` CSV dry-run validation and commit flow
 - `Done` Duplicate detection and Gift Aid validation for offline imports
-- `Partial` Offline totals are included in some aggregate views
+- `Done` Offline totals are now reflected across public appeal totals, revalidated fundraiser/public flows, and admin donation summaries
 - `Partial` Downloadable error/result exports are not built
 
 ## Not Started
@@ -214,7 +226,7 @@ This file tracks the current delivery state of the product against the working g
 ### 5.4 Donations
 
 - `Done` donation intent, fee snapshot, and hosted test-checkout completion flow
-- `Done` webhook-driven payment confirmation and failure handling foundation
+- `Done` webhook-driven payment confirmation and failure handling foundation with real Stripe signature verification
 - `Done` appeal pages guarantee a donation widget via a hidden fallback checkout page when needed
 - `Done` admin refund records, partial/full refund tracking, and dispute visibility
 - `Partial` robust receipt delivery and provider-specific recurring billing
@@ -254,12 +266,14 @@ This file tracks the current delivery state of the product against the working g
 - `Done` admin reports center with scoped export cards and operational previews
 - `Done` CSV exports for donations, refunds/disputes fields, offline donations, payouts, and Gift Aid claims
 - `Done` general-ledger export matching the journal-row direction from the spec appendix
+- `Done` report export creation is rate-limited and historical artifact downloads remain access-controlled
 - `Partial` PDF exports, reconciliation-specific downloads, and accounting-system-specific formats remain unbuilt
 
 ### 5.9 Risk, Trust & Moderation
 
 - `Partial` moderation queue and page status controls
 - `Partial` public trust messaging and compliance cues now exist in the marketing surface
+- `Done` security headers and first-pass endpoint rate limiting
 - `Not started` risk scoring, hold states, and immutable moderation log workflow
 
 ### 5.10 Offline Donations & Teams

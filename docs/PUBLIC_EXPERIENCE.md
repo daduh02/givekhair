@@ -154,6 +154,18 @@ The donation widget was restyled to match the premium public shell while preserv
 - Gift Aid capture
 - donation intent creation
 
+### Appeal sharing
+
+- `src/components/appeal/ShareCause.tsx`
+- `src/lib/share-cause.ts`
+
+Use for:
+
+- route-driven appeal sharing on desktop and mobile
+- branded social share buttons for WhatsApp, Facebook, Messenger, X, LinkedIn, Email, Print, and Copy Link
+- copy-to-clipboard feedback with `Copied!` confirmation
+- secondary icon-only channels with safe open/copy fallbacks when a native share target is not supported
+
 ## Public route inventory
 
 ### Primary pages
@@ -255,6 +267,7 @@ Access rules:
 
 - public for allowed fundraiser pages
 - hidden, banned, rejected, suspended, draft, and pending-approval pages do not render publicly
+- public rendering now also requires the linked appeal to be active/public, the linked charity to be active, and any linked team to be active/public
 - middleware now reserves `/fundraise/new` for future authenticated creation, while `/fundraise/[shortName]` stays public
 
 ## Public appeal leaderboard layer
@@ -276,7 +289,7 @@ Current behavior:
 - tied totals render as `Tied #N` for clearer ranking context
 - empty-state handling keeps the page usable when no fundraiser/team data exists yet
 - full ranking drill-down is available at `/appeals/[slug]/leaderboard`
-- each appeal page now includes a reusable `Share this cause` section with real route-based share URLs, copy-link support, print, and safe fallbacks for secondary channels
+- each appeal page now includes a reusable `Share this cause` section with branded social icons, real route-based share URLs, copy-link support, print, and safe fallbacks for secondary channels
 - each appeal page now includes a reusable donation summary section that surfaces `Total`, `Online`, `Offline`, and `Fundraisers`
 
 Aggregation rules:
@@ -285,6 +298,12 @@ Aggregation rules:
 - offline totals use `OfflineDonation.status = APPROVED`
 - donor count is a practical record count proxy (online donation rows + approved offline rows)
 - public fundraiser rankings still only list public fundraiser pages, while hidden direct-checkout totals are included only in the headline appeal totals and summary figures
+
+Donation eligibility rules:
+
+- donation intent creation is limited to eligible fundraising pages only
+- public fundraiser-page donations require active/public page, appeal, and team state where applicable
+- hidden direct-checkout pages are still allowed for direct appeal giving when they are the internal checkout target rather than a public fundraiser page
 
 ## Charity products and marketing route
 
@@ -299,6 +318,22 @@ Current behavior:
 - the page includes a hero, product cards, alternating feature sections, a comparison grid, and a closing charity CTA
 - product links point to real GiveKhair routes where functionality already exists, and fall back to stable contact/pricing destinations where a sales or onboarding conversation is more appropriate
 - the copy keeps the fundraising ethos clearly Islamic while positioning the platform as open to all charities
+
+## Public security posture
+
+Relevant implementation:
+
+- `next.config.js`
+- `src/app/api/auth/[...nextauth]/route.ts`
+- `src/server/lib/public-access.ts`
+- `src/server/lib/rate-limit.ts`
+
+Current behavior:
+
+- credentials sign-in attempts are rate-limited server-side
+- donation intent creation is rate-limited server-side
+- public fundraiser visibility is enforced in shared server helpers, not just the UI
+- security headers now include CSP, `X-Content-Type-Options`, referrer policy, permissions policy, and frame protections
 
 ## Fundraiser creation and editing
 
