@@ -6,6 +6,7 @@ This folder is the working source of truth for delivery status and technical dir
 
 - [Progress Tracker](./PROGRESS.md)
 - [Architecture](./ARCHITECTURE.md)
+- [Feature Flow Diagrams](./FLOW_DIAGRAMS.md)
 - [Public Experience](./PUBLIC_EXPERIENCE.md)
 - [Implementation Roadmap](./ROADMAP.md)
 - [Database Schema](./DATABASE_SCHEMA.md)
@@ -14,6 +15,7 @@ This folder is the working source of truth for delivery status and technical dir
 
 - Update `PROGRESS.md` whenever a meaningful product slice lands.
 - Update `ARCHITECTURE.md` when system boundaries, runtime assumptions, or key flows change.
+- Update `FLOW_DIAGRAMS.md` when a role boundary, feature handoff, or route family changes for users, charity admins, or platform admins.
 - Update `PUBLIC_EXPERIENCE.md` when the public shell, design tokens, reusable UI primitives, or information architecture changes.
 - Keep README verification/setup notes aligned when runtime requirements or quality gates change, such as linting or queue initialization behavior.
 - Add or refresh verification helpers in README when new reproducible checks are introduced, such as browser/device smoke tests.

@@ -24,6 +24,7 @@ This file tracks the current delivery state of the product against the working g
 - Public charity discovery no longer relies on per-charity aggregate fan-out that can exhaust database session limits.
 - Queue imports no longer open Redis connections eagerly during build or unrelated route rendering.
 - ESLint now runs non-interactively through `npm run lint`.
+- Role-separated documentation now includes feature flow diagrams for public users, fundraiser owners, charity admins, platform admins, and finance operations.
 
 ## Completed
 

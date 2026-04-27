@@ -1,6 +1,6 @@
 # Architecture
 
-Last updated: 2026-04-13
+Last updated: 2026-04-27
 
 ## Current shape
 

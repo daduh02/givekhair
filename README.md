@@ -7,6 +7,7 @@ Peer-to-peer fundraising platform. Gift Aid eligible, fee-transparent, UK-focuse
 - [Documentation Hub](./docs/README.md)
 - [Progress Tracker](./docs/PROGRESS.md)
 - [Architecture](./docs/ARCHITECTURE.md)
+- [Feature Flow Diagrams](./docs/FLOW_DIAGRAMS.md)
 - [Public Experience](./docs/PUBLIC_EXPERIENCE.md)
 - [Implementation Roadmap](./docs/ROADMAP.md)
 

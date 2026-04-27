@@ -1,6 +1,6 @@
 # Public Experience
 
-Last updated: 2026-04-13
+Last updated: 2026-04-27
 
 This document explains how the public-facing GiveKhair experience is currently structured, where the shared styling lives, and how to extend the marketing and donor-facing UI without reintroducing one-off styling drift.
 
