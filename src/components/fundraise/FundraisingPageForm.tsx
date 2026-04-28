@@ -45,13 +45,7 @@ export function FundraisingPageForm({
   return (
     <form
       action={action}
-      style={{
-        background: "white",
-        borderRadius: "1rem",
-        boxShadow: "0 2px 12px rgba(18,78,64,0.07)",
-        padding: "1.5rem",
-      }}
-      className="space-y-6"
+      className="surface-card space-y-5 p-5 sm:p-6"
     >
       {/* The core form stays focused on permanent page settings so richer
           self-serve tools like updates and media management can live alongside
@@ -63,15 +57,7 @@ export function FundraisingPageForm({
       </div>
 
       {errorMessage ? (
-        <div
-          style={{
-            padding: "0.9rem 1rem",
-            borderRadius: "0.85rem",
-            background: "#FEE2E2",
-            color: "#991B1B",
-            fontSize: "0.85rem",
-          }}
-        >
+        <div className="rounded-[0.95rem] bg-[#FEE2E2] px-4 py-3 text-sm text-[#991B1B]">
           {errorMessage}
         </div>
       ) : null}
@@ -110,6 +96,7 @@ export function FundraisingPageForm({
         </Field>
 
         <Field label="Short name">
+          <p className="mb-2 text-sm text-[color:var(--color-ink-muted)]">This becomes the public URL for your page.</p>
           <input
             name="shortName"
             required
@@ -141,6 +128,7 @@ export function FundraisingPageForm({
         </Field>
 
         <Field label="Cover image URL">
+          <p className="mb-2 text-sm text-[color:var(--color-ink-muted)]">This appears at the top of your public fundraiser page.</p>
           <input
             name="coverImageUrl"
             className="input"
@@ -154,22 +142,22 @@ export function FundraisingPageForm({
         <textarea
           name="story"
           className="input"
-          rows={9}
+          rows={7}
           style={{ resize: "vertical" }}
           placeholder="Why this appeal matters to you, what supporters will help fund, and what progress you want to share."
           defaultValue={initialValues?.story ?? ""}
         />
       </Field>
 
-      <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: "#F8F5EF", color: "#3A4A42" }}>
+      <div className="rounded-[1rem] bg-[color:var(--color-sand)] px-4 py-3 text-sm leading-6 text-[color:var(--color-ink-soft)]">
         New pages are submitted for moderation before they go live publicly. Use clear fundraising copy, accurate imagery, and a short name you are happy to share publicly. The cover image appears at the top of the public fundraiser page.
       </div>
 
-      <div className="flex gap-3">
-        <button type="submit" className="btn-primary" style={{ padding: "0.7rem 1.25rem" }}>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <button type="submit" className="btn-primary">
           {submitLabel}
         </button>
-        <Link href={cancelHref} className="btn-outline" style={{ padding: "0.7rem 1.25rem" }}>
+        <Link href={cancelHref} className="btn-outline">
           Cancel
         </Link>
       </div>
@@ -180,7 +168,7 @@ export function FundraisingPageForm({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: "block" }}>
-      <span className="mb-2 block text-sm font-medium" style={{ color: "#3A4A42" }}>
+      <span className="mb-2 block text-sm font-semibold text-[color:var(--color-ink-soft)]">
         {label}
       </span>
       {children}

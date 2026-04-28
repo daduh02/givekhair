@@ -35,8 +35,8 @@ test("donation summary renders all sections", () => {
     }),
   );
 
-  assert.match(html, /Donation summary/);
-  assert.match(html, /Total/);
+  assert.match(html, /Donation breakdown/);
+  assert.match(html, /Total raised/);
   assert.match(html, /Online/);
   assert.match(html, /Offline/);
   assert.match(html, /Fundraisers/);

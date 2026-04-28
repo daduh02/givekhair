@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-// The public refresh leans on a warmer editorial serif for emphasis while keeping
-// a clear sans-serif for application text and forms.
-const plusJakartaSans = Plus_Jakarta_Sans({
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-serif",
 });
 
 export const metadata: Metadata = {
@@ -30,7 +23,7 @@ export default async function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${plusJakartaSans.variable} ${fraunces.variable} font-sans`}>
+      <body className={`${inter.variable} font-sans`}>
         {children}
       </body>
     </html>

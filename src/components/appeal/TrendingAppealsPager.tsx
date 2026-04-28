@@ -53,8 +53,8 @@ export function TrendingAppealsPager({ appeals }: { appeals: TrendingAppeal[] })
   const canGoNext = pageIndex < pages.length - 1;
 
   return (
-    <div className="mt-10 space-y-5">
-      <div className="flex items-center justify-between gap-4">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="text-sm text-[color:var(--color-ink-muted)]">
           {appeals.length} appeal{appeals.length === 1 ? "" : "s"} available
         </p>
@@ -65,7 +65,7 @@ export function TrendingAppealsPager({ appeals }: { appeals: TrendingAppeal[] })
           <button
             type="button"
             className="btn-outline"
-            style={{ padding: "0.65rem 0.95rem", fontSize: "0.8rem", opacity: canGoPrevious ? 1 : 0.45 }}
+            style={{ paddingInline: "0.95rem", paddingBlock: "0.6rem", fontSize: "0.82rem", opacity: canGoPrevious ? 1 : 0.45 }}
             aria-label="Show previous appeals"
             onClick={() => setPageIndex((current) => Math.max(current - 1, 0))}
             disabled={!canGoPrevious}
@@ -75,7 +75,7 @@ export function TrendingAppealsPager({ appeals }: { appeals: TrendingAppeal[] })
           <button
             type="button"
             className="btn-outline"
-            style={{ padding: "0.65rem 0.95rem", fontSize: "0.8rem", opacity: canGoNext ? 1 : 0.45 }}
+            style={{ paddingInline: "0.95rem", paddingBlock: "0.6rem", fontSize: "0.82rem", opacity: canGoNext ? 1 : 0.45 }}
             aria-label="Show next appeals"
             onClick={() => setPageIndex((current) => Math.min(current + 1, pages.length - 1))}
             disabled={!canGoNext}
@@ -94,7 +94,7 @@ export function TrendingAppealsPager({ appeals }: { appeals: TrendingAppeal[] })
         >
           {pages.map((page, index) => (
             <div key={`page-${index}`} className="min-w-full">
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {page.map((appeal) => (
                   <AppealCard key={appeal.id} appeal={appeal} raisedAmount={appeal.raisedAmount} />
                 ))}

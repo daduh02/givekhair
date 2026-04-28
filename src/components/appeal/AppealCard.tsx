@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { TrustChip } from "@/components/ui/TrustChip";
+import { AppealFallbackImage } from "@/components/ui/AppealFallbackImage";
 
 export interface AppealCardAppeal {
   id: string;
@@ -36,44 +37,39 @@ export function AppealCard({ appeal, raisedAmount = 0 }: AppealCardProps) {
       href={`/appeals/${appeal.slug}`}
       className="group surface-card flex h-full flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-1"
     >
-      <div className="relative h-52 w-full overflow-hidden">
+      <div className="relative aspect-[4/3] w-full overflow-hidden">
         {appeal.bannerUrl ? (
           <Image src={appeal.bannerUrl} alt={appeal.title} fill className="object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
         ) : (
-          <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,rgba(204,251,241,0.9),rgba(248,245,239,0.98))] text-6xl">
-            🌿
-          </div>
+          <AppealFallbackImage title={appeal.title} compact />
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-6">
+      <div className="flex flex-1 flex-col p-5">
         <div className="flex flex-wrap items-center gap-2">
           {appeal.charity.isVerified ? <TrustChip tone="gold">Verified</TrustChip> : null}
-          {appeal._count ? <TrustChip>{appeal._count.fundraisingPages} pages</TrustChip> : null}
+          <TrustChip>{appeal.charity.name}</TrustChip>
         </div>
 
-        <h3 className="mt-4 text-2xl font-bold tracking-[-0.04em] text-[color:var(--color-ink)] transition-colors group-hover:text-[color:var(--color-primary-dark)]">
+        <h3 className="mt-4 text-[1.35rem] font-bold tracking-[-0.04em] text-[color:var(--color-ink)] transition-colors group-hover:text-[color:var(--color-primary-dark)]">
           {appeal.title}
         </h3>
-        <p className="mt-2 text-sm font-semibold text-[color:var(--color-ink-muted)]">{appeal.charity.name}</p>
+        <p className="mt-2 text-sm text-[color:var(--color-ink-muted)]">
+          {formatCurrency(raisedAmount, appeal.currency)} raised of {formatCurrency(goal, appeal.currency)}
+        </p>
 
-        <div className="mt-6">
-          <ProgressBar value={progress} />
+        <div className="mt-5">
+          <ProgressBar value={progress} label="Raised" />
         </div>
 
         <div className="mt-4 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-2xl font-bold tracking-[-0.04em] text-[color:var(--color-primary-dark)]">
-              {formatCurrency(raisedAmount, appeal.currency)}
-            </p>
-            <p className="mt-1 text-sm text-[color:var(--color-ink-muted)]">
-              of {formatCurrency(goal, appeal.currency)}
-            </p>
-          </div>
-          <p className="text-sm font-semibold text-[color:var(--color-ink-soft)]">{progress}%</p>
+          <p className="text-[1.65rem] font-bold tracking-[-0.04em] text-[color:var(--color-primary-dark)]">
+            {formatCurrency(raisedAmount, appeal.currency)}
+          </p>
+          <p className="text-sm font-semibold text-[color:var(--color-ink-soft)]">{progress}% of goal</p>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-5">
           {/* This is styled as a CTA rather than nested button markup so the
               whole card remains one accessible link target. */}
           <span className="btn-primary w-full">Donate now</span>

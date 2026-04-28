@@ -19,7 +19,6 @@ test("share helpers build real share urls", () => {
 
   assert.equal(targets.find((item) => item.id === "whatsapp")?.href?.includes("wa.me"), true);
   assert.equal(targets.find((item) => item.id === "facebook")?.href?.includes("facebook.com"), true);
-  assert.equal(targets.find((item) => item.id === "linkedin")?.href?.includes("linkedin.com"), true);
   assert.equal(targets.find((item) => item.id === "x")?.href?.includes("twitter.com"), true);
   assert.equal(targets.find((item) => item.id === "email")?.href?.startsWith("mailto:"), true);
   assert.equal(targets.find((item) => item.id === "copy")?.action, "copy");
@@ -38,6 +37,7 @@ test("share component renders core buttons and copy field", () => {
   assert.match(html, /WhatsApp/);
   assert.match(html, /Facebook/);
   assert.match(html, /Copy link/);
+  assert.match(html, /More options/);
   assert.match(html, /Appeal share link/);
 });
 

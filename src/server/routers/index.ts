@@ -112,8 +112,16 @@ export const appealsRouter = createTRPCRouter({
   bySlug: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ ctx, input }) => {
-      const appeal = await ctx.db.appeal.findUnique({
-        where: { slug: input.slug },
+      const appeal = await ctx.db.appeal.findFirst({
+        where: {
+          slug: input.slug,
+          status: "ACTIVE",
+          visibility: "PUBLIC",
+          charity: {
+            isActive: true,
+            status: "ACTIVE",
+          },
+        },
         include: {
           charity: true,
           category: true,
@@ -144,6 +152,17 @@ export const appealsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const sessionUser = ctx.session.user as { id?: string; role?: string } | undefined;
+      if (!sessionUser?.id || !sessionUser.role) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
+      try {
+        await assertCanAccessCharity(sessionUser.id, sessionUser.role, input.charityId);
+      } catch {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
       return ctx.db.appeal.create({ data: { ...input, goalAmount: input.goalAmount } });
     }),
 });
@@ -283,6 +302,10 @@ export const donationsRouter = createTRPCRouter({
           userAgent: ctx.req.headers.get("user-agent"),
         });
       } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: error instanceof Error ? error.message : "Unable to create donation intent.",

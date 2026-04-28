@@ -1,6 +1,6 @@
 # Architecture
 
-Last updated: 2026-04-27
+Last updated: 2026-04-28
 
 ## Current shape
 
@@ -91,7 +91,7 @@ Authorization, public-visibility checks, rate limiting, and webhook verification
 1. User signs in with credentials or Google
 2. NextAuth creates session/JWT
 3. JWT callback enriches token with `id`, `role`, and suspension state from Prisma
-4. Credentials sign-in attempts are rate-limited by client IP plus submitted email when available
+4. Credentials sign-in attempts are rate-limited by client IP plus submitted email when available, through a shared helper in `src/lib/auth.ts` and the auth callback route
 5. Middleware blocks suspended sessions from protected routes before page render
 6. Server `auth()` checks refresh role/suspension from DB so role and suspension updates take effect without stale access
 7. Admin pages and role-aware UI derive authorization from session role
@@ -106,11 +106,12 @@ Authorization, public-visibility checks, rate limiting, and webhook verification
 5. The homepage first attempts to use an explicitly featured appeal selected by platform admin, falling back to the best available active/public appeal if none is set
 6. Trending appeals are loaded in a larger set, then paged client-side in grouped views while preserving the shared appeal card design
 7. Appeal detail page loads teams, fundraiser pages, and donation widget
-8. Appeal detail pages now also include a reusable share section with route-derived share URLs, branded social icons, copy-link feedback, print, and safe secondary-channel fallbacks
-9. Appeal detail page now also loads leaderboard aggregates (ranked fundraiser pages and ranked teams) using shared online + approved-offline total rules
-10. Hidden direct-checkout donations are included in headline appeal totals and donor counts, without being injected into the public fundraiser leaderboard rows
-11. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
-12. A dedicated public drill-down route (`/appeals/[slug]/leaderboard`) now exposes full rankings and period filters
+8. Public appeal lookup now only resolves appeals that are `ACTIVE`, `PUBLIC`, and linked to an active charity
+9. Appeal detail pages now also include a reusable share section with route-derived share URLs, branded social icons, copy-link feedback, print, and safe secondary-channel fallbacks
+10. Appeal detail page now also loads leaderboard aggregates (ranked fundraiser pages and ranked teams) using shared online + approved-offline total rules
+11. Hidden direct-checkout donations are included in headline appeal totals and donor counts, without being injected into the public fundraiser leaderboard rows
+12. If an appeal has no active checkout target yet, the app creates a hidden fallback fundraising page so the widget still renders
+13. A dedicated public drill-down route (`/appeals/[slug]/leaderboard`) now exposes full rankings and period filters
 
 ### Charity products marketing flow
 
@@ -167,8 +168,9 @@ Authorization, public-visibility checks, rate limiting, and webhook verification
 1. Admin context resolves current user and managed charity
 2. Platform admins can query across all charities, while charity admins stay scoped to their managed charity
 3. Appeals list and edit routes expose teams, fundraiser pages, visibility, moderation controls, and homepage-feature state
-4. Platform admins can feature exactly one active/public appeal for the homepage at a time
-5. Appeal create/update actions revalidate admin and public paths
+4. Appeal creation now also enforces central charity-scope access checks before accepting an explicit `charityId`
+5. Platform admins can feature exactly one active/public appeal for the homepage at a time
+6. Appeal create/update actions revalidate admin and public paths
 
 ### Admin charity and moderation flow
 
@@ -283,7 +285,7 @@ Before the refresh, public styling was fragmented and heavily inline-driven. The
 
 ### Security boundary flow
 
-1. `src/server/lib/access-control.ts` centralizes charity-scope resolution and access assertions
+1. `src/server/lib/access-control.ts` centralizes charity-scope resolution and access assertions used by admin tRPC access checks and appeal creation
 2. `src/server/lib/public-access.ts` centralizes public fundraiser visibility and donation-eligibility checks
 3. `src/server/lib/rate-limit.ts` provides Redis-backed or in-memory rate limiting for auth, donation intent, and export routes
 4. `src/app/api/webhooks/stripe/route.ts` verifies Stripe signatures before handing events into donation-processing helpers

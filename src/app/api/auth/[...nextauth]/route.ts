@@ -1,9 +1,7 @@
 export const runtime = "nodejs";
 import { type NextRequest } from "next/server";
 import NextAuth from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { enforceRateLimitResponse } from "@/server/lib/rate-limit";
-import { getClientIp } from "@/server/lib/request-identity";
+import { authOptions, enforceCredentialsSignInRateLimit } from "@/lib/auth";
 
 const handler = NextAuth(authOptions);
 
@@ -22,15 +20,7 @@ export async function POST(request: NextRequest) {
       email = "";
     }
 
-    const limited = await enforceRateLimitResponse(
-      {
-        namespace: "auth:credentials",
-        key: `${getClientIp(request.headers)}:${email || "unknown"}`,
-        limit: 5,
-        windowSec: 15 * 60,
-      },
-      "Too many requests. Please try again later.",
-    );
+    const limited = await enforceCredentialsSignInRateLimit(request.headers, email);
 
     if (limited) {
       return limited;

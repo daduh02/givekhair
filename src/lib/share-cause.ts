@@ -53,13 +53,6 @@ export function buildPrimaryShareChannels(input: ShareCauseInput): ShareChannel[
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
     },
     {
-      id: "messenger",
-      label: "Messenger",
-      icon: "messenger",
-      action: "open",
-      href: `fb-messenger://share/?link=${encodedUrl}`,
-    },
-    {
       id: "x",
       label: "X",
       icon: "x",
@@ -67,24 +60,11 @@ export function buildPrimaryShareChannels(input: ShareCauseInput): ShareChannel[
       href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`,
     },
     {
-      id: "linkedin",
-      label: "LinkedIn",
-      icon: "linkedin",
-      action: "open",
-      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
-    },
-    {
       id: "email",
       label: "Email",
       icon: "email",
       action: "open",
       href: `mailto:?subject=${encodedTitle}&body=${encodedEmailBody}`,
-    },
-    {
-      id: "print",
-      label: "Print",
-      icon: "print",
-      action: "print",
     },
     {
       id: "copy",
@@ -100,6 +80,26 @@ export function buildSecondaryShareChannels(input: ShareCauseInput): ShareChanne
   const encodedTitle = encodeURIComponent(input.title);
 
   return [
+    {
+      id: "messenger",
+      label: "Messenger",
+      icon: "messenger",
+      action: "open",
+      href: `fb-messenger://share/?link=${encodedUrl}`,
+    },
+    {
+      id: "linkedin",
+      label: "LinkedIn",
+      icon: "linkedin",
+      action: "open",
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+    },
+    {
+      id: "print",
+      label: "Print",
+      icon: "print",
+      action: "print",
+    },
     {
       id: "youtube",
       label: "YouTube",

@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Last updated: 2026-04-27
+Last updated: 2026-04-28
 
 This file tracks the current delivery state of the product against the working giveKhair specification.
 
@@ -27,7 +27,7 @@ This file tracks the current delivery state of the product against the working g
 - Role-separated documentation now includes feature flow diagrams for public users, fundraiser owners, charity admins, platform admins, and finance operations.
 - The public site now includes a dedicated charity products landing page and `For charities` navigation area.
 - Appeal pages now include reusable share tools with branded social icons and a donation summary section, and their headline totals correctly include direct appeal donations.
-- Stripe webhooks, admin charity scoping, public fundraiser visibility checks, and core rate-limited endpoints now have a first production-safe security hardening pass.
+- Stripe webhooks, admin charity scoping, public appeal/fundraiser visibility checks, and core rate-limited endpoints now have a first production-safe security hardening pass.
 
 ## Completed
 
@@ -121,8 +121,9 @@ This file tracks the current delivery state of the product against the working g
 ### Security and resilience
 
 - `Done` Real Stripe webhook signature verification with configured webhook secret
-- `Done` Centralized charity-scope authorization helper for admin access checks
+- `Done` Centralized charity-scope authorization helper for admin tRPC access checks and appeal creation
 - `Done` Public fundraiser visibility and donation-eligibility guards across fundraiser page, appeal, charity, and team state
+- `Done` Public appeal lookup now only returns active/public appeals from active charities
 - `Done` Server-side rate limiting for credentials sign-in, donation intent creation, and report CSV exports
 - `Done` Global response security headers in Next.js config
 - `Done` Export-route PII handling notes for stored CSV artifacts

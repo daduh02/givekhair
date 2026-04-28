@@ -130,21 +130,21 @@ export default async function NewFundraisingPage({
             : "";
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8F5EF" }}>
-      <main className="mx-auto max-w-5xl px-6 py-10">
-        <div className="mb-8 flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-[color:var(--color-sand)]">
+      <main className="site-shell py-10 sm:py-12">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-medium" style={{ color: "#8A9E94" }}>
+            <p className="text-sm font-medium text-[color:var(--color-ink-muted)]">
               Fundraiser tools
             </p>
-            <h1 className="mt-2 text-3xl font-bold" style={{ color: "#233029" }}>
+            <h1 className="mt-2 text-[2rem] font-bold tracking-[-0.04em] text-[color:var(--color-ink)] sm:text-[2.4rem]">
               Create your fundraiser page
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: "#3A4A42" }}>
+            <p className="mt-3 max-w-[42rem] text-base leading-7 text-[color:var(--color-ink-soft)]">
               Build a public page linked to an appeal, tell your story clearly, and collect donations through the hosted GiveKhair flow.
             </p>
           </div>
-          <Link href="/dashboard" className="btn-outline" style={{ padding: "0.7rem 1.1rem" }}>
+          <Link href="/dashboard" className="btn-outline self-start">
             Back to dashboard
           </Link>
         </div>

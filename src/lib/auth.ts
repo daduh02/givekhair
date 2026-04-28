@@ -7,6 +7,8 @@ import type { JWT } from "next-auth/jwt";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
+import { enforceRateLimitResponse } from "@/server/lib/rate-limit";
+import { getClientIp } from "@/server/lib/request-identity";
 
 const KNOWN_ROLES = ["DONOR", "FUNDRAISER", "TEAM_LEAD", "CHARITY_ADMIN", "FINANCE", "PLATFORM_ADMIN"] as const;
 
@@ -19,6 +21,24 @@ function normalizeRole(role: unknown) {
     ? role
     : "DONOR";
 }
+
+type AuthHeaderSource = Headers | { get(name: string): string | null };
+
+export async function enforceCredentialsSignInRateLimit(headers: AuthHeaderSource, email?: string | null) {
+  return enforceRateLimitResponse(
+    {
+      namespace: "auth:credentials",
+      key: `${getClientIp(headers)}:${email?.trim().toLowerCase() || "unknown"}`,
+      limit: 5,
+      windowSec: 15 * 60,
+    },
+    "Too many requests. Please try again later.",
+  );
+}
+
+const cacheAsync = typeof cache === "function"
+  ? cache
+  : (<T extends (...args: any[]) => any>(fn: T) => fn);
 
 export const authOptions: NextAuthOptions = {
   ...(process.env.DATABASE_URL ? { adapter: PrismaAdapter(db) } : {}),
@@ -121,7 +141,7 @@ export const authOptions: NextAuthOptions = {
 };
 
 // v4 compatibility: export auth() as a drop-in for server components
-export const auth = cache(async function auth() {
+export const auth = cacheAsync(async function auth() {
   if (!authSecret) {
     return null;
   }

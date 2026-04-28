@@ -3,6 +3,7 @@ import { SectionIntro } from "@/components/ui/SectionIntro";
 import { TrustChip } from "@/components/ui/TrustChip";
 import { CharityDirectoryCard } from "@/components/charity/CharityDirectoryCard";
 import { getPublicCharityDirectory } from "@/lib/public-charities";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export const metadata: Metadata = {
   title: "Charities",
@@ -22,8 +23,8 @@ export default async function CharitiesPage() {
 
             <SectionIntro
               eyebrow="Charity directory"
-              title="Explore charities with stronger public trust signals"
-              description="Each profile is designed to help donors understand who the charity is, what it is fundraising for, and whether the public campaign surface feels credible before they ever reach checkout."
+              title="Explore charities with clearer public trust signals"
+              description="Browse verified and active charities, read their public mission, and move from trust into live appeals without losing clarity."
               actions={
                 <>
                   <span className="trust-chip bg-white text-[color:var(--color-ink-soft)]">{charities.length} listed charities</span>
@@ -37,11 +38,18 @@ export default async function CharitiesPage() {
 
       <section className="section-shell-tight section-sandband">
         <div className="site-shell">
-          <div className="grid gap-5 lg:grid-cols-3">
-            {charities.map((charity) => (
-              <CharityDirectoryCard key={charity.id} charity={charity} />
-            ))}
-          </div>
+          {charities.length > 0 ? (
+            <div className="grid gap-5 lg:grid-cols-3">
+              {charities.map((charity) => (
+                <CharityDirectoryCard key={charity.id} charity={charity} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No public charity profiles are live yet."
+              description="Charity profiles will appear here once they are active and ready for the public site."
+            />
+          )}
         </div>
       </section>
     </main>
