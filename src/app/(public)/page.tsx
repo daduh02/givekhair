@@ -103,13 +103,17 @@ function formatSupporterName(entry: RecentSupportEntry) {
 export default async function HomePage({ searchParams }: { searchParams: { category?: string; q?: string } }) {
   const session = await auth();
 
-  const baseWhere = {
+  const publicWhere = {
     status: "ACTIVE" as const,
     visibility: "PUBLIC" as const,
     charity: {
       isActive: true,
       status: "ACTIVE" as const,
     },
+  };
+
+  const listingWhere = {
+    ...publicWhere,
     ...(searchParams.category ? { category: { slug: searchParams.category } } : {}),
     ...(searchParams.q ? { title: { contains: searchParams.q, mode: "insensitive" as const } } : {}),
   };
@@ -123,8 +127,8 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
   try {
     const [explicitFeaturedAppeal, liveAppeals, recentOnline, recentOffline] = await Promise.all([
       db.appeal.findFirst({
-        where: {
-          ...baseWhere,
+          where: {
+          ...publicWhere,
           isFeaturedHomepage: true,
         },
         include: {
@@ -134,7 +138,7 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
         },
       }),
       db.appeal.findMany({
-        where: baseWhere,
+        where: listingWhere,
         include: {
           charity: { select: { name: true, logoUrl: true, isVerified: true } },
           category: { select: { slug: true, name: true } },
@@ -368,6 +372,14 @@ export default async function HomePage({ searchParams }: { searchParams: { categ
                   {category.label}
                 </Link>
               ))}
+              {(searchParams.category || searchParams.q) ? (
+                <Link
+                  href="/"
+                  className="trust-chip bg-white text-[color:var(--color-primary-dark)] hover:border-[color:var(--color-primary)]"
+                >
+                  Clear filters
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>
